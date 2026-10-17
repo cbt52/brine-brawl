@@ -4,6 +4,8 @@ import type { Net } from '../net.ts';
 
 const SEND_EVERY_MS = 100;
 const STICK_R = 70;
+const TAP_FIRE_MS = 150;
+const now = () => performance.now();
 
 /** Keyboard + mouse, plus a floating left-half touch joystick (touch v0). */
 export class Controls {
@@ -16,6 +18,8 @@ export class Controls {
   private stick: { id: number; ox: number; oy: number } | null = null;
   private base: Phaser.GameObjects.Arc;
   private knob: Phaser.GameObjects.Arc;
+  private tapUntil = 0;
+  private tapAim: { x: number; y: number } | null = null;
   aimX = 1;
   aimY = 0;
 
@@ -33,7 +37,7 @@ export class Controls {
           this.stick = { id: p.id, ox: p.x, oy: p.y };
           this.base.setPosition(p.x, p.y).setVisible(true);
           this.knob.setPosition(p.x, p.y).setVisible(true);
-        }
+        } else if (p.x >= scene.scale.width / 2) this.tapFire(now());
       } else if (p.rightButtonDown()) this.spc = true;
       else this.atk = true;
     });
@@ -45,6 +49,21 @@ export class Controls {
       }
       if (!p.wasTouch) { this.atk = false; this.spc = false; }
     });
+  }
+
+  /** Touch tap on the right half: fire at the nearest living enemy (else along the current aim). */
+  private tapFire(t: number): void {
+    const self = this.getSelf();
+    const players = this.net.last?.players ?? [];
+    let best: { x: number; y: number } | null = null;
+    let bd = Infinity;
+    for (const o of players) {
+      if (o.id === this.net.id || o.dn || !self) continue;
+      const d = Math.hypot(o.x - self.x, o.y - self.y);
+      if (d < bd) { bd = d; best = { x: (o.x - self.x) / d, y: (o.y - self.y) / d }; }
+    }
+    this.tapAim = best;
+    this.tapUntil = t + TAP_FIRE_MS;
   }
 
   private poll(): InputMsg {
@@ -77,9 +96,11 @@ export class Controls {
       this.aimX = mx / d;
       this.aimY = my / d;
     }
+    const tapping = now() < this.tapUntil;
+    if (tapping && this.tapAim) { this.aimX = this.tapAim.x; this.aimY = this.tapAim.y; }
     return {
       t: 'in', seq: this.seq, mx, my, ax: this.aimX, ay: this.aimY,
-      atk: this.atk, spc: this.spc || k.E.isDown, ult: k.Q.isDown || k.SPACE.isDown,
+      atk: this.atk || tapping, spc: this.spc || k.E.isDown, ult: k.Q.isDown || k.SPACE.isDown,
     };
   }
 

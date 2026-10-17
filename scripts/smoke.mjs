@@ -8,12 +8,12 @@ const hard = setTimeout(async () => { console.error('smoke: timeout'); await sto
 function client(name) {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(`ws://127.0.0.1:${PORT}/ws`);
-    const c = { ws, last: null, id: -1 };
+    const c = { ws, last: null, id: -1, events: [] };
     ws.on('open', () => ws.send(JSON.stringify({ t: 'join', room: 'smoke', name })));
     ws.on('message', (d) => {
       const m = JSON.parse(d.toString());
       if (m.t === 'welcome') { c.id = m.id; resolve(c); }
-      if (m.t === 'snap') c.last = m;
+      if (m.t === 'snap') { c.last = m; for (const e of m.ev) c.events.push(e); }
     });
     ws.on('error', reject);
   });
@@ -43,6 +43,20 @@ try {
     const dx = xOf(b) - x0;
     ok = dx > 150;
     if (!ok) console.error('smoke: A moved only', dx);
+  }
+  if (ok) {
+    // combat: A shoots B from 300 units away -> B loses hp and a hit event arrives
+    const dbg = (c, o) => c.ws.send(JSON.stringify({ t: 'dbg', ...o }));
+    dbg(a, { op: 'tp', x: 1000, y: 1000 });
+    dbg(b, { op: 'tp', x: 1300, y: 1000 });
+    await new Promise((r) => setTimeout(r, 1800));
+    const inp = (seq, atk) => JSON.stringify({ t: 'in', seq, mx: 0, my: 0, ax: 1, ay: 0, atk, spc: false, ult: false });
+    a.ws.send(inp(1000, true));
+    a.ws.send(inp(1001, false));
+    await new Promise((r) => setTimeout(r, 1000));
+    const hpB = b.last.players.find((p) => p.id === b.id).hp;
+    ok = hpB < 100 && b.events.some((e) => e.k === 'hit' && e.a === a.id && e.v === b.id);
+    if (!ok) console.error('smoke: shot did not land, hp', hpB);
   }
   a.ws.close();
   b.ws.close();

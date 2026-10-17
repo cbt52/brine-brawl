@@ -83,7 +83,9 @@ function onConnection(ws: WebSocket): void {
         send(ws, { t: 'pong', ts: msg.ts });
         break;
       case 'dbg':
-        if (!ALLOW_DEBUG) return;
+        if (!ALLOW_DEBUG || !joined) return;
+        if (msg.op === 'tp') joined.room.world.debugTeleport(joined.client.id, Number(msg.x), Number(msg.y));
+        else if (msg.op === 'hp') joined.room.world.debugHp(joined.client.id, Number(msg.v));
         break;
     }
   });

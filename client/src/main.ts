@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { VIEW_H } from '../../shared/constants.ts';
+import type { C2S } from '../../shared/protocol.ts';
 import { Net, BUILD_ID } from './net.ts';
 import { GameScene } from './scenes/GameScene.ts';
 
@@ -28,5 +29,6 @@ window.__brawl = {
   get room() { return net.room; },
   build: BUILD_ID,
   state: () => net.last,
+  send: (m: C2S) => net.send(m),
   game,
 };

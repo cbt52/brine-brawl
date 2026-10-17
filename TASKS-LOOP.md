@@ -266,7 +266,7 @@ Each reaction shows a big popup word ("SHOCK!").
     - Smoke: client A moves right for 1 s → client B sees A.x increase by >150.
   - Test: `npm run check && npm run smoke`
 
-- [ ] **T03 — Attack, HP, KO/respawn, touch attack, CP1 e2e** · CP: yes
+- [x] **T03 — Attack, HP, KO/respawn, touch attack, CP1 e2e** · CP: yes
   - Do:
     - World:
       - generic projectile (speed 900, range 600, dmg 20, radius 8); walls stop it;
@@ -681,3 +681,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T01-partial 🟡 2026-10-18 — server/client/smoke/shot done+green; PARTIAL: serve.sh not runnable (needs approval) → T01a
 - T01/T01a 🔴 2026-10-18 — BLOCKED: harness requires user approval to run scripts/serve.sh; check+smoke green; see checkpoint
 - T02 ✅ 2026-10-18 — shared World sim, docks arena, interp+camera, kb/mouse/touch stick; unit+smoke green
+- T03 ✅ 2026-10-18 — attack/ammo/KO/respawn, hit FX+HUD, tap-fire, cp1 e2e green; serve.sh step needs user approval (see checkpoint)

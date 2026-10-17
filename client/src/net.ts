@@ -1,4 +1,4 @@
-import type { C2S, S2C, SnapMsg } from '../../shared/protocol.ts';
+import type { C2S, S2C, SimEvent, SnapMsg } from '../../shared/protocol.ts';
 
 declare const __BUILD_ID__: string;
 export const BUILD_ID = typeof __BUILD_ID__ === 'undefined' ? 'dev' : __BUILD_ID__;
@@ -10,6 +10,8 @@ export class Net {
   last: SnapMsg | null = null;
   /** received snapshots with local arrival time, for interpolation */
   buffer: { at: number; snap: SnapMsg }[] = [];
+  /** events not yet consumed by the scene */
+  events: SimEvent[] = [];
   private ws: WebSocket | null = null;
   private overlay = document.getElementById('overlay')!;
 
@@ -50,6 +52,8 @@ export class Net {
         }
       } else if (msg.t === 'snap') {
         this.last = msg;
+        if (msg.ev.length) this.events.push(...msg.ev);
+        if (this.events.length > 200) this.events.splice(0, this.events.length - 200);
         this.buffer.push({ at: performance.now(), snap: msg });
         if (this.buffer.length > 30) this.buffer.shift();
       } else if (msg.t === 'err') {

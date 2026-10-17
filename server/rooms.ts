@@ -102,6 +102,7 @@ export class RoomManager {
       for (const c of r.clients.values()) {
         if (c.ws.readyState === 1) c.ws.send(JSON.stringify(r.world.snapshotFor(c.id)));
       }
+      r.world.clearEvents();
     }
   }
 

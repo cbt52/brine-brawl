@@ -1,4 +1,4 @@
-import type { SnapMsg, SnapPlayer } from '../../../shared/protocol.ts';
+import type { SnapMsg, SnapPlayer, SnapProj } from '../../../shared/protocol.ts';
 
 export interface Pos {
   x: number;
@@ -19,5 +19,20 @@ export function interpolate(buf: { at: number; snap: SnapMsg }[], at: number): S
     const o = prev.get(p.id);
     if (!o) return p;
     return { ...p, x: o.x + (p.x - o.x) * k, y: o.y + (p.y - o.y) * k };
+  });
+}
+
+/** Projectiles at local time `at` (nearest snapshot at or after it; positions lerped by id). */
+export function interpolateProjs(buf: { at: number; snap: SnapMsg }[], at: number): SnapProj[] {
+  if (buf.length === 0) return [];
+  const b = buf.findIndex((e) => e.at >= at);
+  if (b <= 0) return buf[Math.max(0, b === -1 ? buf.length - 1 : 0)].snap.projs;
+  const A = buf[b - 1];
+  const B = buf[b];
+  const k = (at - A.at) / Math.max(1, B.at - A.at);
+  const prev = new Map(A.snap.projs.map((p) => [p.id, p]));
+  return B.snap.projs.map((p) => {
+    const o = prev.get(p.id);
+    return o ? { ...p, x: o.x + (p.x - o.x) * k, y: o.y + (p.y - o.y) * k } : p;
   });
 }

@@ -4,7 +4,9 @@ import { OBSTACLES } from '../../../shared/arena/docks.ts';
 import { PLAYER_RADIUS } from '../../../shared/sim/world.ts';
 import type { Net } from '../net.ts';
 import { Controls } from '../input/controls.ts';
-import { interpolate, type Pos } from '../net/interp.ts';
+import { interpolate, interpolateProjs, type Pos } from '../net/interp.ts';
+import { CombatFx } from '../fx/combatFx.ts';
+import { MAX_AMMO } from '../../../shared/sim/combat.ts';
 
 const INTERP_DELAY_MS = 100;
 
@@ -14,6 +16,9 @@ export class GameScene extends Phaser.Scene {
   private controls!: Controls;
   private self: Pos | null = null;
   private camInit = false;
+  private fx!: CombatFx;
+  private koText!: Phaser.GameObjects.Text;
+  private names = new Map<number, string>();
 
   constructor(private net: Net, private viewH: number) {
     super('game');
@@ -26,6 +31,11 @@ export class GameScene extends Phaser.Scene {
     this.applyZoom();
     this.scale.on('resize', () => this.applyZoom());
     this.controls = new Controls(this, this.net, () => this.self);
+    this.fx = new CombatFx(this, (id: number) => this.names.get(id) ?? '?');
+    this.koText = this.add
+      .text(0, 0, 'KOs 0', { fontSize: '26px', color: '#fff', stroke: '#1b1b2f', strokeThickness: 5 })
+      .setScrollFactor(0)
+      .setDepth(1100);
   }
 
   private applyZoom(): void {
@@ -44,36 +54,74 @@ export class GameScene extends Phaser.Scene {
     g.lineStyle(6, 0xffc93c, 1).strokeRect(0, 0, WORLD_W, WORLD_H);
   }
 
+  private drawBars(g: Phaser.GameObjects.Graphics, x: number, y: number, frac: number, ammo: number): void {
+    const w = 56;
+    const top = y - 50;
+    g.fillStyle(0x1b1b2f, 0.8).fillRoundedRect(x - w / 2 - 2, top - 2, w + 4, 12, 4);
+    const col = frac > 0.6 ? 0x6bd968 : frac > 0.3 ? 0xffd23f : 0xe63946;
+    g.fillStyle(col, 1).fillRoundedRect(x - w / 2, top, Math.max(2, w * frac), 8, 3);
+    for (let i = 0; i < MAX_AMMO; i++) {
+      g.fillStyle(i < ammo ? 0xfff3b0 : 0x44506a, 1).fillCircle(x - 12 + i * 12, top + 18, 4);
+    }
+  }
+
+  /** Screen-space HUD: position objects relative to the (zoomed) camera. */
+  private place = (o: Phaser.GameObjects.Text, sx: number, sy: number): void => {
+    const cam = this.cameras.main;
+    const w = cam.getWorldPoint(sx, sy);
+    o.setPosition(w.x, w.y).setScale(1 / cam.zoom);
+  };
+
+  private updateHud(view: { id: number; k: number }[]): void {
+    const me = view.find((p) => p.id === this.net.id);
+    this.koText.setText('KOs ' + (me?.k ?? 0));
+    this.place(this.koText, 14, 10);
+    this.fx.layout(this.place, this.scale.width);
+  }
+
   update(time: number): void {
     this.controls.update(time);
     const g = this.gfx;
     g.clear();
     this.drawWorld(g);
 
-    const view = interpolate(this.net.buffer, performance.now() - INTERP_DELAY_MS);
+    const nowMs = performance.now();
+    const view = interpolate(this.net.buffer, nowMs - INTERP_DELAY_MS);
     const seen = new Set<number>();
     for (const p of view) {
       seen.add(p.id);
+      this.names.set(p.id, p.n);
       const me = p.id === this.net.id;
-      g.fillStyle(me ? 0xff7aa2 : 0x2ec4b6, 1).fillCircle(p.x, p.y, PLAYER_RADIUS);
-      g.lineStyle(4, 0x1b1b2f, 1).strokeCircle(p.x, p.y, PLAYER_RADIUS);
+      let t = this.labels.get(p.id);
+      if (!t) {
+        t = this.add.text(0, 0, p.n, { fontSize: '18px', color: '#fff' }).setOrigin(0.5);
+        this.labels.set(p.id, t);
+      }
+      if (p.dn) { t.setVisible(false); continue; }
+      t.setVisible(true).setPosition(p.x, p.y - 62);
+      if (me) this.self = { x: p.x, y: p.y };
+      const blink = p.sh && Math.floor(nowMs / 100) % 2 === 0;
+      const flash = (this.fx.flashUntil.get(p.id) ?? 0) > nowMs;
+      const alpha = blink ? 0.35 : 1;
+      g.fillStyle(flash ? 0xffffff : me ? 0xff7aa2 : 0x2ec4b6, alpha).fillCircle(p.x, p.y, PLAYER_RADIUS);
+      g.lineStyle(4, 0x1b1b2f, alpha).strokeCircle(p.x, p.y, PLAYER_RADIUS);
       // eyes look along the aim direction
       const ax = Math.cos((p.a * Math.PI) / 180);
       const ay = Math.sin((p.a * Math.PI) / 180);
       for (const side of [-1, 1]) {
         const ex = p.x + ax * 12 - ay * 10 * side;
         const ey = p.y + ay * 12 + ax * 10 * side;
-        g.fillStyle(0xffffff, 1).fillCircle(ex, ey, 8);
-        g.fillStyle(0x1b1b2f, 1).fillCircle(ex + ax * 3, ey + ay * 3, 4);
+        g.fillStyle(0xffffff, alpha).fillCircle(ex, ey, 8);
+        g.fillStyle(0x1b1b2f, alpha).fillCircle(ex + ax * 3, ey + ay * 3, 4);
       }
-      let t = this.labels.get(p.id);
-      if (!t) {
-        t = this.add.text(0, 0, p.n, { fontSize: '18px', color: '#fff' }).setOrigin(0.5);
-        this.labels.set(p.id, t);
-      }
-      t.setPosition(p.x, p.y - 48);
-      if (me) this.self = { x: p.x, y: p.y };
+      this.drawBars(g, p.x, p.y, p.hp / p.mhp, p.am);
     }
+    for (const pr of interpolateProjs(this.net.buffer, nowMs - INTERP_DELAY_MS)) {
+      g.fillStyle(0xfff3b0, 1).fillCircle(pr.x, pr.y, 9);
+      g.lineStyle(3, 0x1b1b2f, 1).strokeCircle(pr.x, pr.y, 9);
+    }
+    this.fx.handle(this.net.events.splice(0), this.net.id, () => navigator.vibrate?.(30));
+    this.updateHud(view);
     for (const [id, t] of this.labels) {
       if (!seen.has(id)) { t.destroy(); this.labels.delete(id); }
     }
