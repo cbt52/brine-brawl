@@ -70,7 +70,7 @@ function onConnection(ws: WebSocket): void {
     switch (msg.t) {
       case 'join': {
         if (joined) return;
-        const j = rooms.join(ws, msg.room, msg.name, msg.fighter);
+        const j = rooms.join(ws, msg.room, msg.name, msg.fighter, msg.bots);
         if (!j) { send(ws, { t: 'err', msg: 'room full' }); ws.close(); return; }
         joined = j;
         send(ws, { t: 'welcome', id: j.client.id, room: j.room.id, build: BUILD, tick: j.room.world.tick });
@@ -85,6 +85,7 @@ function onConnection(ws: WebSocket): void {
       case 'dbg':
         if (!ALLOW_DEBUG || !joined) return;
         if (msg.op === 'tp') joined.room.world.debugTeleport(joined.client.id, Number(msg.x), Number(msg.y));
+        else if (msg.op === 'bots') { joined.room.wantBots = Math.max(0, Math.min(7, Math.floor(Number(msg.n) || 0))); joined.room.syncBots(); }
         else if (msg.op === 'hp') joined.room.world.debugHp(joined.client.id, Number(msg.v));
         break;
     }

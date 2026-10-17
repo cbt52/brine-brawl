@@ -2,9 +2,11 @@ import type { WebSocket } from 'ws';
 import { MAX_HUMANS, MAX_NAME_LEN, TICK_HZ } from '../shared/constants.ts';
 import type { InputMsg } from '../shared/protocol.ts';
 import { World } from '../shared/sim/world.ts';
+import { BotBrain } from '../shared/sim/bot.ts';
 
 const ROOM_RE = /^[a-z0-9-]{1,24}$/;
 const ADJ = ['Salty', 'Soggy', 'Crispy', 'Wobbly', 'Grumpy', 'Sneaky', 'Bouncy', 'Dizzy'];
+const BOT_NAMES = ['Bot Barnacle', 'Captain Crumb', 'Sir Soggy', 'Lady Limpet', 'Dr Dribble', 'Mr Mussel', 'Baron Brine'];
 const NOUN = ['Biscuit', 'Barnacle', 'Pickle', 'Noodle', 'Clam', 'Muffin', 'Kelp', 'Crumb'];
 
 export function sanitizeRoom(raw: unknown): string {
@@ -29,6 +31,9 @@ export class Room {
   clients = new Map<number, Client>();
   world = new World();
   emptySince: number | null = Date.now();
+  bots = new Map<number, BotBrain>();
+  wantBots = 0;
+  private nextBot = 1000;
   acc = 0;
   last = Date.now();
   constructor(public id: string) {}
@@ -39,8 +44,25 @@ export class Room {
     this.last = now;
     const dt = 1 / TICK_HZ;
     let n = 0;
-    while (this.acc >= dt) { this.world.step(dt); this.acc -= dt; n++; }
+    while (this.acc >= dt) { for (const b of this.bots.values()) this.world.setInput(b.id, b.think(this.world, dt)); this.world.step(dt); this.acc -= dt; n++; }
     return n;
+  }
+
+  /** Bots fill free slots up to the requested count; humans take priority. */
+  syncBots(): void {
+    const target = Math.max(0, Math.min(this.wantBots, MAX_HUMANS - this.clients.size));
+    while (this.bots.size > target) {
+      const id = [...this.bots.keys()].pop()!;
+      this.bots.delete(id);
+      this.world.removePlayer(id);
+    }
+    while (this.bots.size < target) {
+      const id = this.nextBot++;
+      const used = new Set([...this.world.players.values()].map((p) => p.name));
+      const name = BOT_NAMES.find((n) => !used.has(n)) ?? `Bot ${id}`;
+      this.world.addPlayer(id, name, 'default', true);
+      this.bots.set(id, new BotBrain(id, 'normal'));
+    }
   }
 
   setInput(c: Client, i: InputMsg): void {
@@ -62,7 +84,7 @@ export class RoomManager {
     this.timer.unref();
   }
 
-  join(ws: WebSocket, roomRaw: unknown, nameRaw: unknown, fighterRaw: unknown): { room: Room; client: Client } | null {
+  join(ws: WebSocket, roomRaw: unknown, nameRaw: unknown, fighterRaw: unknown, botsRaw?: unknown): { room: Room; client: Client } | null {
     const id = sanitizeRoom(roomRaw);
     let room = this.rooms.get(id);
     if (!room) {
@@ -80,13 +102,21 @@ export class RoomManager {
     room.clients.set(cid, client);
     room.world.addPlayer(cid, client.name, client.fighter);
     room.emptySince = null;
+    if (room.clients.size === 1 && typeof botsRaw === 'number' && Number.isFinite(botsRaw)) {
+      room.wantBots = Math.max(0, Math.min(7, Math.floor(botsRaw)));
+    }
+    room.syncBots();
     return { room, client };
   }
 
   leave(room: Room, client: Client): void {
     room.clients.delete(client.id);
     room.world.removePlayer(client.id);
-    if (room.clients.size === 0) room.emptySince = Date.now();
+    if (room.clients.size === 0) {
+      room.emptySince = Date.now();
+      room.wantBots = 0;
+    }
+    room.syncBots();
   }
 
   sweep(now = Date.now()): void {

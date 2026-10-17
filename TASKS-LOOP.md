@@ -311,7 +311,7 @@ Each reaction shows a big popup word ("SHOCK!").
     - Visual check of the stick layout with `npm run shot -- --name T04 --device "iPhone 13" --query "room=shot"`.
   - Test: `npm run check && npx playwright test --project=mobile`
 
-- [ ] **T05 — Bots**
+- [x] **T05 — Bots**
   - Do:
     - `shared/sim/bot.ts` `class BotBrain { constructor(id, difficulty); think(world, dt): Input }`:
       - states wander → chase → kite at preferred range → flee when HP <30% (toward far spawn);
@@ -684,3 +684,5 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T03 ✅ 2026-10-18 — attack/ammo/KO/respawn, hit FX+HUD, tap-fire, cp1 e2e green; serve.sh step needs user approval (see checkpoint)
 - T04 ✅ 2026-10-18 — twin-stick touch.ts, DOM buttons+rings, rotate overlay, fullscreen, mobile e2e green
 - RF ✅ 2026-10-18 — input throttle 30/s w/ immediate flag edges, per-input aim source, serve.sh verified (T01/T01a ticked)
+- HF ✅ 2026-10-18 — serve.sh mkdir lock (.loop/serve.lock, stale >5 min dropped)
+- T05 ✅ 2026-10-18 — BotBrain (wander/chase/kite/flee, lead+error, react delay, whiskers), room bots, dbg bots, unit+smoke green

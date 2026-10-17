@@ -43,6 +43,7 @@ export interface SimPlayer {
   shield: number;
   kos: number;
   deaths: number;
+  bot?: boolean;
 }
 
 const clamp1 = (n: number) => (Number.isFinite(n) ? Math.max(-1, Math.min(1, n)) : 0);
@@ -65,13 +66,13 @@ export class World {
   events: SimEvent[] = [];
   private nextProj = 1;
 
-  addPlayer(id: number, name: string, fighter = 'default'): SimPlayer {
+  addPlayer(id: number, name: string, fighter = 'default', bot = false): SimPlayer {
     const s = SPAWNS[(id - 1) % SPAWNS.length];
     const p: SimPlayer = {
       id, name, fighter, x: s.x, y: s.y, r: PLAYER_RADIUS,
       hp: C.MAX_HP, mhp: C.MAX_HP, speedMul: 1, aim: 0, ack: 0, input: null,
       ammo: C.MAX_AMMO, reload: 0, fireCd: 0, fireLatch: false, down: false, respawn: 0,
-      shield: C.SHIELD_SEC, kos: 0, deaths: 0,
+      shield: C.SHIELD_SEC, kos: 0, deaths: 0, bot,
     };
     this.players.set(id, p);
     this.events.push({ k: 'spawn', id });

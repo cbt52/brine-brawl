@@ -3,13 +3,13 @@ import { startServer } from './lib/temp-server.mjs';
 
 const PORT = 8723;
 const stop = await startServer(PORT);
-const hard = setTimeout(async () => { console.error('smoke: timeout'); await stop(); process.exit(1); }, 20000);
+const hard = setTimeout(async () => { console.error('smoke: timeout'); await stop(); process.exit(1); }, 40000);
 
-function client(name) {
+function client(name, room = 'smoke', bots) {
   return new Promise((resolve, reject) => {
     const ws = new WebSocket(`ws://127.0.0.1:${PORT}/ws`);
     const c = { ws, last: null, id: -1, events: [] };
-    ws.on('open', () => ws.send(JSON.stringify({ t: 'join', room: 'smoke', name })));
+    ws.on('open', () => ws.send(JSON.stringify({ t: 'join', room, name, bots })));
     ws.on('message', (d) => {
       const m = JSON.parse(d.toString());
       if (m.t === 'welcome') { c.id = m.id; resolve(c); }
@@ -60,6 +60,22 @@ try {
   }
   a.ws.close();
   b.ws.close();
+  if (ok) {
+    // bots: 1 human + 3 bots; a bot must land a hit within 15 s
+    const h = await client('H', 'botroom', 3);
+    h.ws.send(JSON.stringify({ t: 'dbg', op: 'tp', x: 1200, y: 800 }));
+    const ids = new Set();
+    const until2 = Date.now() + 15000;
+    let hit = false;
+    while (Date.now() < until2 && !hit) {
+      await new Promise((r) => setTimeout(r, 100));
+      for (const p of h.last?.players ?? []) ids.add(p.id);
+      hit = h.events.some((e) => e.k === 'hit' && e.a !== h.id);
+    }
+    ok = ids.size === 4 && hit;
+    if (!ok) console.error('smoke: bots', ids.size, 'players, hit', hit);
+    h.ws.close();
+  }
 } catch (e) {
   console.error('smoke error', e);
 }
