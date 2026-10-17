@@ -8,6 +8,18 @@ fi
 mkdir -p .loop dist
 PIDFILE=.loop/server.pid
 
+# mkdir lock so parallel runs don't collide; drop stale locks (>5 min)
+LOCK=.loop/serve.lock
+if [ -d "$LOCK" ] && [ -n "$(find "$LOCK" -maxdepth 0 -mmin +5 2>/dev/null)" ]; then
+  rmdir "$LOCK" 2>/dev/null || true
+fi
+for _ in $(seq 1 120); do
+  mkdir "$LOCK" 2>/dev/null && break
+  sleep 1
+done
+[ -d "$LOCK" ] || { echo "serve: lock timeout"; exit 3; }
+trap 'rmdir "$LOCK" 2>/dev/null || true' EXIT
+
 # build into a side directory; keep the old server if it fails
 if ! OUT_DIR=dist/client.new npm run build >> .loop/build.log 2>&1; then
   echo "serve: build failed (see .loop/build.log)"
