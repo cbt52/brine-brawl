@@ -197,7 +197,7 @@ Each reaction shows a big popup word ("SHOCK!").
   - Accept: `npm run check` is green, `claude mcp list` lists playwright, `npx playwright --version` works, and the first commit is on `loop/brawler`.
   - Test: `npm run check && claude mcp list | grep -i playwright`
 
-- [ ] **T01 — One-port server, client boot, serve.sh, smoke harness**
+- [!] **T01 — One-port server, client boot, serve.sh, smoke harness**
   - Do:
     - `shared/constants.ts` (TICK_HZ=30, WORLD_W=2400, WORLD_H=1600, VIEW_H=800, PORT defaults) and `shared/protocol.ts` (PROTOCOL_VERSION, C2S: `join{room,name,fighter?,bots?}`, `in{…}`, `dbg{op,…}`, `ping`; S2C: `welcome{id,room,build,tick}`, `snap{…}`, `pong`, `err`).
     - `server/index.ts`:
@@ -239,11 +239,11 @@ Each reaction shows a big popup word ("SHOCK!").
   - Accept: the page loads on 8720, two tabs show two circles, smoke passes, serve.sh is idempotent (run it twice and you still get one server).
   - Test: `npm run check && npm run smoke && scripts/serve.sh && scripts/serve.sh && curl -sf http://127.0.0.1:8720/healthz && curl -sf http://192.168.178.60:8720/healthz`
 
-- [ ] **T01a — Verify serve.sh idempotency on 8720**
+- [!] **T01a — Verify serve.sh idempotency on 8720**
   - Left over from T01: serve.sh was written but the harness required approval to execute it, so it was never run.
   - Test: `scripts/serve.sh && scripts/serve.sh && curl -sf http://127.0.0.1:8720/healthz && curl -sf http://192.168.178.60:8720/healthz` (exactly one server process afterwards). Fix serve.sh if broken, then tick T01 and T01a.
 
-- [ ] **T02 — Authoritative movement, interpolation, touch v0**
+- [x] **T02 — Authoritative movement, interpolation, touch v0**
   - Do:
     - `shared/arena/docks.ts`: obstacles as rects (symmetric layout, 10–14 coral/crate walls), 8 spawn points, placeholder bush and shallows rect lists.
     - `shared/sim/collide.ts`: circle vs AABB push-out, world bounds, soft circle-circle separation.
@@ -679,3 +679,5 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 ## 6. LOG (one line per task/hotfix; archive older lines to `.loop/log-archive.md` if >40 lines)
 - T00 ✅ 2026-10-18 — scaffold+MCP done; .claude/settings.json write was denied by harness (add manually, MCP works anyway)
 - T01-partial 🟡 2026-10-18 — server/client/smoke/shot done+green; PARTIAL: serve.sh not runnable (needs approval) → T01a
+- T01/T01a 🔴 2026-10-18 — BLOCKED: harness requires user approval to run scripts/serve.sh; check+smoke green; see checkpoint
+- T02 ✅ 2026-10-18 — shared World sim, docks arena, interp+camera, kb/mouse/touch stick; unit+smoke green

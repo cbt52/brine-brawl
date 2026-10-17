@@ -37,12 +37,16 @@ export interface SnapPlayer {
   f: string;
   n: string;
   st: number;
+  /** aim angle in degrees */
+  a: number;
 }
 
 export interface SnapMsg {
   t: 'snap';
   tick: number;
   ts: number;
+  /** last processed input seq for the receiving client */
+  ack: number;
   players: SnapPlayer[];
   projs: unknown[];
   ev: unknown[];

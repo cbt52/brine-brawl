@@ -1,6 +1,7 @@
 import type { WebSocket } from 'ws';
-import { MAX_HUMANS, MAX_NAME_LEN } from '../shared/constants.ts';
-import type { InputMsg, SnapMsg, SnapPlayer } from '../shared/protocol.ts';
+import { MAX_HUMANS, MAX_NAME_LEN, TICK_HZ } from '../shared/constants.ts';
+import type { InputMsg } from '../shared/protocol.ts';
+import { World } from '../shared/sim/world.ts';
 
 const ROOM_RE = /^[a-z0-9-]{1,24}$/;
 const ADJ = ['Salty', 'Soggy', 'Crispy', 'Wobbly', 'Grumpy', 'Sneaky', 'Bouncy', 'Dizzy'];
@@ -22,23 +23,32 @@ export interface Client {
   ws: WebSocket;
   name: string;
   fighter: string;
-  x: number;
-  y: number;
-  input: InputMsg | null;
 }
 
 export class Room {
   clients = new Map<number, Client>();
-  tick = 0;
+  world = new World();
   emptySince: number | null = Date.now();
+  acc = 0;
+  last = Date.now();
   constructor(public id: string) {}
 
-  snapshot(): SnapMsg {
-    const players: SnapPlayer[] = [];
-    for (const c of this.clients.values()) {
-      players.push({ id: c.id, x: Math.round(c.x), y: Math.round(c.y), hp: 100, mhp: 100, f: c.fighter, n: c.name, st: 0 });
-    }
-    return { t: 'snap', tick: this.tick, ts: Date.now(), players, projs: [], ev: [] };
+  /** Advance the sim by wall-clock time using a fixed 30 Hz step. */
+  advance(now: number): number {
+    this.acc = Math.min(this.acc + (now - this.last) / 1000, 0.25);
+    this.last = now;
+    const dt = 1 / TICK_HZ;
+    let n = 0;
+    while (this.acc >= dt) { this.world.step(dt); this.acc -= dt; n++; }
+    return n;
+  }
+
+  setInput(c: Client, i: InputMsg): void {
+    const n = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
+    this.world.setInput(c.id, {
+      seq: n(i.seq), mx: n(i.mx), my: n(i.my), ax: n(i.ax), ay: n(i.ay),
+      atk: !!i.atk, spc: !!i.spc, ult: !!i.ult,
+    });
   }
 }
 
@@ -66,17 +76,16 @@ export class RoomManager {
       ws,
       name: sanitizeName(nameRaw),
       fighter: typeof fighterRaw === 'string' ? fighterRaw.slice(0, 24) : 'default',
-      x: 600 + (cid % 8) * 150,
-      y: 800,
-      input: null,
     };
     room.clients.set(cid, client);
+    room.world.addPlayer(cid, client.name, client.fighter);
     room.emptySince = null;
     return { room, client };
   }
 
   leave(room: Room, client: Client): void {
     room.clients.delete(client.id);
+    room.world.removePlayer(client.id);
     if (room.clients.size === 0) room.emptySince = Date.now();
   }
 
@@ -89,9 +98,10 @@ export class RoomManager {
   broadcast(): void {
     for (const r of this.rooms.values()) {
       if (r.clients.size === 0) continue;
-      r.tick++;
-      const msg = JSON.stringify(r.snapshot());
-      for (const c of r.clients.values()) if (c.ws.readyState === 1) c.ws.send(msg);
+      r.advance(Date.now());
+      for (const c of r.clients.values()) {
+        if (c.ws.readyState === 1) c.ws.send(JSON.stringify(r.world.snapshotFor(c.id)));
+      }
     }
   }
 

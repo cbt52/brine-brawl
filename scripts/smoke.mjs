@@ -28,6 +28,22 @@ try {
     await new Promise((r) => setTimeout(r, 50));
   }
   ok = a.last?.players.length === 2 && b.last?.players.length === 2;
+  if (ok) {
+    // A walks right for 1 s; B must see A.x grow by >150
+    const xOf = (c) => c.last.players.find((p) => p.id === a.id).x;
+    const x0 = xOf(b);
+    const t0 = Date.now();
+    let seq = 0;
+    while (Date.now() - t0 < 1000) {
+      a.ws.send(JSON.stringify({ t: 'in', seq: ++seq, mx: 1, my: 0, ax: 1, ay: 0, atk: false, spc: false, ult: false }));
+      await new Promise((r) => setTimeout(r, 50));
+    }
+    a.ws.send(JSON.stringify({ t: 'in', seq: ++seq, mx: 0, my: 0, ax: 1, ay: 0, atk: false, spc: false, ult: false }));
+    await new Promise((r) => setTimeout(r, 150));
+    const dx = xOf(b) - x0;
+    ok = dx > 150;
+    if (!ok) console.error('smoke: A moved only', dx);
+  }
   a.ws.close();
   b.ws.close();
 } catch (e) {

@@ -73,11 +73,11 @@ function onConnection(ws: WebSocket): void {
         const j = rooms.join(ws, msg.room, msg.name, msg.fighter);
         if (!j) { send(ws, { t: 'err', msg: 'room full' }); ws.close(); return; }
         joined = j;
-        send(ws, { t: 'welcome', id: j.client.id, room: j.room.id, build: BUILD, tick: j.room.tick });
+        send(ws, { t: 'welcome', id: j.client.id, room: j.room.id, build: BUILD, tick: j.room.world.tick });
         break;
       }
       case 'in':
-        if (joined) joined.client.input = msg;
+        if (joined) joined.room.setInput(joined.client, msg);
         break;
       case 'ping':
         send(ws, { t: 'pong', ts: msg.ts });

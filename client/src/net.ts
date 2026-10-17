@@ -8,6 +8,8 @@ export class Net {
   id = -1;
   room = '';
   last: SnapMsg | null = null;
+  /** received snapshots with local arrival time, for interpolation */
+  buffer: { at: number; snap: SnapMsg }[] = [];
   private ws: WebSocket | null = null;
   private overlay = document.getElementById('overlay')!;
 
@@ -48,6 +50,8 @@ export class Net {
         }
       } else if (msg.t === 'snap') {
         this.last = msg;
+        this.buffer.push({ at: performance.now(), snap: msg });
+        if (this.buffer.length > 30) this.buffer.shift();
       } else if (msg.t === 'err') {
         this.showOverlay(msg.msg);
       }
