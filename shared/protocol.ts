@@ -26,7 +26,12 @@ export interface DbgMsg {
   [k: string]: unknown;
 }
 
-export type C2S = JoinMsg | InputMsg | DbgMsg | { t: 'ping'; ts?: number };
+export interface BotsMsg {
+  t: 'bots';
+  n: number;
+}
+
+export type C2S = JoinMsg | InputMsg | DbgMsg | BotsMsg | { t: 'ping'; ts?: number };
 
 export interface SnapPlayer {
   id: number;

@@ -79,6 +79,13 @@ function onConnection(ws: WebSocket): void {
       case 'in':
         if (joined) joined.room.setInput(joined.client, msg);
         break;
+      case 'bots':
+        // host (first human in the room) adjusts the bot count
+        if (joined && joined.room.clients.keys().next().value === joined.client.id) {
+          joined.room.wantBots = Math.max(0, Math.min(7, Math.floor(Number(msg.n) || 0)));
+          joined.room.syncBots();
+        }
+        break;
       case 'ping':
         send(ws, { t: 'pong', ts: msg.ts });
         break;

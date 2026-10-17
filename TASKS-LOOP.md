@@ -326,7 +326,10 @@ Each reaction shows a big popup word ("SHOCK!").
     - Smoke: room with 1 ws client + `bots=3`, 20 s → at least one hit event where `a` is a bot.
   - Test: `npm run check && npm run smoke`
 
-- [ ] **T06 — Lobby & invite flow (DOM overlay)**
+- [x] **T06 — Lobby & invite flow (DOM overlay)**
+  - Done: lobby (title wobble, name prefilled from localStorage), Quick Play / Create Room / Join-with-code
+    (bare code or pasted link), invite panel with clipboard fallback + share, ☰ menu (invite, ±Bot host-only, Leave),
+    invite links always ask first. 6 desktop + 7 mobile e2e green.
   - Do:
     - `client/src/ui/` DOM overlay with cartoon CSS. Font Lilita One via `npm i @fontsource/lilita-one` (OFL → add to ASSETS.md).
     - Title "BRINE BRAWL" with a wobbly CSS animation.
@@ -686,3 +689,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - RF ✅ 2026-10-18 — input throttle 30/s w/ immediate flag edges, per-input aim source, serve.sh verified (T01/T01a ticked)
 - HF ✅ 2026-10-18 — serve.sh mkdir lock (.loop/serve.lock, stale >5 min dropped)
 - T05 ✅ 2026-10-18 — BotBrain (wander/chase/kite/flee, lead+error, react delay, whiskers), room bots, dbg bots, unit+smoke green
+- T06 ✅ 2026-10-18 — DOM lobby+invite+☰ menu, clipboard fallback, bots msg; portrait rotate hint no longer covers menus

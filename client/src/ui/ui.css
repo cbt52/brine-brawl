@@ -1,0 +1,31 @@
+/* portrait rotate hint covers gameplay, not the lobby (you type your name in portrait) */
+body.in-lobby #rotate { display: none; }
+#lobby { position: fixed; inset: 0; z-index: 15; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px; padding: 12px; background: radial-gradient(circle at 50% 30%, #1d5a78, #0e2a3a 70%); color: #fff;
+  font-family: 'Lilita One', system-ui, sans-serif; overflow: auto; touch-action: pan-y; }
+#lobby .title { margin: 0 0 4px; font-size: clamp(26px, 10vw, 72px); font-weight: 400; color: #ffc93c; letter-spacing: 2px;
+  white-space: nowrap;   /* never wrap the 10 letters onto a second line */
+  -webkit-text-stroke: 3px #1b1b2f; paint-order: stroke fill; text-shadow: 0 4px 0 #1b1b2f; }
+#lobby .title span { display: inline-block; animation: wob 1.6s ease-in-out infinite; }
+#lobby .title span:nth-child(odd) { animation-delay: -.8s; }
+@keyframes wob { 0%, 100% { transform: rotate(-4deg) translateY(0); } 50% { transform: rotate(4deg) translateY(-5px); } }
+.field { font: inherit; font-size: 18px; padding: 8px 12px; border-radius: 12px; border: 3px solid #1b1b2f; background: #fff; color: #1b1b2f;
+  width: min(280px, 80vw); box-sizing: border-box; user-select: text; -webkit-user-select: text; }
+.field::placeholder { color: #5f6274; opacity: 1; }
+.big { font: inherit; font-size: 22px; padding: 10px 28px; border-radius: 14px; border: 3px solid #1b1b2f; background: #17998c; color: #fff;
+  text-shadow: 0 2px 0 #1b1b2f; box-shadow: 0 4px 0 #1b1b2f; cursor: pointer; min-width: 200px; touch-action: manipulation; }
+.big.alt { background: #d95f86; }
+.big.go { background: #e63946; }
+.big.sm { font-size: 16px; padding: 6px 14px; min-width: 0; }
+.big:active { transform: translateY(3px); box-shadow: 0 1px 0 #1b1b2f; }
+.row { display: flex; gap: 8px; align-items: center; justify-content: center; }
+#lobby .code { width: min(200px, 50vw); }
+.err { color: #ffb4b4; margin: 0; min-height: 1em; font-size: 14px; }
+.sub { margin: 0; font-size: 20px; }
+.panel { position: fixed; z-index: 30; left: 50%; top: 50%; transform: translate(-50%, -50%); display: flex; flex-direction: column; gap: 8px;
+  align-items: center; padding: 14px 18px; border-radius: 16px; border: 3px solid #1b1b2f; background: #0e2a3af2; color: #fff;
+  font-family: 'Lilita One', system-ui, sans-serif; }
+#menu { left: auto; right: calc(6px + env(safe-area-inset-right)); top: calc(48px + env(safe-area-inset-top)); transform: none; }
+#invite .field { width: min(360px, 76vw); font-size: 14px; }
+#menu-btn { position: fixed; z-index: 30; top: calc(6px + env(safe-area-inset-top)); right: calc(48px + env(safe-area-inset-right));
+  width: 36px; height: 36px; border-radius: 8px; border: 2px solid #fff6; background: #0008; color: #fff; font-size: 18px; }

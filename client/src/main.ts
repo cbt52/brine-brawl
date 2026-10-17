@@ -1,11 +1,35 @@
+import '@fontsource/lilita-one';
+import './ui/ui.css';
 import Phaser from 'phaser';
 import { VIEW_H } from '../../shared/constants.ts';
 import type { C2S } from '../../shared/protocol.ts';
 import { Net, BUILD_ID } from './net.ts';
 import { GameScene } from './scenes/GameScene.ts';
+import { showLobby } from './ui/lobby.ts';
+import { mountMenu, showInvite } from './ui/menu.ts';
 
 const params = new URLSearchParams(location.search);
-const net = new Net(params);
+const net = new Net();
+
+// ?room=…&name/bots (our own links) goes straight in; a plain invite link always
+// shows the "Join room x" screen with the (saved) name prefilled. No ?room= → lobby.
+const roomParam = params.get('room');
+const savedName = localStorage.getItem('brawl.name');
+if (roomParam && (params.has('name') || params.has('bots'))) {
+  net.start(params);
+  mountMenu(net);
+} else {
+  void showLobby(roomParam, params.get('name') ?? savedName).then((c) => {
+    const q = new URLSearchParams(params);
+    q.set('room', c.room);
+    if (c.name) q.set('name', c.name);
+    q.set('bots', String(c.bots));
+    history.replaceState(null, '', `/?room=${encodeURIComponent(c.room)}`);
+    net.start(q);
+    mountMenu(net);
+    if (c.invite) showInvite(c.room);
+  });
+}
 
 document.getElementById('build')!.textContent = BUILD_ID;
 

@@ -15,7 +15,11 @@ export class Net {
   private ws: WebSocket | null = null;
   private overlay = document.getElementById('overlay')!;
 
-  constructor(private params: URLSearchParams) {
+  private params: URLSearchParams | null = null;
+
+  /** Connect and join; called once the lobby (or a ?room= link) has decided. */
+  start(params: URLSearchParams): void {
+    this.params = params;
     this.connect();
   }
 
@@ -30,7 +34,7 @@ export class Net {
     const ws = new WebSocket(`${proto}://${location.host}/ws`);
     this.ws = ws;
     ws.onopen = () => {
-      const p = this.params;
+      const p = this.params!;
       const bots = p.get('bots');
       this.send({
         t: 'join',
