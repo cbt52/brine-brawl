@@ -1,0 +1,42 @@
+{
+  "name": "brine-brawl",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "vitest run",
+    "build": "vite build",
+    "start": "node --import tsx server/index.ts",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "ip-check": "node scripts/ip-check.mjs",
+    "check": "npm run typecheck && npm run lint && npm run ip-check && npm run test",
+    "smoke": "node scripts/smoke.mjs",
+    "shot": "node scripts/shot.mjs",
+    "e2e": "playwright test --project=desktop",
+    "e2e:all": "playwright test"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "private": "true",
+  "dependencies": {
+    "phaser": "^3.90.0",
+    "sirv": "^3.0.2",
+    "ws": "^8.22.0"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^26.6.5",
+    "@types/ws": "^8.18.2",
+    "eslint": "^10.13.0",
+    "globals": "^17.13.0",
+    "tsx": "^4.23.15",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.71.2",
+    "vite": "^8.3.4",
+    "vitest": "^5.0.5"
+  }
+}
