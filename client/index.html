@@ -13,11 +13,31 @@
   #overlay { position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
     background: #000a; color: #fff; font-size: 20px; text-align: center; z-index: 10; }
   #overlay.show { display: flex; }
+  #touch-ui { position: fixed; inset: 0; pointer-events: none; z-index: 5; display: none; }
+  #touch-ui.on { display: block; }
+  .stick { position: fixed; border-radius: 50%; transform: translate(-50%, -50%); pointer-events: none; }
+  .stick.base { width: 140px; height: 140px; background: #fff2; border: 3px solid #fff5; }
+  .stick.knob { width: 64px; height: 64px; background: #fff7; border: 3px solid #1b1b2f; }
+  .stick.aim.base { background: #ffc93c22; border-color: #ffc93c88; }
+  .btn { position: fixed; pointer-events: auto; touch-action: none; border-radius: 50%; border: 4px solid #1b1b2f;
+    color: #fff; text-shadow: 0 1px 2px #000; font: 800 12px system-ui, sans-serif; width: 74px; height: 74px; --p: 100; --c: #fff;
+    background: conic-gradient(var(--c) calc(var(--p) * 1%), #0b1f2c99 0); -webkit-tap-highlight-color: transparent; }
+  .btn.spc { right: calc(18px + env(safe-area-inset-right)); bottom: calc(150px + env(safe-area-inset-bottom)); --c: #2ec4b6; }
+  .btn.ult { --p: 0; --c: #ffe08a; right: calc(104px + env(safe-area-inset-right)); bottom: calc(70px + env(safe-area-inset-bottom)); }
+  .btn.ult.ready { box-shadow: 0 0 18px 6px #ffc93c; --c: #ffc93c; }
+  #fs { position: fixed; top: calc(6px + env(safe-area-inset-top)); right: calc(6px + env(safe-area-inset-right)); z-index: 6;
+    display: none; width: 36px; height: 36px; border-radius: 8px; border: 2px solid #fff6; background: #0008; color: #fff; }
+  #rotate { position: fixed; inset: 0; z-index: 20; display: none; background: #0e2a3a; color: #fff; font-size: 22px;
+    align-items: center; justify-content: center; text-align: center; padding: 24px; }
+  @media (orientation: portrait) and (pointer: coarse) { #rotate { display: flex; } }
 </style>
 </head>
 <body>
 <div id="game"></div>
 <div id="build" data-testid="build"></div>
+<div id="touch-ui" data-testid="touch-ui"></div>
+<button id="fs" data-testid="fullscreen" aria-label="Fullscreen">&#x26F6;</button>
+<div id="rotate" data-testid="rotate">&#x1F4F1; Rotate your phone to landscape</div>
 <div id="overlay" data-testid="overlay"></div>
 <script type="module" src="/src/main.ts"></script>
 </body>

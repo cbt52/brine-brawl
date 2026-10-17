@@ -294,7 +294,7 @@ Each reaction shows a big popup word ("SHOCK!").
 
 ### CP2 — "Handy-Steuerung, Bots, Einladungslink, Match"
 
-- [ ] **T04 — Touch controls v1 (twin-stick) + mobile polish**
+- [x] **T04 — Touch controls v1 (twin-stick) + mobile polish**
   - Do:
     - `client/src/input/touch.ts`:
       - left floating move stick;
@@ -682,3 +682,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T01/T01a 🔴 2026-10-18 — BLOCKED: harness requires user approval to run scripts/serve.sh; check+smoke green; see checkpoint
 - T02 ✅ 2026-10-18 — shared World sim, docks arena, interp+camera, kb/mouse/touch stick; unit+smoke green
 - T03 ✅ 2026-10-18 — attack/ammo/KO/respawn, hit FX+HUD, tap-fire, cp1 e2e green; serve.sh step needs user approval (see checkpoint)
+- T04 ✅ 2026-10-18 — twin-stick touch.ts, DOM buttons+rings, rotate overlay, fullscreen, mobile e2e green

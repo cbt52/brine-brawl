@@ -32,3 +32,21 @@ window.__brawl = {
   send: (m: C2S) => net.send(m),
   game,
 };
+
+// Mobile polish: no double-tap zoom / long-press menus / selection; fullscreen only where supported.
+for (const ev of ['contextmenu', 'selectstart', 'gesturestart'])
+  document.addEventListener(ev, (e) => e.preventDefault());
+let lastTouchEnd = 0;
+document.addEventListener('touchend', (e) => {
+  const t = performance.now();
+  if (t - lastTouchEnd < 350) e.preventDefault();
+  lastTouchEnd = t;
+}, { passive: false });
+const fs = document.getElementById('fs');
+if (fs && document.documentElement.requestFullscreen && (navigator.maxTouchPoints > 0 || 'ontouchstart' in window)) {
+  fs.style.display = 'block';
+  fs.addEventListener('click', () => {
+    if (document.fullscreenElement) void document.exitFullscreen();
+    else void document.documentElement.requestFullscreen();
+  });
+}
