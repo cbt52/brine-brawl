@@ -4,6 +4,7 @@ import type { Net } from '../net.ts';
 import { TouchControls, isTouchDevice } from './touch.ts';
 
 const SEND_EVERY_MS = 100;
+const MIN_GAP_MS = 33;
 
 /** Keyboard + mouse, plus twin-stick touch controls (see touch.ts). */
 export class Controls {
@@ -11,6 +12,8 @@ export class Controls {
   private seq = 0;
   private lastSent = 0;
   private lastKey = '';
+  private lastFlags = '';
+  private lastWasTouch = false;
   private atk = false;
   private spc = false;
   private touch: TouchControls | null = null;
@@ -24,7 +27,9 @@ export class Controls {
     scene.input.mouse?.disableContextMenu();
     if (isTouchDevice()) this.touch = new TouchControls(scene, getSelf, () => this.nearestEnemy());
 
+    scene.input.on('pointermove', (p: Phaser.Input.Pointer) => { this.lastWasTouch = p.wasTouch; });
     scene.input.on('pointerdown', (p: Phaser.Input.Pointer) => {
+      this.lastWasTouch = p.wasTouch;
       if (p.wasTouch) return;
       if (p.rightButtonDown()) this.spc = true;
       else this.atk = true;
@@ -55,9 +60,9 @@ export class Controls {
     if (t) {
       t.update();
       if (t.mx || t.my) { mx = t.mx; my = t.my; }
-      this.aimX = t.aimX;
-      this.aimY = t.aimY;
-    } else {
+      if (this.lastWasTouch) { this.aimX = t.aimX; this.aimY = t.aimY; }
+    }
+    if (!t || !this.lastWasTouch) {
       const self = this.getSelf();
       if (self) {
         const ptr = this.scene.input.activePointer;
@@ -78,7 +83,10 @@ export class Controls {
   update(now: number): void {
     const m = this.poll();
     const key = [m.mx.toFixed(2), m.my.toFixed(2), m.ax.toFixed(2), m.ay.toFixed(2), m.atk, m.spc, m.ult].join();
-    if (key !== this.lastKey || now - this.lastSent >= SEND_EVERY_MS) {
+    const flags = `${m.atk}${m.spc}${m.ult}`;
+    const gap = now - this.lastSent;
+    if ((flags !== this.lastFlags) || (key !== this.lastKey && gap >= MIN_GAP_MS) || gap >= SEND_EVERY_MS) {
+      this.lastFlags = flags;
       m.seq = ++this.seq;
       this.net.send(m);
       this.lastKey = key;

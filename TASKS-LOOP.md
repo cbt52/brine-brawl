@@ -197,7 +197,7 @@ Each reaction shows a big popup word ("SHOCK!").
   - Accept: `npm run check` is green, `claude mcp list` lists playwright, `npx playwright --version` works, and the first commit is on `loop/brawler`.
   - Test: `npm run check && claude mcp list | grep -i playwright`
 
-- [!] **T01 — One-port server, client boot, serve.sh, smoke harness**
+- [x] **T01 — One-port server, client boot, serve.sh, smoke harness**
   - Do:
     - `shared/constants.ts` (TICK_HZ=30, WORLD_W=2400, WORLD_H=1600, VIEW_H=800, PORT defaults) and `shared/protocol.ts` (PROTOCOL_VERSION, C2S: `join{room,name,fighter?,bots?}`, `in{…}`, `dbg{op,…}`, `ping`; S2C: `welcome{id,room,build,tick}`, `snap{…}`, `pong`, `err`).
     - `server/index.ts`:
@@ -239,7 +239,7 @@ Each reaction shows a big popup word ("SHOCK!").
   - Accept: the page loads on 8720, two tabs show two circles, smoke passes, serve.sh is idempotent (run it twice and you still get one server).
   - Test: `npm run check && npm run smoke && scripts/serve.sh && scripts/serve.sh && curl -sf http://127.0.0.1:8720/healthz && curl -sf http://192.168.178.60:8720/healthz`
 
-- [!] **T01a — Verify serve.sh idempotency on 8720**
+- [x] **T01a — Verify serve.sh idempotency on 8720**
   - Left over from T01: serve.sh was written but the harness required approval to execute it, so it was never run.
   - Test: `scripts/serve.sh && scripts/serve.sh && curl -sf http://127.0.0.1:8720/healthz && curl -sf http://192.168.178.60:8720/healthz` (exactly one server process afterwards). Fix serve.sh if broken, then tick T01 and T01a.
 
@@ -683,3 +683,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T02 ✅ 2026-10-18 — shared World sim, docks arena, interp+camera, kb/mouse/touch stick; unit+smoke green
 - T03 ✅ 2026-10-18 — attack/ammo/KO/respawn, hit FX+HUD, tap-fire, cp1 e2e green; serve.sh step needs user approval (see checkpoint)
 - T04 ✅ 2026-10-18 — twin-stick touch.ts, DOM buttons+rings, rotate overlay, fullscreen, mobile e2e green
+- RF ✅ 2026-10-18 — input throttle 30/s w/ immediate flag edges, per-input aim source, serve.sh verified (T01/T01a ticked)
