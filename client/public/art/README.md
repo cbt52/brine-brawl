@@ -138,6 +138,11 @@ scripts/art3d.mjs ──► blender -b --factory-startup --python scripts/blende
   (flat colours + outline).
 - `npm run art:selftest -- --contact` renders a capsule + sphere + cone test figure and writes
   `.loop/shots/T34-contact.png` (row 1: 1×, row 2: 48 px, row 3: 48 px grayscale).
+- Arena ground (`npm run art:arena -- docks`): a straight top-down ortho of the 2400×1600 world, saved at
+  0.75× as `arena/docks-ground.jpg` (≤ 450 KB). Flat things only (lagoon bands, foam, sand, planks, tide-pool
+  beds, pebbles); contact shadows come from hidden caster slabs on the collision rects. Ground colours are
+  palette × a light factor (0.66 shadow … 1.0 sun) and stay ≤ 45 % saturation (p95, checked by the script and
+  the budget test). `?art=svg` skips it and paints the old ground; `?rects=1` outlines every gameplay rect.
 
 ## Originality
 

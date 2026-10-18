@@ -9,15 +9,15 @@
  * EEVEE fallbacks: retry once with `--gpu-backend metal`, then Workbench (flat + outline).
  */
 import { spawnSync } from 'node:child_process';
-import { accessSync, constants, existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
-import { delimiter, join } from 'node:path';
+import { existsSync, mkdirSync, readFileSync, statSync } from 'node:fs';
+import { join } from 'node:path';
+import { findBlender } from './lib/blender.mjs';
 import { frameNames, specColours, validateSpec } from './lib/spec3d.mjs';
 import { packAtlas } from './lib/pack.mjs';
 import { alphaBox, contactSheet, downsample2x, paletteHits, pixelHex, readRGBA, trimFrame } from './lib/frames3d.mjs';
 
 const SPECS = 'scripts/blender/specs';
 const SCRIPT = 'scripts/blender/render_fighter.py';
-const MAC_APP = '/Applications/Blender.app/Contents/MacOS/Blender';
 const TIMEOUT_MS = 8 * 60 * 1000;
 const FEET_Y = 112;
 const SPRITES = 'client/public/art/sprites';
@@ -44,27 +44,6 @@ function parseArgs(argv) {
 function fail(msg) {
   console.error(`art3d: ${msg}`);
   process.exit(1);
-}
-
-function isExe(p) {
-  try {
-    accessSync(p, constants.X_OK);
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-function findBlender() {
-  if (process.env.BLENDER) {
-    if (isExe(process.env.BLENDER)) return process.env.BLENDER;
-    fail(`BLENDER=${process.env.BLENDER} is not an executable`);
-  }
-  for (const dir of (process.env.PATH ?? '').split(delimiter)) {
-    if (dir && isExe(join(dir, 'blender'))) return join(dir, 'blender');
-  }
-  if (isExe(MAC_APP)) return MAC_APP;
-  fail('Blender not found. Install Blender 4.2+ and put `blender` on PATH, or set BLENDER=/path/to/blender.');
 }
 
 function runBlender(blender, specPath, frameDir, engine, gpuMetal, still) {
@@ -165,7 +144,7 @@ async function processId(blender, id, o) {
 }
 
 const o = parseArgs(process.argv.slice(2));
-const blender = findBlender();
+const blender = findBlender(fail);
 const t0 = Date.now();
 let ok = true;
 for (const id of o.ids) ok = (await processId(blender, id, o)) && ok;

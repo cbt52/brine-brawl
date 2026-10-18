@@ -4,6 +4,7 @@ import { DECOR, type Rect } from '../../../shared/arena/docks.ts';
 import { type Arena, type ArenaId, DOCKS_ARENA } from '../../../shared/arena/arena.ts';
 import { waterRects } from '../../../shared/sim/tide.ts';
 import { paintDeck } from './deckArt.ts';
+import { debugRects, groundKey, rectsWanted } from './ground.ts';
 
 const DEEP = 0x0e3a4e;
 const SAND = 0xe9d6a6;
@@ -28,14 +29,17 @@ export class ArenaArt {
   private arenaId?: ArenaId;
   /** the on-screen layout's flood pools (empty on the deck) */
   private pools: readonly Rect[] = [];
+  /** `?rects=1` debug outlines (depth 40, above everything in the world) */
+  private rects?: Phaser.GameObjects.Graphics;
 
-  constructor(scene: Phaser.Scene, opts: { lowfx?: boolean } = {}) {
+  constructor(scene: Phaser.Scene, opts: { lowfx?: boolean; rects?: boolean } = {}) {
     this.scene = scene;
     this.lowfx = Boolean(opts.lowfx);
     this.ground = scene.add.renderTexture(0, 0, WORLD_W, WORLD_H).setOrigin(0).setDepth(0);
     this.kelp = scene.add.graphics().setDepth(26);
     this.water = scene.add.graphics().setDepth(1);
     this.waves = scene.add.graphics().setDepth(2);
+    if (opts.rects ?? rectsWanted()) this.rects = scene.add.graphics().setDepth(40);
     this.setArena(DOCKS_ARENA);
   }
 
@@ -45,12 +49,31 @@ export class ArenaArt {
     this.arenaId = arena.id;
     this.pools = arena.shallows;
     const g = this.scene.make.graphics({}, false);
-    this.paint(g, arena);
     this.ground.clear();
+    const key = groundKey(arena.id);
+    if (arena.id === 'docks' && this.scene.textures.exists(key)) {
+      // the Blender ground (T42) holds the flat things; walls and barrels still paint on top until T43
+      const img = this.scene.make.image({ key }, false).setOrigin(0).setDisplaySize(WORLD_W, WORLD_H);
+      this.ground.draw(img);
+      img.destroy();
+      this.paintProps(g, arena);
+    } else this.paint(g, arena);
     this.ground.draw(g);
     g.destroy();
     this.kelp.clear();
     this.paintBushes(arena.bushes);
+    this.paintRects(arena);
+  }
+
+  /** Outlines every gameplay rect (`?rects=1`) so art can be checked against collision. */
+  private paintRects(arena: Arena): void {
+    const g = this.rects;
+    if (!g) return;
+    g.clear();
+    for (const { r, color } of debugRects(arena)) {
+      g.fillStyle(color, 0.12).fillRect(r.x, r.y, r.w, r.h);
+      g.lineStyle(2, color, 0.95).strokeRect(r.x, r.y, r.w, r.h);
+    }
   }
 
   /** lagoon, sand island, pier planks, shallows, coral walls, props, vignette (the deck has its own) */
@@ -84,6 +107,23 @@ export class ArenaArt {
       g.fillStyle(0x7d967f, 0.5).fillEllipse(s.x + s.w / 2, s.y + s.h / 2, s.w * 0.62, s.h * 0.62);
     }
 
+    this.paintProps(g, arena);
+
+    // edge vignette
+    for (let i = 0; i < 6; i++) {
+      const a = 0.06 + i * 0.025;
+      const t = 14 + i * 12;
+      g.fillStyle(0x04141c, a);
+      g.fillRect(0, 0, WORLD_W, t);
+      g.fillRect(0, WORLD_H - t, WORLD_W, t);
+      g.fillRect(0, 0, t, WORLD_H);
+      g.fillRect(WORLD_W - t, 0, t, WORLD_H);
+    }
+    g.lineStyle(8, 0x0b2a38, 1).strokeRect(0, 0, WORLD_W, WORLD_H);
+  }
+
+  /** coral walls and barrels/crates, painted top-down (T43 turns them into 3D sprites) */
+  private paintProps(g: Phaser.GameObjects.Graphics, arena: Arena): void {
     // coral walls, exactly on the collision rects
     for (const o of arena.obstacles) {
       g.fillStyle(CORAL_DARK, 1).fillRoundedRect(o.x + 4, o.y + 6, o.w, o.h, 18);
@@ -113,18 +153,6 @@ export class ArenaArt {
         g.lineBetween(cx - d.w / 2 + 3, cy, cx + d.w / 2 - 3, cy);
       }
     }
-
-    // edge vignette
-    for (let i = 0; i < 6; i++) {
-      const a = 0.06 + i * 0.025;
-      const t = 14 + i * 12;
-      g.fillStyle(0x04141c, a);
-      g.fillRect(0, 0, WORLD_W, t);
-      g.fillRect(0, WORLD_H - t, WORLD_W, t);
-      g.fillRect(0, 0, t, WORLD_H);
-      g.fillRect(WORLD_W - t, 0, t, WORLD_H);
-    }
-    g.lineStyle(8, 0x0b2a38, 1).strokeRect(0, 0, WORLD_W, WORLD_H);
   }
 
   /** kelp patches sit above the rigs so a hidden fighter is genuinely obscured */

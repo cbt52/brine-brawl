@@ -19,7 +19,8 @@
     "balance": "node --import tsx scripts/balance.ts",
     "art:3d": "node scripts/art3d.mjs",
     "art:selftest": "node scripts/art3d.mjs selftest --still --shot T34",
-    "comfy": "node scripts/comfy.mjs"
+    "comfy": "node scripts/comfy.mjs",
+    "art:arena": "node --import tsx scripts/art-arena.mjs"
   },
   "keywords": [],
   "author": "",

@@ -11,6 +11,7 @@ Server-authoritative Node + `ws`; Phaser 3 client. Task plan: `TASKS-LOOP.md` (f
 - `npm run e2e` (desktop) / `npm run e2e:all` — Playwright
 - `scripts/serve.sh` — build + (re)start live server on 8720
 - `npm run art:3d -- <id…> [--still] [--contact]` — Blender 3D sprites (`$BLENDER`, `blender` on PATH, or /Applications/Blender.app)
+- `npm run art:arena -- docks` — Blender top-down ground → `client/public/art/arena/docks-ground.jpg` (layout from `shared/arena/` via tsx)
 - `npm run art:selftest -- --contact` — toolchain check → `.loop/shots/T34-contact.png` (`npm run check` never needs Blender)
 
 ## Directory map
@@ -18,7 +19,7 @@ Server-authoritative Node + `ws`; Phaser 3 client. Task plan: `TASKS-LOOP.md` (f
 - `server/` — http + ws on one port, rooms, match flow
 - `client/src/{scenes,net,ui,input,fx,audio,art}`, `client/public/art/`
 - `tests/{unit,e2e}`, `scripts/`
-- `scripts/blender/{lib,specs}` (Blender Python: toon/cam/build + per-fighter specs), `scripts/art3d.mjs`,
+- `scripts/blender/{lib,specs}` (Blender Python: toon/cam/build + per-fighter specs; `render_arena.py` + `lib/ground.py` for grounds), `scripts/art3d.mjs`, `scripts/art-arena.mjs`,
   `scripts/lib/{pack,spec3d,frames3d,indexed-png}.mjs`; raw 3D frames go to `.loop/tmp/art3d/` (never commit `.blend`),
   rendered atlases to `client/public/art/sprites/<id>.{png,json}`
 

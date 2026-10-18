@@ -22,6 +22,7 @@ import { hasStatus, type Element } from '../../../shared/fighters/types.ts';
 import { FighterSprite, preloadArt } from '../art/rig.ts';
 import { getArt } from '../art/manifest.ts';
 import { ArenaArt } from '../art/arena.ts';
+import { preloadGround } from '../art/ground.ts';
 import { musicEnabled, sfxEnabled, shakeEnabled } from '../ui/settings.ts';
 import { Sfx } from '../audio/sfx.ts';
 import { Shanty } from '../audio/music.ts';
@@ -93,6 +94,7 @@ export class GameScene extends Phaser.Scene {
 
   preload(): void {
     preloadArt(this);
+    preloadGround(this);
   }
 
   /** What each body shows (debug hook / e2e, T37): sheet or SVG, texture key, frame and depth. */

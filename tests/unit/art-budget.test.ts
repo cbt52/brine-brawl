@@ -56,3 +56,18 @@ describe('fighter atlases (art budget)', () => {
     }
   });
 });
+
+describe('arena ground (art budget)', () => {
+  const JPG = 'client/public/art/arena/docks-ground.jpg';
+
+  it('docks-ground.jpg is 1800×1200 (0.75× the world), ≤ 450 KB, and muted (p95 saturation ≤ 45 %)', async () => {
+    const { default: sharp } = await import('sharp');
+    const { saturationStats } = await import('../../scripts/lib/ground-stats.mjs');
+    expect(statSync(JPG).size).toBeLessThanOrEqual(450 * 1024);
+    const { data, info } = await sharp(JPG).raw().toBuffer({ resolveWithObject: true });
+    expect([info.width, info.height]).toEqual([1800, 1200]);
+    const st = saturationStats({ data, channels: info.channels });
+    expect(st.p95).toBeLessThanOrEqual(0.45);
+    expect(st.black).toBe(0);
+  });
+});

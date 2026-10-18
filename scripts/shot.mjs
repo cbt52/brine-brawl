@@ -26,6 +26,8 @@ try {
   const ctxOpts = mobile ? { ...devices[device] } : { viewport: { width: 1280, height: 720 } };
   for (let i = 0; i < clients; i++) {
     const ctx = await browser.newContext(ctxOpts);
+    // the first-visit tutorial card covers the match; `--tips` keeps it
+    if (!('tips' in args)) await ctx.addInitScript(() => localStorage.setItem('brawl.tutorial', 'seen'));
     const page = await ctx.newPage();
     const q = query ? `?${query}${clients > 1 ? `&name=P${i}` : ''}` : '';
     await page.goto(`http://127.0.0.1:8722${pagePath}${q}`);
