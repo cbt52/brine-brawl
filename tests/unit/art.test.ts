@@ -67,3 +67,48 @@ describe('fighter art (client/public/art)', () => {
     expect(onDisk.sort()).toEqual(expected);
   });
 });
+
+describe('3D blockouts (client/public/art/ref)', () => {
+  const REF = join(DIR, 'ref');
+
+  for (const art of ART) {
+    it(`${art.id} ships a parts model and three 128 px views`, () => {
+      const parts = JSON.parse(readFileSync(join(REF, `${art.id}.parts.json`), 'utf8'));
+      expect(parts.id).toBe(art.id);
+      expect(parts.parts.length).toBeGreaterThan(4);
+      for (const view of ['front', 'side', 'q34'] as const) {
+        const png = readFileSync(join(REF, `${art.id}-${view}.png`));
+        expect(png.subarray(1, 4).toString('ascii')).toBe('PNG');
+        expect(png.readUInt32BE(16)).toBe(128);
+        expect(png.readUInt32BE(20)).toBe(128);
+      }
+    });
+  }
+
+  it('keeps one light direction for the whole roster', () => {
+    // art-gen nudges the AO copy down-right and the rim copy up-left in every shaded part
+    for (const art of ART) {
+      const svg = read(`${art.id}.svg`);
+      expect(svg).toContain('translate(0 2.6)');
+      expect(svg).toContain('translate(-2.4 -2.6)');
+    }
+  });
+});
+
+describe('likeness pass', () => {
+  const md = readFileSync(join(DIR, 'LIKENESS.md'), 'utf8');
+
+  it('covers all 24 roster fighters', () => {
+    const roster = ART.filter((a) => a.id !== 'default');
+    expect(roster.length).toBe(24);
+    for (const art of roster) expect(md).toContain(`\`${art.id}\``);
+  });
+
+  it('names three cues per fighter', () => {
+    for (const line of md.split('\n').filter((l) => l.startsWith('| `'))) {
+      const cells = line.split('|');
+      expect(cells.length).toBeGreaterThanOrEqual(4);
+      expect(cells[2].split('·').length).toBe(3);
+    }
+  });
+});

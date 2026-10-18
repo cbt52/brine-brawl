@@ -156,71 +156,9 @@ Each reaction shows a big popup word ("SHOCK!").
 ### CP2 — "Handy-Steuerung, Bots, Einladungslink, Match"
 
 - [x] **T04 — Touch controls v1 (twin-stick) + mobile polish**
-  - Do:
-    - `client/src/input/touch.ts`:
-      - left floating move stick;
-      - right aim stick: drag shows an aim line/cone, release fires toward the aim, a quick tap (<150 ms, <12 px) auto-aims;
-      - Special button (with cooldown ring) and Ult button (charge ring, glows when ready).
-    - The same UI scales with the safe area (`env(safe-area-inset-*)`).
-    - Portrait mode shows a "rotate your phone" overlay.
-    - Fullscreen button only where `requestFullscreen` exists (Android).
-    - `navigator.vibrate?.(30)` when hit.
-    - Block iOS double-tap zoom, long-press menus and text selection.
-    - Desktop: E/RMB = special, Q/Space = ult (no-op until abilities exist; send the flags anyway).
-    - `tests/e2e/helpers/touch.ts`: CDP `Input.dispatchTouchEvent` drag helper.
-    - `tests/e2e/mobile.spec.ts` (project `mobile`): dragging the left stick moves the player, a right tap fires (ammo decreases).
-    - Visual check of the stick layout with `npm run shot -- --name T04 --device "iPhone 13" --query "room=shot"`.
-  - Test: `npm run check && npx playwright test --project=mobile`
-
 - [x] **T05 — Bots**
-  - Do:
-    - `shared/sim/bot.ts` `class BotBrain { constructor(id, difficulty); think(world, dt): Input }`:
-      - states wander → chase → kite at preferred range → flee when HP <30% (toward far spawn);
-      - aim lead with error by difficulty (easy ±18°, normal ±9°);
-      - reaction delay 250/150 ms;
-      - strafes while shooting;
-      - avoids walls with simple whisker rays.
-    - Server: bots are World players with `bot:true` and fun names (Bot Barnacle, Captain Crumb, Sir Soggy…).
-    - `bots` from join msg/URL `?bots=N` (0–7). The first human sets it; the room keeps total ≤8 (bots leave when humans join).
-    - Debug `dbg{op:'bots',n}`.
-    - Unit tests: a bot approaches a target and fires within 3 s of sim; a bot flees at low HP.
-    - Smoke: room with 1 ws client + `bots=3`, 20 s → at least one hit event where `a` is a bot.
-  - Test: `npm run check && npm run smoke`
-
 - [x] **T06 — Lobby & invite flow (DOM overlay)**
-  - Done: lobby (title wobble, name prefilled from localStorage), Quick Play / Create Room / Join-with-code
-    (bare code or pasted link), invite panel with clipboard fallback + share, ☰ menu (invite, ±Bot host-only, Leave),
-    invite links always ask first. 6 desktop + 7 mobile e2e green.
-  - Do:
-    - `client/src/ui/` DOM overlay with cartoon CSS. Font Lilita One via `npm i @fontsource/lilita-one` (OFL → add to ASSETS.md).
-    - Title "BRINE BRAWL" with a wobbly CSS animation.
-    - Name input (localStorage).
-    - Buttons (all with `data-testid`):
-      - **Quick Play** → room `qp-<rand4>` with bots=3;
-      - **Create Room** → room `<adjective>-<sea-noun>-<rand2>` (e.g. `soggy-clam-42`) with bots=0, plus an invite panel;
-      - **Join with code**.
-    - Invite panel shows the full URL `location.origin + '/?room=…'`:
-      - Copy button tries `navigator.clipboard` and falls back to select + `execCommand('copy')`, then "long-press to copy". (HTTP over Tailscale/LAN is not a secure context.)
-      - `navigator.share` only if it exists.
-    - Opening `?room=xyz` shows "Join room xyz" with the name field and goes straight in.
-    - In-game ☰ menu: Copy invite link, +Bot/−Bot (first human = host), Leave.
-    - e2e: click Quick Play → canvas visible and `__brawl.state().players.length ≥ 4`. Create Room → invite URL contains `?room=`.
-  - Test: `npm run check && npm run e2e`
-
 - [x] **T07 — Match flow, HUD, scoreboard** · CP: yes
-  - Done: `server/match.ts` (waiting → countdown 3 s → playing 150 s → results 8 s), snap `m`, HUD in its own
-    Phaser scene (timer, KOs, kill feed, 3-2-1-BRAWL, waiting panel, Tab/🏆 scoreboard), DOM results overlay with
-    confetti, `?matchsec=` debug override. 4 unit + 3 e2e tests; touch tap fix (motionless release now fires).
-  - Do:
-    - Room state machine in `server/match.ts`: `waiting` (<2 combatants) → `countdown` 3 s → `playing` 150 s → `results` 8 s → `countdown`…
-    - Late joiners join a running match. Scores reset each match. FFA winner = most KOs (tie → fewer deaths).
-    - HUD (Phaser, fixed to camera): timer, own KOs, kill feed (last 4), big countdown "3-2-1-BRAWL!", "waiting for players – share link / add bot" panel.
-    - Scoreboard: hold Tab / tap 🏆.
-    - Results overlay (DOM): ranking with names and KOs, winner confetti.
-    - Unit tests for state transitions with a fake clock.
-    - e2e: with `?bots=3&matchsec=10` (ALLOW_DEBUG only override) the results overlay appears within 20 s.
-  - Checkpoint: "CP2 ✅ Handy + Bots + Einladen". Quick Play alone, Create Room → send link to a friend, phone controls.
-  - Test: `npm run check && npm run smoke && npm run e2e:all`
 
 ### CP3 — "Die ersten 4 Kämpfer (je 1 pro Welt)"
 
@@ -249,7 +187,12 @@ Each reaction shows a big popup word ("SHOCK!").
     - Unit tests per primitive (table-driven).
   - Test: `npm run check && npm run smoke`
 
-- [ ] **T08b — Art direction: 2.5D "rendered 3D model" look + likeness pass** · CP: yes
+- [x] **T08b — Art direction: 2.5D "rendered 3D model" look + likeness pass** · CP: yes
+  - Done: `scripts/art-models.mjs` (25 models) → `scripts/art-gen.mjs` writes 50 SVGs + `ref/*.parts.json`;
+    `scripts/blockout.mjs` (three, local, deterministic, Playwright-Chromium SwiftShader) renders 75 PNGs
+    (25 × front/side/q34). Same parts feed both, so sprite and blockout can't drift. `README.md` §Look
+    (top-left light, 3 shading zones, 48 px rule), `LIKENESS.md` 24 rows, `/gallery.html?look=3d` toggle.
+    art tests 154 green (canvas, palette, hurt pair, parts+PNGs, one light, likeness coverage).
   - Do:
     - Write `client/public/art/README.md` §Look (binding for T09 and every later fighter):
       - gameplay stays 2D top-down, but each fighter must read like a **3D model rendered into the scene**:
@@ -592,3 +535,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T07 ✅ 2026-10-18 — Match-Flow + HUD-Scene (Timer/KOs/Feed/Scoreboard), Results-Overlay, ?matchsec, Touch-Tap-Fix
 - T08 ✅ 2026-10-18 — Fighter-Registry + 6 Ability-Primitive generisch, Ult-Ladung/Special-CD im Snap+HUD, Bots nutzen beides
 - T09 ✅ 2026-10-18 — SVG-Pipeline (3 Kämpfer + Hurt-Faces, art.test), FighterSprite-Rig ersetzt Kreise, /gallery.html
+- T08b ✅ 2026-10-18 — Kunst-Pipeline: 24 Kämpfer + Deckhand aus EINEM Modell → SVG-Sprites + three-Blockouts, Galerie ?look=3d

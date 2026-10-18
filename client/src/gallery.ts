@@ -3,8 +3,12 @@ import Phaser from 'phaser';
 import { ART, ELEMENT_LABEL, FACTION_COLOR } from './art/manifest.ts';
 import { FighterSprite, preloadArt, type RigState } from './art/rig.ts';
 
-/** Demo loop per cell; `ko` collapses the rig, the next tick revives it. */
-const DEMO: (RigState | 'revive')[] = ['idle', 'idle', 'run', 'attack', 'hit', 'ko'];
+/**
+ * Fighter gallery. `?look=3d` opens with the 3D blockouts visible; the button in the corner toggles them.
+ * Sprite and blockout come from the same model (`scripts/art-gen.mjs`), so each cell compares the flat SVG
+ * against the lit volume it was derived from.
+ */
+const DEMO: RigState[] = ['idle', 'idle', 'run', 'attack', 'hit', 'ko'];
 
 const FACTION_LABEL: Record<string, string> = {
   critterkin: 'Critterkin',
@@ -13,14 +17,12 @@ const FACTION_LABEL: Record<string, string> = {
   bubblebottom: 'Bubblebottom Folk',
 };
 
-interface Cell {
-  rig: FighterSprite;
-  state: Phaser.GameObjects.Text;
-  step: number;
-}
+const refKey = (id: string): string => `ref-${id}`;
 
 class GalleryScene extends Phaser.Scene {
-  private cells: Cell[] = [];
+  private rigs: FighterSprite[] = [];
+  private refs: Phaser.GameObjects.Image[] = [];
+  private step = 0;
 
   constructor() {
     super('gallery');
@@ -28,104 +30,110 @@ class GalleryScene extends Phaser.Scene {
 
   preload(): void {
     preloadArt(this);
+    for (const art of ART) this.load.image(refKey(art.id), `/art/ref/${art.id}-q34.png`);
   }
 
   create(): void {
     const w = this.scale.width;
     const h = this.scale.height;
+
     this.add
-      .text(32, 22, 'FIGHTER GALLERY', {
+      .text(28, 14, 'FIGHTER GALLERY', {
         fontFamily: '"Lilita One", system-ui, sans-serif',
-        fontSize: '38px',
+        fontSize: '32px',
         color: '#fff3d6',
       })
       .setStroke('#1b1b2f', 6);
-    this.add.text(34, 70, 'one hand-written SVG per fighter · 128 px and 48 px · states cycling', {
+    this.add.text(30, 52, 'sprite · 3/4 blockout · 48 px — one light from the top-left for the whole roster', {
       fontFamily: 'system-ui, sans-serif',
-      fontSize: '15px',
+      fontSize: '14px',
       color: '#9fd6d0',
     });
 
+    const cols = 5;
+    const rows = Math.ceil(ART.length / cols);
+    const top = 84;
+    const cellW = Math.min(320, (w - 24) / cols);
+    const cellH = Math.min(196, (h - top - 12) / rows);
     const bg = this.add.graphics();
-    const cols = ART.length;
-    const gap = Math.min(400, w / (cols + 0.6));
-    const startX = w / 2 - ((cols - 1) * gap) / 2;
-    const bigY = h * 0.33;
-    const smallY = h * 0.72;
 
-    for (let i = 0; i < cols; i++) {
-      const art = ART[i];
-      const x = startX + i * gap;
-      for (const [y, size] of [
-        [bigY, 128],
-        [smallY, 48],
-      ] as const) {
-        const boxW = size * 2.1;
-        const boxH = size * 1.6;
-        bg.fillStyle(0x123647, 1).fillRoundedRect(x - boxW / 2, y - boxH / 2, boxW, boxH, 16);
-        bg.lineStyle(3, 0x2ec4b6, 0.35).strokeRoundedRect(x - boxW / 2, y - boxH / 2, boxW, boxH, 16);
-        const rig = new FighterSprite(this, x, y + boxH * 0.16, { artId: art.id, height: size });
-        rig.setDepth(5);
-        const state = this.add
-          .text(x + boxW / 2 - 10, y - boxH / 2 + 8, 'idle', {
-            fontFamily: 'system-ui, sans-serif',
-            fontSize: '12px',
-            color: '#7fb4ad',
-          })
-          .setOrigin(1, 0);
-        this.cells.push({ rig, state, step: 0 });
-      }
+    ART.forEach((art, i) => {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const x = 14 + col * cellW;
+      const y = top + row * cellH;
+      const spriteSize = Math.min(96, cellH * 0.56);
 
-      // name + faction badge + element under the big cell
-      const badge = this.add.circle(x - 92, bigY + 116, 7, FACTION_COLOR[art.faction]);
-      badge.setStrokeStyle(2, 0x1b1b2f);
+      bg.fillStyle(0x123647, 1).fillRoundedRect(x, y, cellW - 10, cellH - 10, 14);
+      bg.lineStyle(2, FACTION_COLOR[art.faction], 0.45).strokeRoundedRect(x, y, cellW - 10, cellH - 10, 14);
+
+      const spriteX = x + (cellW - 10) * 0.29;
+      const refX = x + (cellW - 10) * 0.7;
+      const bodyY = y + cellH * 0.48;
+
+      const rig = new FighterSprite(this, spriteX, bodyY + spriteSize * 0.3, { artId: art.id, height: spriteSize });
+      rig.setDepth(5);
+      this.rigs.push(rig);
+
+      const ref = this.add.image(refX, bodyY, refKey(art.id));
+      ref.setDisplaySize(spriteSize, spriteSize);
+      ref.setDepth(4);
+      ref.setVisible(false);
+      this.refs.push(ref);
+
+      // 48 px legibility check, bottom right of the card
+      const small = new FighterSprite(this, refX, y + cellH - 34, { artId: art.id, height: 44 });
+      small.setDepth(5);
+      this.rigs.push(small);
+
       this.add
-        .text(x - 78, bigY + 116, art.name, {
+        .text(x + 12, y + 8, '48 px', {
+          fontFamily: 'system-ui, sans-serif',
+          fontSize: '10px',
+          color: '#7fb4ad',
+        })
+        .setOrigin(0, 0);
+
+      this.add
+        .text(x + 10, y + cellH - 24, art.name, {
           fontFamily: '"Lilita One", system-ui, sans-serif',
-          fontSize: '24px',
+          fontSize: '17px',
           color: '#ffffff',
         })
-        .setOrigin(0, 0.5)
-        .setStroke('#1b1b2f', 5);
-      this.add
-        .text(x - 92, bigY + 144, `${ELEMENT_LABEL[art.element]} · ${FACTION_LABEL[art.faction]}`, {
-          fontFamily: 'system-ui, sans-serif',
-          fontSize: '15px',
-          color: '#cfe9e4',
-        })
-        .setOrigin(0, 0.5);
-      if (!art.playable) {
-        this.add
-          .text(x - 92, bigY + 166, 'art preview · kit lands in T10', {
-            fontFamily: 'system-ui, sans-serif',
-            fontSize: '12px',
-            color: '#ffe08a',
-          })
-          .setOrigin(0, 0.5);
-      }
-      this.add
-        .text(x - 92, smallY + 46, `${art.name} @ 48 px`, {
-          fontFamily: 'system-ui, sans-serif',
-          fontSize: '13px',
-          color: '#9fd6d0',
-        })
-        .setOrigin(0, 0.5);
-    }
+        .setStroke('#1b1b2f', 4);
+      this.add.text(x + 10, y + cellH - 10, `${ELEMENT_LABEL[art.element]} · ${FACTION_LABEL[art.faction]}`, {
+        fontFamily: 'system-ui, sans-serif',
+        fontSize: '11px',
+        color: '#b9dcd6',
+      });
+    });
+
+    this.setLook3d(new URLSearchParams(location.search).get('look') === '3d');
+    document.getElementById('look3d')?.addEventListener('click', (e) => {
+      const button = e.currentTarget as HTMLButtonElement;
+      this.setLook3d(button.dataset.on !== '1');
+    });
 
     this.time.addEvent({
       delay: 1100,
       loop: true,
       callback: () => {
-        this.cells.forEach((cell, i) => {
-          cell.step = (cell.step + 1 + (i % 2)) % DEMO.length;
-          const next = DEMO[cell.step];
-          cell.rig.play(next);
-          cell.state.setText(next === 'revive' ? 'idle' : next);
-        });
+        this.step = (this.step + 1) % DEMO.length;
+        this.rigs.forEach((rig, i) => rig.play(DEMO[(this.step + i) % DEMO.length]));
       },
     });
 
     this.scale.on('resize', () => this.scene.restart());
+  }
+
+  private setLook3d(on: boolean): void {
+    for (const ref of this.refs) ref.setVisible(on);
+    const button = document.getElementById('look3d');
+    if (button) {
+      button.dataset.on = on ? '1' : '0';
+      button.textContent = on ? '3D refs: on' : '3D refs: off';
+      button.classList.toggle('on', on);
+    }
   }
 }
 

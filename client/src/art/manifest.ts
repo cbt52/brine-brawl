@@ -44,8 +44,34 @@ export const ELEMENT_LABEL: Record<Element, string> = {
 
 const SOURCES: ArtSource[] = [
   { id: 'default', name: 'Deckhand', faction: 'bubblebottom', element: 'neutral' },
+  // Critterkin
   { id: 'voltbun', name: 'Voltbun', faction: 'critterkin', element: 'volt' },
+  { id: 'embercub', name: 'Embercub', faction: 'critterkin', element: 'fire' },
+  { id: 'mossback', name: 'Mossback', faction: 'critterkin', element: 'leaf' },
+  { id: 'gloomoth', name: 'Gloomoth', faction: 'critterkin', element: 'air' },
+  { id: 'pebblor', name: 'Pebblor', faction: 'critterkin', element: 'earth' },
+  { id: 'dozelump', name: 'Dozelump', faction: 'critterkin', element: 'water' },
+  // Elemental Weavers
   { id: 'mira', name: 'Mira Tidecaller', faction: 'weavers', element: 'water' },
+  { id: 'pip', name: 'Pip Windwhistle', faction: 'weavers', element: 'air' },
+  { id: 'brak', name: 'Brak Stonefist', faction: 'weavers', element: 'earth' },
+  { id: 'ashka', name: 'Ashka Flameheart', faction: 'weavers', element: 'fire' },
+  { id: 'kip', name: 'Kip Boomer', faction: 'weavers', element: 'neutral' },
+  { id: 'tobo', name: 'Uncle Tobo', faction: 'weavers', element: 'volt' },
+  // Saltwind Crew
+  { id: 'noodle', name: "Cap'n Noodle", faction: 'saltwind', element: 'neutral' },
+  { id: 'sable', name: 'Sable Tripleblade', faction: 'saltwind', element: 'neutral' },
+  { id: 'bisque', name: 'Bisque Legsworth', faction: 'saltwind', element: 'fire' },
+  { id: 'nova', name: 'Nova Chartwind', faction: 'saltwind', element: 'air' },
+  { id: 'lenny', name: 'Longshot Lenny', faction: 'saltwind', element: 'neutral' },
+  { id: 'fawnsworth', name: 'Doc Fawnsworth', faction: 'saltwind', element: 'leaf' },
+  // Bubblebottom Folk
+  { id: 'sudsy', name: 'Sudsy Loofah', faction: 'bubblebottom', element: 'water' },
+  { id: 'lumpy', name: 'Lumpy', faction: 'bubblebottom', element: 'earth' },
+  { id: 'squall', name: 'Squall Mopefin', faction: 'bubblebottom', element: 'air' },
+  { id: 'pinchpenny', name: 'Boss Pinchpenny', faction: 'bubblebottom', element: 'earth' },
+  { id: 'hammy', name: 'Hammy Divedome', faction: 'bubblebottom', element: 'air' },
+  { id: 'krill', name: 'Teeny Krill', faction: 'bubblebottom', element: 'volt' },
 ];
 
 const KEY = 'art-';
