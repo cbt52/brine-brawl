@@ -23,6 +23,7 @@ import {
   Tide, inWater, pickupFor, WATER_SLOW, WATER_WET_SEC,
 } from './tide.ts';
 import { tideRate } from './weather.ts';
+import { BUBBLE_LIFT, BUBBLE_SLOW, inBubble, makeBubbles, stepBubbles, type Bubble } from './bubbles.ts';
 import {
   SHOWDOWN_EDGE_TICK_SEC, edgeDamage, outsideRing, showdownTideLevel,
 } from './showdown.ts';
@@ -164,7 +165,8 @@ export interface SimPlayer {
 const clamp1 = (n: number) => (Number.isFinite(n) ? Math.max(-1, Math.min(1, n)) : 0);
 
 /** Apply one movement step to a body; shared with client prediction.
- * `extra` holds dynamic obstacles (stone walls), so prediction can replay the same step. */
+ * `extra` holds dynamic obstacles (stone walls), so prediction can replay the same step.
+ * `bubbles` holds the bubble storm (backlog #17): inside one the body walks slower and is carried up. */
 export function stepMove(
   p: { x: number; y: number; r: number },
   mx: number,
@@ -172,13 +174,17 @@ export function stepMove(
   speed: number,
   dt: number,
   extra?: readonly Rect[],
+  bubbles?: readonly Bubble[],
 ): void {
   mx = clamp1(mx);
   my = clamp1(my);
   const len = Math.hypot(mx, my);
   if (len > 1) { mx /= len; my /= len; }
-  p.x += mx * speed * dt;
-  p.y += my * speed * dt;
+  const carried = inBubble(bubbles, p.x, p.y, p.r);
+  const k = carried ? BUBBLE_SLOW : 1;
+  p.x += mx * speed * dt * k;
+  p.y += my * speed * dt * k;
+  if (carried) p.y -= BUBBLE_LIFT * dt;
   resolveWalls(p, extra && extra.length ? OBSTACLES.concat(extra) : OBSTACLES);
 }
 
@@ -196,6 +202,8 @@ export class World {
   tide = new Tide();
   /** this round's Weird Weather modifier (backlog #4); the room rolls it at each round start */
   weather: Weather = 'clear';
+  /** the bubble storm's bubbles (backlog #17); empty unless this round rolled it */
+  bubbles: Bubble[] = [];
   /** room mode (T26/T27): Bounty Brawl, Treasure Tide or Showdown (backlog #6) */
   mode: RoomMode = 'bounty';
   /** seconds into the current round, set by the room; drives the Showdown ring (backlog #6) */
@@ -245,6 +253,7 @@ export class World {
   /** Set the round's Weird Weather modifier (backlog #4). */
   setWeather(w: Weather): void {
     this.weather = w;
+    this.bubbles = w === 'bubble-storm' ? makeBubbles() : [];
   }
 
   /** Pick the room mode; Treasure Tide grows its own coin/countdown bookkeeping. */
@@ -432,6 +441,7 @@ export class World {
     this.tick++;
     this.stepTide(dt);
     this.stepTreasure(dt);
+    stepBubbles(this.bubbles, dt);
     // static coral plus whatever stone a fighter built: one list for bodies, one for aging
     const block = this.walls.length ? OBSTACLES.concat(wallRects(this.walls)) : OBSTACLES;
     const list = [...this.players.values()];
@@ -488,7 +498,7 @@ export class World {
           const spd = BASE_SPEED * p.speedMul * (p.buffLeft > 0 ? p.buffMul : 1) * statusSpeedMul(p.status)
             * (flooding ? WATER_SLOW : 1);
           const rooted = p.rootLeft > 0;
-          if (!rooted) stepMove(p, i.mx, i.my, spd, dt, block === OBSTACLES ? undefined : block);
+          if (!rooted) stepMove(p, i.mx, i.my, spd, dt, block === OBSTACLES ? undefined : block, this.bubbles);
         }
         if (!disabled && Number.isFinite(i.ax) && Number.isFinite(i.ay) && (i.ax !== 0 || i.ay !== 0)) p.aim = Math.atan2(i.ay, i.ax);
         p.ack = i.seq;
@@ -886,6 +896,11 @@ export class World {
     this.damage(-1, p, p.hp + 1, p.x, p.y);
   }
 
+  /** Debug shots (`dbg` op `wx`): force this round's weather, e.g. `bubble-storm` (backlog #17). */
+  debugWeather(w: string): void {
+    if (w === 'clear' || w === 'double-tide' || w === 'bubble-storm') this.setWeather(w);
+  }
+
   debugHp(id: number, hp: number): void {
     const p = this.players.get(id);
     if (p && Number.isFinite(hp)) p.hp = Math.max(1, Math.min(p.mhp, hp));
@@ -966,6 +981,9 @@ export class World {
       purrl: {
         x: Math.round(this.purrl.x), y: Math.round(this.purrl.y), a: Math.round((this.purrl.a * 180) / Math.PI),
       },
+      bb: this.bubbles.length
+        ? this.bubbles.map((b) => ({ id: b.id, x: Math.round(b.x), y: Math.round(b.y), r: b.r }))
+        : undefined,
       tr: this.treasure ? this.treasure.info() : undefined,
       walls: this.walls.length
         ? this.walls.map((w) => ({

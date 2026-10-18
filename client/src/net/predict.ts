@@ -3,6 +3,7 @@ import type { Rect } from '../../../shared/arena/docks.ts';
 import { BASE_SPEED, stepMove } from '../../../shared/sim/world.ts';
 import { waterSpeedMul } from '../../../shared/sim/tide.ts';
 import { getFighter } from '../../../shared/fighters/index.ts';
+import type { Bubble } from '../../../shared/sim/bubbles.ts';
 
 /** Divergence (world units) above which the predicted body snaps instead of blending. */
 export const SNAP_DIST = 120;
@@ -52,7 +53,8 @@ export function pruneStale(pending: readonly PredInput[], now: number, maxAge = 
 }
 
 /** Run pending inputs from an authoritative position (one shared movement step each).
- * `extra` holds dynamic obstacles (stone walls), so a wall prediction agrees with the server. */
+ * `extra` holds dynamic obstacles (stone walls), so a wall prediction agrees with the server;
+ * `bubbles` does the same for the bubble storm (backlog #17). */
 export function replay(
   from: Pos,
   r: number,
@@ -60,9 +62,10 @@ export function replay(
   speed: number,
   waterLevel = 0,
   extra?: readonly Rect[],
+  bubbles?: readonly Bubble[],
 ): Pos {
   const p = { x: from.x, y: from.y, r };
-  for (const i of pending) stepMove(p, i.mx, i.my, speed * waterSpeedMul(p.x, p.y, waterLevel), DT, extra);
+  for (const i of pending) stepMove(p, i.mx, i.my, speed * waterSpeedMul(p.x, p.y, waterLevel), DT, extra, bubbles);
   return { x: p.x, y: p.y };
 }
 
@@ -87,6 +90,8 @@ export class Predictor {
   private waterLevel = 0;
   /** stone walls from the last snapshot (dynamic obstacles the server collides with) */
   private walls: readonly Rect[] = [];
+  /** bubbles from the last snapshot (bubble storm, backlog #17), so the carry and slow are predicted */
+  private bubbles: readonly Bubble[] = [];
   pending: PredInput[] = [];
 
   /** Start predicting a body (on welcome / first snapshot). */
@@ -110,12 +115,17 @@ export class Predictor {
     this.walls = rects;
   }
 
+  /** Feed the bubbles of the last snapshot (empty outside a bubble storm). */
+  setBubbles(list: readonly Bubble[]): void {
+    this.bubbles = list;
+  }
+
   /** A local input left the client: move at once and remember it until it is acked. */
   applyInput(i: PredInput, dt = DT, now = nowMs()): void {
     this.pending.push(i.at === undefined ? { ...i, at: now } : i);
     if (this.pending.length > 240) this.pending.shift();
     const body = { x: this.pos.x, y: this.pos.y, r: this.r };
-    stepMove(body, i.mx, i.my, this.speed * waterSpeedMul(body.x, body.y, this.waterLevel), dt, this.walls);
+    stepMove(body, i.mx, i.my, this.speed * waterSpeedMul(body.x, body.y, this.waterLevel), dt, this.walls, this.bubbles);
     this.pos = { x: body.x, y: body.y };
   }
 
@@ -129,7 +139,7 @@ export class Predictor {
     this.speed = speedOf(fighter);
     this.r = r;
     this.pending = pruneStale(prunePending(this.pending, ack), nowMs());
-    const target = replay(server, r, this.pending, this.speed, this.waterLevel, this.walls);
+    const target = replay(server, r, this.pending, this.speed, this.waterLevel, this.walls, this.bubbles);
     const seen = this.visual();
     this.pos = target;
     if (down || Math.hypot(seen.x - target.x, seen.y - target.y) > SNAP_DIST) {

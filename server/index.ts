@@ -123,6 +123,7 @@ function onConnection(ws: WebSocket): void {
         else if (msg.op === 'bots') { joined.room.wantBots = Math.max(0, Math.min(7, Math.floor(Number(msg.n) || 0))); joined.room.syncBots(); }
         else if (msg.op === 'hp') joined.room.world.debugHp(joined.client.id, Number(msg.v));
         else if (msg.op === 'kill') joined.room.world.debugKill(joined.client.id);
+        else if (msg.op === 'wx') joined.room.world.debugWeather(String(msg.v));
         break;
     }
   });

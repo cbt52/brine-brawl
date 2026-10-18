@@ -37,7 +37,7 @@ export type MatchPhase = 'waiting' | 'countdown' | 'playing' | 'results';
 export type RoomMode = 'bounty' | 'treasure' | 'showdown';
 
 /** Weird Weather (backlog #4): the modifier a round rolls when it starts. */
-export type Weather = 'clear' | 'double-tide';
+export type Weather = 'clear' | 'double-tide' | 'bubble-storm';
 
 /** One scoreboard row (sent in the results phase). */
 export interface ScoreRow {
@@ -235,6 +235,14 @@ export interface SnapPurrl {
   a: number;
 }
 
+/** A bubble of the bubble storm (backlog #17); fighters inside it are carried up and slowed. */
+export interface SnapBubble {
+  id: number;
+  x: number;
+  y: number;
+  r: number;
+}
+
 /** A reward dropped by a broken chest. */
 export interface SnapPickup {
   id: number;
@@ -292,6 +300,8 @@ export interface SnapMsg {
   sum?: SnapSummon[];
   /** Purrl, the sea snail that heals once per life (backlog #1) */
   purrl?: SnapPurrl;
+  /** bubble storm bubbles, only in a bubble-storm round (backlog #17) */
+  bb?: SnapBubble[];
   /** Treasure Tide crew totals + escape countdown (T27) */
   tr?: TreasureInfo;
   /** match phase + timer (added by the room) */

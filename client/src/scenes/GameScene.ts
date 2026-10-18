@@ -27,7 +27,7 @@ import { cueForEvent } from '../audio/map.ts';
 import { tideLevel } from '../../../shared/sim/tide.ts';
 import { SHOWDOWN_CENTER, safeRadius } from '../../../shared/sim/showdown.ts';
 import { EMOTES } from '../../../shared/emotes.ts';
-import type { PickupKind, SnapPurrl, SnapSummon, SnapWall } from '../../../shared/protocol.ts';
+import type { PickupKind, SnapBubble, SnapPurrl, SnapSummon, SnapWall } from '../../../shared/protocol.ts';
 
 const INTERP_DELAY_MS = 100;
 /** how long the taffy arm stays stretched out after a punch */
@@ -218,6 +218,7 @@ export class GameScene extends Phaser.Scene {
     for (const wl of snap.walls ?? []) this.drawWall(g, wl);
     for (const su of snap.sum ?? []) this.drawSummon(g, su, nowMs);
     if (snap.purrl) this.drawPurrl(g, snap.purrl, nowMs);
+    for (const bu of snap.bb ?? []) this.drawBubble(g, bu, nowMs);
     for (const c of snap.chests ?? []) {
       const bob = Math.sin(nowMs / 420 + c.id) * 2;
       const y = c.y + bob;
@@ -289,6 +290,14 @@ export class GameScene extends Phaser.Scene {
     g.lineStyle(3, 0x8a4a5e, 1).lineBetween(x + 13 * flip, y + 2, x + 17 * flip, y - 12);
     g.fillStyle(0xffffff, 1).fillCircle(x + 17 * flip, y - 14, 4);
     g.fillStyle(0x1b1b2f, 1).fillCircle(x + 18 * flip, y - 14, 2);
+  }
+
+  /** Bubble storm (backlog #17): a see-through sea bubble with a shine that wobbles as it rises. */
+  private drawBubble(g: Phaser.GameObjects.Graphics, bu: SnapBubble, nowMs: number): void {
+    const wob = Math.sin(nowMs / 300 + bu.id) * 2;
+    g.fillStyle(0x9fe7ff, 0.22).fillCircle(bu.x, bu.y, bu.r + wob);
+    g.lineStyle(3, 0xcff6ff, 0.8).strokeCircle(bu.x, bu.y, bu.r + wob);
+    g.fillStyle(0xffffff, 0.7).fillCircle(bu.x - bu.r * 0.4, bu.y - bu.r * 0.4, bu.r * 0.16);
   }
 
   /** A stone slab from Brak's wall: drawn exactly on its collision rect, with an HP bar when chipped. */
@@ -551,6 +560,8 @@ export class GameScene extends Phaser.Scene {
     const def = getFighter(own.f);
     // stone walls block the local body too: replay them the same way the server collides
     this.pred.setWalls((snap.walls ?? []).map((w) => ({ x: w.x, y: w.y, w: w.w, h: w.h })));
+    // the bubble storm carries and slows the local body too (backlog #17)
+    this.pred.setBubbles(snap.bb ?? []);
     if (!this.predReady) {
       this.pred.reset({ x: own.x, y: own.y }, own.f, def.radius);
       this.predReady = true;

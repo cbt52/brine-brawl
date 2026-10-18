@@ -7,9 +7,11 @@ import { TICK_HZ } from '../../shared/constants.ts';
 const run = (w: World, sec: number) => { for (let i = 0; i < Math.round(sec * TICK_HZ); i++) w.step(); };
 
 describe('weird weather roll', () => {
-  it('a roll under the chance gets Double Tide, the rest calm skies', () => {
+  it('a roll under the chance gets a modifier, the rest calm skies', () => {
     expect(pickWeather(0)).toBe('double-tide');
-    expect(pickWeather(WEATHER_CHANCE - 0.001)).toBe('double-tide');
+    expect(pickWeather(WEATHER_CHANCE / 2 - 0.001)).toBe('double-tide');
+    expect(pickWeather(WEATHER_CHANCE / 2)).toBe('bubble-storm');
+    expect(pickWeather(WEATHER_CHANCE - 0.001)).toBe('bubble-storm');
     expect(pickWeather(WEATHER_CHANCE)).toBe('clear');
     expect(pickWeather(0.999)).toBe('clear');
   });
