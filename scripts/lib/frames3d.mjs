@@ -75,29 +75,57 @@ export function alphaBox(img) {
   return x1 < 0 ? null : { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
 }
 
+/** Crop to the alpha > 0 box; `src` = where the crop sits in the full cell (Phaser `spriteSourceSize`). */
+export function trimFrame(img) {
+  let x0 = img.w, y0 = img.h, x1 = -1, y1 = -1;
+  for (let y = 0; y < img.h; y++) {
+    for (let x = 0; x < img.w; x++) {
+      if (!img.data[(y * img.w + x) * 4 + 3]) continue;
+      x0 = Math.min(x0, x);
+      x1 = Math.max(x1, x);
+      y0 = Math.min(y0, y);
+      y1 = Math.max(y1, y);
+    }
+  }
+  if (x1 < 0) [x0, y0, x1, y1] = [0, 0, 0, 0];
+  const w = x1 - x0 + 1;
+  const h = y1 - y0 + 1;
+  const data = Buffer.alloc(w * h * 4);
+  for (let y = 0; y < h; y++) img.data.copy(data, y * w * 4, ((y0 + y) * img.w + x0) * 4, ((y0 + y) * img.w + x1 + 1) * 4);
+  return { w, h, data, src: { x: x0, y: y0, sw: img.w, sh: img.h } };
+}
+
 const BG = { r: 0x8a, g: 0x9a, b: 0xa8, alpha: 1 };
 
-/** Contact sheet: row 1 frames at 1×, row 2 at 48 px, row 3 at 48 px grayscale. */
-export async function contactSheet(frames, file) {
-  const cell = frames[0].w;
+/**
+ * Contact sheet. `rows` is a list of frame rows (a flat frame list is one row); each row gets
+ * a 1× strip, a 48 px strip and a 48 px grayscale strip under it.
+ */
+export async function contactSheet(rows, file) {
+  if (!Array.isArray(rows[0])) rows = [rows];
+  const cell = rows[0][0].w;
   const small = 48;
   const gap = 8;
-  const W = frames.length * (cell + gap) + gap;
-  const H = gap + cell + gap + small + gap + small + gap;
+  const block = cell + small * 2 + gap * 3;
+  const W = Math.max(...rows.map((r) => r.length)) * (cell + gap) + gap;
+  const H = rows.length * block + gap;
   const comps = [];
-  for (let i = 0; i < frames.length; i++) {
-    const f = frames[i];
-    const raw = { width: f.w, height: f.h, channels: 4 };
-    const left = gap + i * (cell + gap);
-    const sm = await sharp(f.data, { raw }).resize(small, small, { kernel: 'lanczos3' }).png().toBuffer();
-    const gray = await sharp(f.data, { raw })
-      .resize(small, small, { kernel: 'lanczos3' })
-      .recomb([[0.299, 0.587, 0.114], [0.299, 0.587, 0.114], [0.299, 0.587, 0.114]])
-      .png()
-      .toBuffer();
-    comps.push({ input: f.data, raw, left, top: gap });
-    comps.push({ input: sm, left: left + (cell - small) / 2, top: gap * 2 + cell });
-    comps.push({ input: gray, left: left + (cell - small) / 2, top: gap * 3 + cell + small });
+  for (let r = 0; r < rows.length; r++) {
+    const top = gap + r * block;
+    for (let i = 0; i < rows[r].length; i++) {
+      const f = rows[r][i];
+      const raw = { width: f.w, height: f.h, channels: 4 };
+      const left = gap + i * (cell + gap);
+      const sm = await sharp(f.data, { raw }).resize(small, small, { kernel: 'lanczos3' }).png().toBuffer();
+      const gray = await sharp(f.data, { raw })
+        .resize(small, small, { kernel: 'lanczos3' })
+        .recomb([[0.299, 0.587, 0.114], [0.299, 0.587, 0.114], [0.299, 0.587, 0.114]])
+        .png()
+        .toBuffer();
+      comps.push({ input: f.data, raw, left, top });
+      comps.push({ input: sm, left: left + (cell - small) / 2, top: top + gap + cell });
+      comps.push({ input: gray, left: left + (cell - small) / 2, top: top + gap * 2 + cell + small });
+    }
   }
   await sharp({ create: { width: W, height: H, channels: 4, background: BG } }).composite(comps).png().toFile(file);
 }

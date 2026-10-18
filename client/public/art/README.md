@@ -111,7 +111,19 @@ scripts/art3d.mjs ──► blender -b --factory-startup --python scripts/blende
   (`c`, `tip`, `band`, `cap`) take pal keys. The `face` (`{part, eyeDx, eyeZ, eyeW, eyeH, brow, mouth, nose}`,
   offsets from the head ellipsoid centre) is unlit decals with no hull: white eyes, `#1b1b2f` pupils with a
   glint, brows and mouth, plus a `hurt` set (X eyes, open mouth). `--still` renders one idle frame per
-  direction plus `hurt_S_0`.
+  direction plus `hurt_S_0` into `.loop/tmp/art3d/`.
+- **Animation** (`lib/puppet.py`): rigid parts turned about their pivots, idle 4 / run 6 / attack 3
+  (windup, strike, recover) / hurt 1 (hurt face + squash) per direction = 70 frames. Styles `biped`
+  (stepping feet, arm swing, lean), `blob` (hops, squash and stretch), `hover` (floats, tilts). Roles are
+  found by part name (`body`, `head`, `arm_r/l`, `foot_r/l` or `leg_r/l`, `ear_r/l`, `tail`); a spec may
+  override them in `anim.roles`, tune `anim.amp` (keys in `ANIM_AMPS`, `scripts/lib/spec3d.mjs`) and pick
+  `anim.attackArm` (`r|l|both|none`). Every frame is grounded: the lowest outline vertex is moved to 1.5 px
+  below the origin on screen (walkers snap exactly, blob/hover may only rise), so the frame bottom is y = 113.
+- **Atlas**: the full render packs `client/public/art/sprites/<id>.{png,json}` (Phaser JSON hash, frames
+  `<anim>_<dir>_<i>`, trimmed with `spriteSourceSize` in a 128² `sourceSize`). The PNG is indexed by
+  `scripts/lib/indexed-png.mjs`, which keeps every palette hex exact (libimagequant dropped small areas).
+  `tests/unit/art-budget.test.ts` enforces ≤ 1024², ≤ 350 KB, all frame names and the feet line (112 ± 3).
+- The contact sheet of a full render has one block per direction (14 frames, 1×, 48 px, 48 px grayscale).
 - Toon shadow band = base × 0.68 in HSV value (HLS would push pale colours like cream into orange); a surface
   is lit when its diffuse value is above 0.1, so camera-facing fronts show the base hex.
 - 35° pitch shows the ground footprint below the origin: keep low parts slim and tucked under the body.

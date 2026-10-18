@@ -130,7 +130,8 @@ def all_parts(spec):
 
 
 def build(spec, workbench=False):
-    """Create the model in the current scene. Returns (root empty, face switcher or None)."""
+    """Create the model in the current scene.
+    Returns (root empty, face switcher or None, {part name: object})."""
     scene = bpy.context.scene
     scale = spec.get('scale', 1.0)
     root = bpy.data.objects.new(spec['id'], None)
@@ -165,4 +166,4 @@ def build(spec, workbench=False):
         f = spec['face']
         head = next(p for p in spec['parts'] if p['name'] == f['part'])
         switch = face_mod.build(f, head, objs[f['part']], scale, workbench)
-    return root, switch
+    return root, switch, objs

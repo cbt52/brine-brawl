@@ -1,6 +1,12 @@
 export const PAL_KEYS: readonly string[];
 export const PRIM_TYPES: readonly string[];
 export const ANIM_STYLES: readonly string[];
+export const ANIMS: readonly [string, number][];
+export const DIRS5: readonly string[];
+export const DIRS8: readonly string[];
+export const ANIM_AMPS: readonly string[];
+export const ANIM_ROLES: readonly string[];
+export function frameNames(dirs?: number): string[];
 export const FEATURE_FNS: Readonly<Record<string, readonly string[]>>;
 export const FEATURE_COLOUR_KEYS: readonly string[];
 export function specColours(spec: unknown): [string, string][];

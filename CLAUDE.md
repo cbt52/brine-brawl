@@ -19,7 +19,8 @@ Server-authoritative Node + `ws`; Phaser 3 client. Task plan: `TASKS-LOOP.md` (f
 - `client/src/{scenes,net,ui,input,fx,audio,art}`, `client/public/art/`
 - `tests/{unit,e2e}`, `scripts/`
 - `scripts/blender/{lib,specs}` (Blender Python: toon/cam/build + per-fighter specs), `scripts/art3d.mjs`,
-  `scripts/lib/{pack,spec3d,frames3d}.mjs`; raw 3D frames go to `.loop/tmp/art3d/` (never commit `.blend`)
+  `scripts/lib/{pack,spec3d,frames3d,indexed-png}.mjs`; raw 3D frames go to `.loop/tmp/art3d/` (never commit `.blend`),
+  rendered atlases to `client/public/art/sprites/<id>.{png,json}`
 
 ## Architecture rules
 - One port serves `CLIENT_DIR`, `/healthz`, and websocket `/ws`.

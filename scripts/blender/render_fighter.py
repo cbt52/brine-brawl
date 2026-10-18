@@ -4,7 +4,8 @@ Called by `scripts/art3d.mjs` as
   blender -b --factory-startup --python scripts/blender/render_fighter.py -- \
       --spec <spec.json> --out <dir> [--res 256] [--engine eevee|workbench] [--still]
 Writes `<out>/<anim>_<dir>_<i>.png` at --res px (the orchestrator downsamples to 1x) and
-prints one `[art3d] result {...}` JSON line.
+prints one `[art3d] result {...}` JSON line. The full run poses every frame of `puppet.ANIMS`
+per direction (14 x 5 = 70); --still renders idle frame 0 per direction plus `hurt_S_0`.
 """
 import argparse
 import json
@@ -17,7 +18,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 import bpy  # noqa: E402
 
-from lib import build, cam  # noqa: E402
+from lib import build, cam, puppet  # noqa: E402
 
 
 def args():
@@ -38,25 +39,37 @@ def main():
         spec = json.load(f)
     os.makedirs(a.out, exist_ok=True)
     engine = cam.setup(a.res, a.engine)
-    root, face = build.build(spec, workbench=engine == 'workbench')
+    root, face, objs = build.build(spec, workbench=engine == 'workbench')
+    pup = puppet.Puppet(spec, root, objs)
     scene = bpy.context.scene
     frames = []
 
-    def shot(name, d):
-        root.rotation_euler = (0, 0, math.radians(cam.DIR_ANGLES[d]))
+    def shot(anim, d, i):
+        pup.pose(anim, i)
+        hurt = anim == 'hurt' and face
+        if hurt:
+            face('hurt')
+        name = f'{anim}_{d}_{i}'
         scene.render.filepath = os.path.join(os.path.abspath(a.out), name + '.png')
         bpy.ops.render.render(write_still=True)
+        if hurt:
+            face('normal')
         frames.append(name)
         print(f'[art3d] frame {name}', flush=True)
 
-    # Stills: one idle frame per direction, plus the hurt face from the front when there is a
-    # face. T36 adds the puppet animation frames.
     for d in cam.dirs_for(spec.get('dirs', 5)):
-        shot(f'idle_{d}_0', d)
-    if face:
-        face('hurt')
-        shot('hurt_S_0', 'S')
-        face('normal')
+        root.rotation_euler = (0, 0, math.radians(cam.DIR_ANGLES[d]))
+        pup.settle()
+        if a.still:
+            shot('idle', d, 0)
+            continue
+        for anim, n in puppet.ANIMS:
+            for i in range(n):
+                shot(anim, d, i)
+    if a.still and face:
+        root.rotation_euler = (0, 0, 0)
+        pup.settle()
+        shot('hurt', 'S', 0)
     result = {'id': spec['id'], 'engine': engine, 'blender': bpy.app.version_string,
               'frames': frames, 'sec': round(time.time() - t0, 1)}
     print('[art3d] result ' + json.dumps(result), flush=True)

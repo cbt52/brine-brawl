@@ -495,7 +495,8 @@ Rules for every task:
     - Unit test: spec `pal` == MODELS `pal`.
   - Test: `npm run check && npm run art:3d -- voltbun --still --contact`
 
-- [ ] **T36 — Puppet animation + Voltbun atlas**
+- [x] **T36 — Puppet animation + Voltbun atlas**
+  - Note: `scripts/blender/lib/puppet.py`: `Puppet` applies per-part deltas (loc/rot/scale) on the rest transforms; role parts found by name (`anim.roles` overrides), amplitudes in `AMP[style]` (`anim.amp` overrides, keys mirrored as `ANIM_AMPS` in `spec3d.mjs` + unit test), `anim.attackArm`. Grounding: after posing, numpy finds the lowest hull vertex in screen-up (y·sin35 + z·cos35) and moves the root so it sits at −1.5 px → every frame bottom is y = 113 (biped snaps exactly; blob/hover only lift). This settled T35's 115–118 feet. `build.build` now returns `objs`; `render_fighter.py` renders 14 frames × 5 dirs (`--still` unchanged in spirit, now grounded too); `art3d.mjs` no longer forces `--still`, trims frames (`trimFrame`, Phaser `spriteSourceSize`, 128² `sourceSize`) and writes `client/public/art/sprites/voltbun.{png,json}` (1022×525, 157 KB, 15 s). Indexed PNG via new `scripts/lib/indexed-png.mjs` (keep-hexes + top-192 exact colours + median-cut rest; sharp's libimagequant dropped `detail`, plain RGBA was 396 KB). Voltbun: scale 0.97, ears len 25 / lean 2 (E/SE ears clipped at y 0 before) → S 97 px, tops 4–34. New `tests/unit/art-budget.test.ts` (≤1024², ≤350 KB, 70 names, bottom 112±3, top > 0) + 5 tests in `art3d.test.ts`. Contact sheet: run reads by lean, steps, ear drag (weak in S/N, as expected from the front); strike lunge clear in E/SE. Open look issue: the 20 px punch arm stays small even stretched 1.35×.
   - Do:
     - Write `lib/puppet.py`: idle 4 / run 6 / attack 3 / hurt 1 frames, styles `biped|blob|hover`, overridable per spec.
     - Do the full render to `client/public/art/sprites/voltbun.{png,json}`. Frame names are `<anim>_<dir>_<i>`, sourceSize 128².
@@ -796,3 +797,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T99 ✅ 2026-10-18 — Galleon part 3d-1 (#26): `join.arena` picks the room's layout at creation (`arenaById`, unknown = docks), `Room` builds its `World` on it; 5 tests, check 714 grün → §5 #26 (3d-2), #42
 - T99 ✅ 2026-10-18 — JoinOpts (backlog #42): `RoomManager.join(ws, opts)` takes one `JoinOpts` object, `server/index.ts` is the only production call site, 6 test files moved over; check 778 grün, serve.sh + smoke ok → §5 #60
 - T35 ✅ 2026-10-18 — Voltbun 3D stills: spec + earsLong/tailBattery/face(hurt), part pivots, gold collar, HSV toon shadow; S 100 px, E 106 / bottoms 115–118 → T36
+- T36 ✅ 2026-10-18 — puppet.py (biped/blob/hover, ground snap) + Voltbun atlas 70 frames 1022×525 157 KB indexed, feet y=113 all; check 813 grün

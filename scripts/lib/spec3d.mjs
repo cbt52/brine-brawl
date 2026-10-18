@@ -5,6 +5,19 @@
 export const PAL_KEYS = ['body', 'detail', 'trim', 'prop'];
 export const PRIM_TYPES = ['sphere', 'capsule', 'cone', 'box', 'cylinder'];
 export const ANIM_STYLES = ['biped', 'blob', 'hover'];
+/** Puppet animations and their frame counts (`scripts/blender/lib/puppet.py` ANIMS). */
+export const ANIMS = [['idle', 4], ['run', 6], ['attack', 3], ['hurt', 1]];
+export const DIRS5 = ['S', 'SE', 'E', 'NE', 'N'];
+export const DIRS8 = ['S', 'SE', 'E', 'NE', 'N', 'NW', 'W', 'SW'];
+/** Amplitude keys a spec may override in `anim.amp`. */
+export const ANIM_AMPS = ['bob', 'step', 'lift', 'swing', 'lean', 'breathe', 'earSway', 'earDrag', 'tailWag',
+  'windup', 'strike', 'twist', 'lunge', 'squash', 'float', 'hop'];
+export const ANIM_ROLES = ['body', 'head', 'armR', 'armL', 'footR', 'footL', 'earR', 'earL', 'tail'];
+
+/** Every atlas frame name `<anim>_<dir>_<i>` for a spec, grouped per direction. */
+export function frameNames(dirs = 5) {
+  return (dirs === 8 ? DIRS8 : DIRS5).flatMap((d) => ANIMS.flatMap(([a, n]) => Array.from({ length: n }, (_, i) => `${a}_${d}_${i}`)));
+}
 /** Feature generators in `scripts/blender/lib/features.py` and the parts each one adds. */
 export const FEATURE_FNS = { earsLong: ['ear_r', 'ear_r_tip', 'ear_l', 'ear_l_tip'], tailBattery: ['tail', 'tail_band', 'tail_cap'] };
 /** Feature keys that hold a colour (pal key or #RRGGBB). */
@@ -71,6 +84,16 @@ export function validateSpec(spec) {
     if (f.nose !== undefined && !HEX.test(f.nose)) errs.push('face.nose must be #RRGGBB');
   }
   if (!ANIM_STYLES.includes(spec.anim?.style)) errs.push(`anim.style must be one of ${ANIM_STYLES.join('|')}`);
+  for (const [k, v] of Object.entries(spec.anim?.amp ?? {})) {
+    if (!ANIM_AMPS.includes(k)) errs.push(`anim.amp.${k} is not an amplitude (${ANIM_AMPS.join('|')})`);
+    else if (!isNum(v)) errs.push(`anim.amp.${k} must be a number`);
+  }
+  for (const k of Object.keys(spec.anim?.roles ?? {})) {
+    if (!ANIM_ROLES.includes(k)) errs.push(`anim.roles.${k} is not a role (${ANIM_ROLES.join('|')})`);
+  }
+  if (spec.anim?.attackArm !== undefined && !['r', 'l', 'both', 'none'].includes(spec.anim.attackArm)) {
+    errs.push('anim.attackArm must be r|l|both|none');
+  }
   return errs;
 }
 

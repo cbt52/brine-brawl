@@ -48,31 +48,37 @@ function shelves(order, width, pad) {
 }
 
 /**
- * Pack RGBA frames into one PNG + a Phaser JSON-hash atlas.
- * @param {{name: string, w: number, h: number, data: Buffer}[]} frames raw RGBA
+ * Pack RGBA frames into one PNG + a Phaser JSON-hash atlas. A trimmed frame carries
+ * `src: {x, y, sw, sh}` (its offset inside the `sw`×`sh` source cell). `palette: true` writes an
+ * indexed PNG (`indexed-png.mjs`; the `keep` hexes stay exact) to stay inside the byte budget.
+ * @param {{name: string, w: number, h: number, data: Buffer, src?: {x: number, y: number, sw: number, sh: number}}[]} frames raw RGBA
  */
-export async function packAtlas(frames, pngPath, jsonPath, opts = {}) {
-  const { default: sharp } = await import('sharp');
+export async function packAtlas(frames, pngPath, jsonPath, { palette = false, keep = [], ...opts } = {}) {
   const { writeFileSync } = await import('node:fs');
   const { basename } = await import('node:path');
   const lay = layoutShelves(frames.map((f) => ({ id: f.name, w: f.w, h: f.h })), opts);
   const byName = new Map(frames.map((f) => [f.name, f]));
-  const composites = lay.frames.map((p) => {
+  const img = Buffer.alloc(lay.w * lay.h * 4);
+  for (const p of lay.frames) {
     const f = byName.get(p.id);
-    return { input: f.data, raw: { width: f.w, height: f.h, channels: 4 }, left: p.x, top: p.y };
-  });
-  await sharp({ create: { width: lay.w, height: lay.h, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } } })
-    .composite(composites)
-    .png({ compressionLevel: 9 })
-    .toFile(pngPath);
+    for (let y = 0; y < f.h; y++) img.set(f.data.subarray(y * f.w * 4, (y + 1) * f.w * 4), ((p.y + y) * lay.w + p.x) * 4);
+  }
+  if (palette) {
+    const { encodeIndexedPng, quantize } = await import('./indexed-png.mjs');
+    writeFileSync(pngPath, encodeIndexedPng(lay.w, lay.h, quantize(img, { keep })));
+  } else {
+    const { default: sharp } = await import('sharp');
+    await sharp(img, { raw: { width: lay.w, height: lay.h, channels: 4 } }).png({ compressionLevel: 9 }).toFile(pngPath);
+  }
   const json = { frames: {}, meta: { app: 'brine-brawl art3d', image: basename(pngPath), format: 'RGBA8888', size: { w: lay.w, h: lay.h }, scale: 1 } };
   for (const p of lay.frames) {
+    const src = byName.get(p.id).src;
     json.frames[p.id] = {
       frame: { x: p.x, y: p.y, w: p.w, h: p.h },
       rotated: false,
-      trimmed: false,
-      spriteSourceSize: { x: 0, y: 0, w: p.w, h: p.h },
-      sourceSize: { w: p.w, h: p.h },
+      trimmed: !!src,
+      spriteSourceSize: { x: src?.x ?? 0, y: src?.y ?? 0, w: p.w, h: p.h },
+      sourceSize: { w: src?.sw ?? p.w, h: src?.sh ?? p.h },
     };
   }
   writeFileSync(jsonPath, JSON.stringify(json, null, 1) + '\n');

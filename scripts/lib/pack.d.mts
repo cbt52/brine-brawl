@@ -19,8 +19,8 @@ export interface ShelfOpts {
 }
 export function layoutShelves(rects: ShelfRect[], opts?: ShelfOpts): ShelfLayout;
 export function packAtlas(
-  frames: { name: string; w: number; h: number; data: Uint8Array }[],
+  frames: { name: string; w: number; h: number; data: Uint8Array; src?: { x: number; y: number; sw: number; sh: number } }[],
   pngPath: string,
   jsonPath: string,
-  opts?: ShelfOpts,
+  opts?: ShelfOpts & { palette?: boolean; keep?: string[] },
 ): Promise<ShelfLayout>;

@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { layoutShelves } from '../../scripts/lib/pack.mjs';
-import { specColours, validateSpec } from '../../scripts/lib/spec3d.mjs';
+import { ANIM_AMPS, ANIMS, frameNames, specColours, validateSpec } from '../../scripts/lib/spec3d.mjs';
+import { trimFrame } from '../../scripts/lib/frames3d.mjs';
+import { encodeIndexedPng, quantize } from '../../scripts/lib/indexed-png.mjs';
 import { MODELS } from '../../scripts/art-models.mjs';
 
 const rects = (n: number, seed = 1) => {
@@ -120,5 +122,77 @@ describe('fighter specs', () => {
 
   it('paints every palette colour, the faction gold included', () => {
     expect(specColours(spec('voltbun')).map(([k]) => k).sort()).toEqual(['body', 'detail', 'prop', 'trim']);
+  });
+});
+
+describe('puppet anims', () => {
+  it('lists 14 frames per direction: idle 4, run 6, attack 3, hurt 1', () => {
+    expect(ANIMS).toEqual([['idle', 4], ['run', 6], ['attack', 3], ['hurt', 1]]);
+    const names = frameNames(5);
+    expect(names).toHaveLength(70);
+    expect(new Set(names).size).toBe(70);
+    expect(names.slice(0, 14)).toEqual([
+      'idle_S_0', 'idle_S_1', 'idle_S_2', 'idle_S_3', 'run_S_0', 'run_S_1', 'run_S_2', 'run_S_3', 'run_S_4', 'run_S_5',
+      'attack_S_0', 'attack_S_1', 'attack_S_2', 'hurt_S_0',
+    ]);
+    expect(frameNames(8)).toHaveLength(112);
+  });
+
+  it('mirrors the amplitude keys of puppet.py and validates anim overrides', () => {
+    const py = readFileSync('scripts/blender/lib/puppet.py', 'utf8');
+    const biped = py.slice(py.indexOf("'biped': {"), py.indexOf("'blob': {"));
+    expect([...biped.matchAll(/'(\w+)':/g)].map((m) => m[1]).slice(1).sort()).toEqual([...ANIM_AMPS].sort());
+    const s = JSON.parse(readFileSync('scripts/blender/specs/voltbun.json', 'utf8'));
+    expect(validateSpec({ ...s, anim: { style: 'blob', amp: { hop: 2 }, roles: { armR: 'claw' }, attackArm: 'both' } })).toEqual([]);
+    const bad = { style: 'biped', amp: { wiggle: 1, bob: 'x' }, roles: { wing: 'w' }, attackArm: 'tail' };
+    const errs = validateSpec({ ...s, anim: bad }).join('\n');
+    expect(errs).toMatch(/anim\.amp\.wiggle/);
+    expect(errs).toMatch(/anim\.amp\.bob/);
+    expect(errs).toMatch(/anim\.roles\.wing/);
+    expect(errs).toMatch(/attackArm/);
+  });
+});
+
+describe('trimFrame', () => {
+  it('crops to the alpha box and records the offset in the source cell', () => {
+    const w = 8;
+    const h = 6;
+    const data = Buffer.alloc(w * h * 4);
+    for (const [x, y] of [[2, 1], [5, 4]]) data[(y * w + x) * 4 + 3] = 255;
+    const t = trimFrame({ w, h, data });
+    expect([t.w, t.h, t.src]).toEqual([4, 4, { x: 2, y: 1, sw: 8, sh: 6 }]);
+    expect(t.data[3]).toBe(255);
+    expect(t.data[(3 * 4 + 3) * 4 + 3]).toBe(255);
+  });
+});
+
+describe('indexed PNG', () => {
+  it('keeps the requested hexes exact under palette pressure and round-trips through a decoder', async () => {
+    const w = 64;
+    const h = 64;
+    const data = Buffer.alloc(w * h * 4);
+    for (let i = 0; i < w * h; i++) {
+      // thousands of distinct colours, one pixel of the "keep" colour, some transparent pixels
+      data[i * 4] = (i * 7) & 255;
+      data[i * 4 + 1] = (i * 13) & 255;
+      data[i * 4 + 2] = i & 255;
+      data[i * 4 + 3] = i % 97 === 0 ? 0 : i % 5 === 0 ? 128 : 255;
+    }
+    data.set([0xe4, 0xd3, 0xb0, 255], 301 * 4);
+    const q = quantize(data, { keep: ['#E4D3B0'] });
+    expect(q.palette.length).toBeLessThanOrEqual(256);
+    const png = encodeIndexedPng(w, h, q);
+    expect(png[25]).toBe(3);
+    const sharp = (await import('sharp')).default;
+    const { data: out } = await sharp(png).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    expect([...out.subarray(301 * 4, 301 * 4 + 4)]).toEqual([0xe4, 0xd3, 0xb0, 255]);
+    expect(out[97 * 4 + 3]).toBe(0);
+    expect(out.length).toBe(w * h * 4);
+  });
+
+  it('is lossless when the image has ≤ 256 colours', () => {
+    const px = [10, 20, 30, 255, 0, 0, 0, 0, 10, 20, 30, 255, 200, 100, 50, 64];
+    const q = quantize(Buffer.from(px));
+    expect([...q.index].flatMap((i) => q.palette[i])).toEqual(px);
   });
 });
