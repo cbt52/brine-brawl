@@ -1,8 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { World, type SimInput } from '../../shared/sim/world.ts';
 import { DOCKS_ARENA, GALLEON_ARENA, type Arena } from '../../shared/arena/arena.ts';
-import { GALLEON_CANNONS } from '../../shared/arena/galleon.ts';
+import { GALLEON_CANNONS, GALLEON_OBSTACLES } from '../../shared/arena/galleon.ts';
 import { CANNON_DMG } from '../../shared/sim/cannon.ts';
+import { castAbility } from '../../shared/sim/abilities.ts';
+import { steer } from '../../shared/sim/bot.ts';
+import { getFighter } from '../../shared/fighters/index.ts';
 import { TICK_HZ } from '../../shared/constants.ts';
 
 const inp = (o: Partial<SimInput> = {}): SimInput => ({ seq: 1, mx: 0, my: 0, ax: 1, ay: 0, atk: false, spc: false, ult: false, ...o });
@@ -78,5 +81,29 @@ describe('World on a swappable arena (backlog #1 slice 3a)', () => {
     const hp0 = p.hp;
     runTo(w, 8.5);
     expect(p.hp).toBe(hp0);
+  });
+});
+
+describe('arena scenery in bots and abilities (backlog #26 slice 3b)', () => {
+  it('bots steer around the arena obstacles, so a galleon wall turns the heading', () => {
+    const o = GALLEON_OBSTACLES[0];
+    const w = new World(GALLEON_ARENA);
+    const me = w.addPlayer(1, 'a');
+    // square in front of the wall, aiming straight into it
+    me.x = o.x - 60;
+    me.y = o.y + o.h / 2;
+    expect(steer(me, 0, [])).toBe(0);
+    expect(steer(me, 0, GALLEON_OBSTACLES)).not.toBe(0);
+  });
+
+  it('a dash stops at an obstacle of its own arena (not the docks coral)', () => {
+    const wall = { x: 1250, y: 900, w: 60, h: 200 };
+    const w = new World({ obstacles: [wall], spawns: [{ x: 1000, y: 1000 }], cannons: [] });
+    const a = w.addPlayer(1, 'A', 'embercub'); // Ember Roll: 300 u dash along the aim
+    a.x = 1000; a.y = 1000; a.aim = 0; a.shield = 0;
+    expect(castAbility(w, a, getFighter('embercub').special, 'special')).toBe(true);
+    runTo(w, 0.6);
+    expect(a.x).toBeGreaterThan(1000);
+    expect(a.x).toBeLessThan(wall.x);
   });
 });

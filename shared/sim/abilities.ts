@@ -1,6 +1,7 @@
 import type { AbilitySlot, SimEvent } from '../protocol.ts';
 import type { AbilityDef, Element, StatusKind } from '../fighters/types.ts';
-import { OBSTACLES } from '../arena/docks.ts';
+import { OBSTACLES, type Rect } from '../arena/docks.ts';
+import type { Arena } from '../arena/arena.ts';
 import { applyElementHit, applyStatus as storeStatus, ELEMENT_OF_STATUS } from './elements.ts';
 import { noteAttackHit } from './passives.ts';
 import { resolveWalls } from './collide.ts';
@@ -95,6 +96,8 @@ export interface CastHost {
   /** low-tide treasure (optional: tests may cast without scenery) */
   chests?: readonly Chest[];
   damageChest?(attacker: number, chest: Chest, dmg: number): void;
+  /** the layout this round is played on (optional: tests may cast on the docks coral) */
+  arena?: Arena;
   /** temporary stone walls (optional: tests may cast without them) */
   walls?: Wall[];
   /** standing decoys and turrets (optional: tests may cast without them) */
@@ -115,10 +118,15 @@ function enemies(h: CastHost, owner: number): SimPlayer[] {
   return out;
 }
 
-function shove(v: SimPlayer, ux: number, uy: number, amount: number): void {
+/** The arena's solid scenery (the docks coral when the host has no arena). */
+function scenery(h: CastHost): Rect[] {
+  return h.arena?.obstacles ?? OBSTACLES;
+}
+
+function shove(h: CastHost, v: SimPlayer, ux: number, uy: number, amount: number): void {
   v.x += ux * amount;
   v.y += uy * amount;
-  resolveWalls(v, OBSTACLES);
+  resolveWalls(v, scenery(h));
 }
 
 /** Extra options for `hitAll` (cone gating, status on hit). */
@@ -155,8 +163,8 @@ function hitAll(
     if (dmg > 0) h.damage(owner, v, dmg, v.x, v.y, o.slot);
     const ux = d > 1e-6 ? dx / d : 1;
     const uy = d > 1e-6 ? dy / d : 0;
-    if (push) shove(v, ux, uy, push);
-    if (pull) shove(v, -ux, -uy, Math.min(pull, Math.max(0, d)));
+    if (push) shove(h, v, ux, uy, push);
+    if (pull) shove(h, v, -ux, -uy, Math.min(pull, Math.max(0, d)));
     if (o.rootSec && !v.down) v.rootLeft = Math.max(v.rootLeft, o.rootSec);
     if (!v.down && v.shield <= 0) {
       const react = applyElementHit(h, owner, v, o.status ?? null, o.statusSec ?? 0, hitElement(o.element, o.status));
@@ -254,7 +262,7 @@ export function castAbility(
         if (d > v.r && Math.abs(wrapPi(Math.atan2(dy, dx) - p.aim)) > half) continue;
         h.damage(p.id, v, dmg, v.x, v.y, slot);
         if (slot === 'attack' && !v.down) noteAttackHit(p);
-        if (def.knockback) shove(v, d > 1e-6 ? dx / d : ax, d > 1e-6 ? dy / d : ay, def.knockback);
+        if (def.knockback) shove(h, v, d > 1e-6 ? dx / d : ax, d > 1e-6 ? dy / d : ay, def.knockback);
         if (!v.down && v.shield <= 0) {
           const el = hitElement(defEl, def.status);
           const react = applyElementHit(h, p.id, v, def.status ?? null, statusSec, el);
@@ -445,7 +453,7 @@ export function stepDash(h: CastHost, p: SimPlayer, dt: number): boolean {
   p.x += wantX;
   p.y += wantY;
   // stone slabs are as solid as the coral: a dash must not cross (or end inside) one
-  resolveWalls(p, h.walls?.length ? OBSTACLES.concat(wallRects(h.walls)) : OBSTACLES);
+  resolveWalls(p, h.walls?.length ? scenery(h).concat(wallRects(h.walls)) : scenery(h));
   // a wall blocked most of the intended step: a contact dash stops here
   if (d.stopOnContact && Math.hypot(p.x - x0, p.y - y0) < Math.hypot(wantX, wantY) * 0.7) {
     p.dash = null;
@@ -490,7 +498,7 @@ export function stepBurrow(h: CastHost, p: SimPlayer, dt: number): boolean {
   if (b.left > 0) return true;
   p.x = b.tx;
   p.y = b.ty;
-  resolveWalls(p, h.walls?.length ? OBSTACLES.concat(wallRects(h.walls)) : OBSTACLES);
+  resolveWalls(p, h.walls?.length ? scenery(h).concat(wallRects(h.walls)) : scenery(h));
   p.burrow = null;
   hitAll(h, p.id, p.x, p.y, b.radius, b.dmg, 0, 0, {
     status: b.status, statusSec: b.statusSec, element: b.element, slot: b.slot,

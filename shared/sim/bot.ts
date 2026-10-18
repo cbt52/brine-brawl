@@ -1,4 +1,4 @@
-import { OBSTACLES, SPAWNS } from '../arena/docks.ts';
+import type { Rect } from '../arena/docks.ts';
 import { WORLD_W, WORLD_H } from '../constants.ts';
 import { pushOutRect } from './collide.ts';
 import { abilityReach } from './abilities.ts';
@@ -36,17 +36,17 @@ const RAD = Math.PI / 180;
 
 export type BotState = 'wander' | 'chase' | 'kite' | 'flee' | 'loot' | 'carry' | 'collect' | 'escort' | 'ring' | 'snail';
 
-function blocked(x: number, y: number, r: number): boolean {
+function blocked(x: number, y: number, r: number, solids: Rect[]): boolean {
   if (x < r || y < r || x > WORLD_W - r || y > WORLD_H - r) return true;
-  for (const o of OBSTACLES) if (pushOutRect({ x, y, r }, o)) return true;
+  for (const o of solids) if (pushOutRect({ x, y, r }, o)) return true;
   return false;
 }
 
-/** Whisker steering: rotate the desired heading until the rays ahead are clear. */
-function steer(me: SimPlayer, ang: number): number {
+/** Whisker steering: rotate the desired heading until the rays ahead are clear of `solids` (the arena's scenery). */
+export function steer(me: SimPlayer, ang: number, solids: Rect[]): number {
   const len = me.r + 70;
   const clear = (a: number) => {
-    for (const f of [0.5, 1]) if (blocked(me.x + Math.cos(a) * len * f, me.y + Math.sin(a) * len * f, me.r * 0.8)) return false;
+    for (const f of [0.5, 1]) if (blocked(me.x + Math.cos(a) * len * f, me.y + Math.sin(a) * len * f, me.r * 0.8, solids)) return false;
     return true;
   };
   for (const off of [0, 0.5, -0.5, 1, -1, 1.6, -1.6, Math.PI]) if (clear(ang + off)) return ang + off;
@@ -148,9 +148,10 @@ export class BotBrain {
     const shoot = !!foe && me.ammo > 0 && foeDist < shotRange * 0.9;
     if (me.carry > 0) {
       // run the pile away from the enemy: home is the spawn that is farthest from them
-      let far = SPAWNS[0];
+      const spawns = world.arena.spawns;
+      let far = spawns[0];
       let fd = -1;
-      for (const s of SPAWNS) {
+      for (const s of spawns) {
         const d = foe ? Math.hypot(s.x - foe.x, s.y - foe.y) : Math.hypot(s.x - SPOT.x, s.y - SPOT.y);
         if (d > fd) { fd = d; far = s; }
       }
@@ -238,9 +239,10 @@ export class BotBrain {
       const to = Math.atan2(dy, dx);
       if (me.hp < me.mhp * FLEE_FRAC) {
         this.state = 'flee';
-        let far = SPAWNS[0];
+        const spawns = world.arena.spawns;
+        let far = spawns[0];
         let fd = -1;
-        for (const s of SPAWNS) {
+        for (const s of spawns) {
           const d = Math.hypot(s.x - t.x, s.y - t.y);
           if (d > fd) { fd = d; far = s; }
         }
@@ -294,7 +296,7 @@ export class BotBrain {
     // Showdown (backlog #6): the closing ring beats every other goal — turn back before the edge hurts
     const back = world.mode === 'showdown' ? edgeHeading(me.x, me.y, world.roundT) : null;
     if (back !== null) { this.state = 'ring'; heading = back; move = 1; }
-    if (move > 0) heading = steer(me, heading);
+    if (move > 0) heading = steer(me, heading, world.arena.obstacles);
     // rising tide: the flood is slow and soaks you — leave it, and do not walk into it (chest runs are exempt)
     if (!looting && world.tide.level > 0.5) {
       if (world.inWaterAt(me.x, me.y)) {
