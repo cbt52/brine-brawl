@@ -114,7 +114,7 @@ export type C2S =
   | BotLevelMsg
   | PickMsg
   | EmoteMsg
-  /** start the next round right away (results screen "Rematch", T28) */
+  /** results screen "Rematch" = Ready tap (T28, backlog #15): the next round starts once everyone has tapped */
   | { t: 'rematch' }
   | { t: 'ping'; ts?: number };
 

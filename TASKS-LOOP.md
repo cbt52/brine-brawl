@@ -456,7 +456,6 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 ---
 ## 5. IMPROVEMENT BACKLOG (ordered; T99 takes from the top; user feedback goes first)
 11. Optional ONLY if the user asks: ComfyUI portraits (127.0.0.1:8188, 2–7 min/img, 16 GB RAM, never while the user is using it).
-15. Rematch countdown: after the results screen, the match restarts on its own 10 s after the last human taps Ready (today every human must tap Rematch).
 16. Skins everywhere: the in-game ☰ menu, the character cards and the results poster still draw the drawn look; they should show the picked skin too (`sk` is already in the snapshot, the results rows need it as well).
 17. Weird Weather part 2 (slice 1 = `shared/sim/weather.ts` + Double Tide, rolled per round by the room, `wx` in MatchInfo, HUD tag, unit-tested): jellyfish rain (drifting stinging jellies that dash through the open sand) and bubble storm (floating bubbles that carry a body up and slow it), both as `Weather` entries with their own sim hooks and a shot check.
 18. Kill-cam part 2 (slice 1 = `client/src/net/killcam.ts`, our own KO replays the 2 s before it from `Net.buffer`, camera follows the killer, "KO CAM · name" tag): slow motion (0.5x) for the last 0.5 s before the hit, a tap-to-skip on touch, and a short replay for the killer's own best KO too.
@@ -470,6 +469,7 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 25. Purrl heal feedback: when the snail heals a fighter, a small bubble ring and a "+10" pop show on that fighter (today the heal is silent apart from the number in the event list), so humans learn that the snail heals them too.
 26. Taffy Galleon, part 3 (slice 2 = `shared/arena/galleon.ts`: deck obstacles, spawns and four rail cannons, unit-tested, not wired): `World`, bots and prediction take an arena instead of the docks constants, the cannons come from `GALLEON_CANNONS` and damage bodies once per volley (`volleyHits` + `k`), rocking deck art in `client/src/art/arena.ts`.
 27. Host-only bot controls: non-hosts see the ☰ bot count and level buttons but tapping them does nothing (the server ignores them). Send an `host` flag in the match info and grey out the bot and level rows for non-hosts, with a 'host only' hint.
+28. Ready count on the results screen: the poster shows "2/3 ready" (a `rd` count in MatchInfo, from `Room.rematch`'s ready set) so players see who the round is waiting for, and the footer shows "Next round in Ns" only once the round is ready.
 
 ---
 ## 6. LOG (one line per task/hotfix; archive older lines to `.loop/log-archive.md` if >40 lines)
@@ -505,3 +505,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T99 ✅ 2026-10-18 — Purrl-Suche (Backlog #12): verletzter Bot (<60 % HP), kein Gegner in Sicht, Schnecke <480 u → Zustand `snail` läuft hin (1× Heilung/Leben); 4 Tests, check 636 grün, balance 24/24 in 40–60 % (Chase-Variante drückte Dozelump/Hammy auf 37/39 %, daher nur beim Wandern)
 - T99 ✅ 2026-10-18 — Galleon slice 2 (#13): `shared/arena/galleon.ts` layout, 6 unit tests, not wired → §5 #26
 - T99 ✅ 2026-10-18 — Bot-Level im ☰-Menü (Backlog #14): Host wählt easy/normal/sharky, `botlevel`-Msg → Room+alle Bots (`BotBrain.setDifficulty`), `bl` in MatchInfo; 3 Tests, check 645 grün, Shot ok → §5 #27
+- T99 ✅ 2026-10-18 — Rematch = Ready (backlog #15): Ready-Tap pro Mensch, 10 s nach dem letzten Tap wenn alle bereit, sonst 8 s Auto-Restart; Ready-Button + "Next round in Ns"; 5 Unit + e2e match grün, check 650

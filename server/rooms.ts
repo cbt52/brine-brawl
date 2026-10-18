@@ -5,7 +5,7 @@ import { World } from '../shared/sim/world.ts';
 import { BotBrain, sanitizeBotLevel, type BotDifficulty } from '../shared/sim/bot.ts';
 import { autoTeams, type Team } from '../shared/sim/teams.ts';
 import { randomFighterId, resolveFighterId } from '../shared/fighters/index.ts';
-import { Match, rankPlayers } from './match.ts';
+import { Match, READY_HOLD_SEC, rankPlayers } from './match.ts';
 import { botKoSticker, emoteIndex, emoteReady } from '../shared/emotes.ts';
 import { sanitizeSkin } from '../shared/skins.ts';
 import { pickWeather } from '../shared/sim/weather.ts';
@@ -51,6 +51,8 @@ export class Room {
   private nextBot = 1000;
   /** last emote timestamp per client, so nobody can spam the room (T99) */
   private emoteAt = new Map<number, number>();
+  /** humans who tapped Ready on this results screen (backlog #15), cleared when the round moves on */
+  private readyIds = new Set<number>();
   acc = 0;
   last = Date.now();
   constructor(public id: string, mode: RoomMode = 'bounty') {
@@ -127,6 +129,7 @@ export class Room {
     }
     // Weird Weather lasts one round: calm skies again outside 'playing' (results, lobby, countdown)
     if (this.match.phase !== 'playing') this.world.setWeather('clear');
+    if (this.match.phase !== 'results') this.readyIds.clear();
   }
 
   /** Bots fill free slots up to the requested count; humans take priority. */
@@ -148,9 +151,17 @@ export class Room {
     this.assignTeams();
   }
 
-  /** "Rematch" on the results screen: count down into the next round right away (T28). */
-  rematch(): boolean {
-    return this.match.rematch() === 'countdown';
+  /**
+   * "Rematch" on the results screen is a Ready tap (backlog #15). Once every connected human is ready,
+   * the next round starts READY_HOLD_SEC after the last tap; until then the normal results wait applies.
+   */
+  rematch(c: Client): boolean {
+    if (this.match.phase !== 'results') return false;
+    this.readyIds.add(c.id);
+    const humans = [...this.clients.keys()];
+    if (!humans.every((id) => this.readyIds.has(id))) return false;
+    this.match.holdResults(READY_HOLD_SEC);
+    return true;
   }
 
   /** Drop per-client bookkeeping when somebody leaves the room. */

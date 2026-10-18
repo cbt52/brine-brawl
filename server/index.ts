@@ -96,8 +96,8 @@ function onConnection(ws: WebSocket): void {
         if (joined) joined.room.emote(joined.client, msg.e);
         break;
       case 'rematch':
-        // any player may cut the results wait short (T28)
-        if (joined) joined.room.rematch();
+        // every player taps Ready on the results screen (T28, backlog #15)
+        if (joined) joined.room.rematch(joined.client);
         break;
       case 'bots':
         // host (first human in the room) adjusts the bot count

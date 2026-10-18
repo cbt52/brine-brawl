@@ -61,12 +61,19 @@ export interface ResultsActions {
   changeFighter?: () => void;
 }
 
+/** Footer line under the buttons: the room restarts by itself when the countdown runs out (backlog #15). */
+const nextText = (t: number): string => `Next round in ${t}s`;
+
 /** Show the results overlay once per round and drop it as soon as the next countdown starts. */
 export function syncResults(m: MatchInfo | undefined, actions: ResultsActions = {}): void {
   const el = document.getElementById('results');
   if (m?.st === 'results' && m.res) {
     if (dismissed === m.r) { el?.remove(); return; }
-    if (shown === m.r && el) return;
+    if (shown === m.r && el) {
+      const next = el.querySelector('[data-testid=results-next]');
+      if (next) next.textContent = nextText(m.t);
+      return;
+    }
     shown = m.r;
     const rows = m.res;
     const win = rows[0];
@@ -82,9 +89,16 @@ export function syncResults(m: MatchInfo | undefined, actions: ResultsActions = 
         <button class="big" data-testid="results-rematch">Rematch</button>
         <button class="big alt" data-testid="results-fighter">Change fighter</button>
       </div>
-      <small>Next round starting…</small>`;
+      <small data-testid="results-next">${nextText(m.t)}</small>`;
     div.insertBefore(posterRow(rows), div.querySelector('.rank-list'));
-    div.querySelector('[data-testid=results-rematch]')?.addEventListener('click', () => actions.rematch?.());
+    const ready = div.querySelector<HTMLButtonElement>('[data-testid=results-rematch]');
+    ready?.addEventListener('click', () => {
+      // a Ready tap is final for this round; the room starts the next one once everyone has tapped
+      if (!ready || ready.disabled) return;
+      ready.disabled = true;
+      ready.textContent = 'Ready ✓';
+      actions.rematch?.();
+    });
     div.querySelector('[data-testid=results-fighter]')?.addEventListener('click', () => {
       // the ☰ panel carries the fighter row; keep this round's overlay dismissed
       div.remove();

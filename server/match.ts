@@ -4,6 +4,8 @@ import type { Team } from '../shared/sim/teams.ts';
 export const COUNTDOWN_SEC = 3;
 export const MATCH_SEC = 150;
 export const RESULTS_SEC = 8;
+/** backlog #15: once every human has tapped Ready, the next round starts this long after the last tap */
+export const READY_HOLD_SEC = 10;
 /** humans + bots needed before a match starts */
 export const MIN_COMBATANTS = 2;
 export const MIN_MATCH_SEC = 5;
@@ -102,11 +104,10 @@ export class Match {
     return 'end';
   }
 
-  /** Results screen "Rematch" (T28): skip the rest of the results wait and count down now. */
-  rematch(): MatchEvent {
-    if (this.phase !== 'results') return null;
-    this.beginCountdown();
-    return 'countdown';
+  /** Backlog #15: the results wait lasts at least `sec` more (the room calls this once everyone is ready). */
+  holdResults(sec: number): void {
+    if (this.phase !== 'results') return;
+    this.timer = Math.max(this.timer, sec);
   }
 
   info(): MatchInfo {
