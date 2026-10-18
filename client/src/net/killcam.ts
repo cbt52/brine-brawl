@@ -61,9 +61,12 @@ export function bestKo<K extends { pay: number }>(a: K | null, b: K): K {
 export class KillCam {
   private replay: Replay | null = null;
 
-  /** A replay is queued or playing (it ends on its own once the playhead reaches the KO). */
-  get running(): boolean {
-    return this.replay !== null;
+  /**
+   * A replay is queued or playing at `now` (local time). It is judged on the clock, not on the last
+   * frame, so a render loop that stalls cannot leave it "playing" past its end (backlog #35).
+   */
+  playing(now: number): boolean {
+    return this.frame(now) !== null;
   }
 
   /** The label of the running replay ("KO CAM" / "BEST KO CAM"), or `null` when none runs. */

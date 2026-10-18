@@ -40,8 +40,17 @@ describe('kill-cam replay (backlog #5)', () => {
     cam.start(history(0, 3000), 3000, 5);
     expect(cam.frame(3500)).not.toBeNull();
     cam.skip();
-    expect(cam.running).toBe(false);
+    expect(cam.playing(3600)).toBe(false);
     expect(cam.frame(3600)).toBeNull();
+  });
+
+  it('is over on its own clock, even when no frame ran in between (backlog #35)', () => {
+    const cam = new KillCam();
+    cam.start(history(0, 3000), 3000, 5);
+    expect(cam.playing(3500)).toBe(true);
+    // the render loop stalled: no frame() call until 6 s later, the replay still reports over
+    expect(cam.playing(9000)).toBe(false);
+    expect(cam.frame(9000)).toBeNull();
   });
 
   it('clamps the lead-up to the oldest snapshot it has', () => {
@@ -137,7 +146,7 @@ describe('best-KO replay (backlog #31)', () => {
     const cam = new KillCam();
     cam.startBest(history(1000, 4000), 4000, 10000, 5);
     cam.skip();
-    expect(cam.running).toBe(false);
+    expect(cam.playing(10000)).toBe(false);
     expect(cam.label).toBeNull();
   });
 });

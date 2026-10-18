@@ -14,7 +14,8 @@ test('a KO replays the lead-up, then the replay ends without errors', async ({ p
 
   await page.evaluate(() => (window as any).__brawl.send({ t: 'dbg', op: 'kill' }));
   await expect.poll(() => page.evaluate(() => (window as any).__brawl.replaying), { timeout: 3_000 }).toBe(true);
-  // the replay plays two seconds of history, then hands back to the live (dead) view
+  // the replay plays two seconds of history, then hands back to the live (dead) view; `replaying` is
+  // judged on the replay's own clock (2.5 s), so the 5 s here is only a failsafe, not the expected time
   await expect.poll(() => page.evaluate(() => (window as any).__brawl.replaying), { timeout: 5_000 }).toBe(false);
   expect(errors).toEqual([]);
 });

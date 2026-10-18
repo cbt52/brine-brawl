@@ -95,7 +95,7 @@ export class GameScene extends Phaser.Scene {
 
   /** The kill-cam replay of our last KO is on screen (debug hook / e2e). */
   get replaying(): boolean {
-    return this.killCam.running;
+    return this.killCam.playing(performance.now());
   }
 
   create(): void {
