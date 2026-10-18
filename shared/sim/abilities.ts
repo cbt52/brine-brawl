@@ -215,7 +215,7 @@ export function castAbility(
           vx: Math.cos(a) * def.speed, vy: Math.sin(a) * def.speed,
           left: def.range, dmg, r: def.radius,
           pierce: !!def.pierce, bounces: Math.max(0, Math.floor(def.bounce ?? 0)),
-          lob: !!def.lob, aoeOnEnd: def.aoeOnEnd, homing: !!def.homing, hit: new Set(),
+          lob: !!def.lob, aoeOnEnd: def.aoeOnEnd, homing: !!def.homing, returns: !!def.returns, hit: new Set(),
           status: def.status, statusSec, element: hitElement(defEl, def.status), slot,
         });
       }
@@ -286,6 +286,11 @@ export function castAbility(
         element: hitElement(defEl, def.status), slot,
         tickT: 0, fired: false,
       });
+      // Smoke Pop: the cloud also carries the caster faster for as long as it stands
+      if (def.selfSpeedMul !== undefined) {
+        p.buffMul = def.selfSpeedMul;
+        p.buffLeft = Math.max(0.1, def.zoneSec ?? 0);
+      }
       break;
     }
     case 'wall': {

@@ -31,6 +31,8 @@ export const PLAYER_RADIUS = 32;
 /** how fast a homing shot turns (rad/s) and how far it looks for a target */
 const HOMING_TURN = 6;
 const HOMING_RANGE = 340;
+/** how far a returning boomerang may fly back before it gives up (longer than any outbound leg) */
+const RETURN_RANGE = 3000;
 
 /** wrap an angle difference into (-π, π] */
 function wrapAngle(a: number): number {
@@ -515,6 +517,16 @@ export class World {
     const keep: Projectile[] = [];
     for (const pr of this.projs) {
       if (pr.homing) this.steer(pr, dt);
+      // Boomerang (Kip): the return leg steers at its owner and ends when it gets there
+      if (pr.returns && pr.returning) {
+        const own = this.players.get(pr.owner);
+        if (!own || own.down || own.burrow) continue;
+        if (Math.hypot(own.x - pr.x, own.y - pr.y) <= own.r + pr.r) continue;
+        const want = Math.atan2(own.y - pr.y, own.x - pr.x);
+        const fly = Math.hypot(pr.vx, pr.vy) || 1;
+        pr.vx = Math.cos(want) * fly;
+        pr.vy = Math.sin(want) * fly;
+      }
       const sp = Math.hypot(pr.vx, pr.vy) || 1;
       const dist = Math.min(pr.left, sp * dt);
       const n = Math.max(1, Math.ceil(dist / 15));
@@ -584,7 +596,14 @@ export class World {
         }
       }
       pr.left -= dist;
-      if (!dead && pr.left <= 0) dead = true;
+      if (!dead && pr.left <= 0) {
+        if (pr.returns && !pr.returning) {
+          // turn the boomerang around: the way back can hit every enemy once more
+          pr.returning = true;
+          pr.hit = new Set();
+          pr.left = RETURN_RANGE;
+        } else dead = true;
+      }
       if (dead && pr.aoeOnEnd) {
         this.zones.push({
           id: this.newProjId(), owner: pr.owner, x: pr.x, y: pr.y, r: pr.aoeOnEnd.radius,

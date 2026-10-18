@@ -6,7 +6,7 @@ describe('fighter select data', () => {
   it('offers the registered kits, without the Deckhand fallback', () => {
     expect(SELECTABLE.map((f) => f.id)).toEqual([
       'voltbun', 'embercub', 'mossback', 'gloomoth', 'pebblor', 'dozelump',
-      'mira', 'pip', 'brak', 'noodle', 'sable', 'bisque', 'sudsy', 'pinchpenny', 'hammy',
+      'mira', 'pip', 'brak', 'ashka', 'kip', 'tobo', 'noodle', 'sable', 'bisque', 'sudsy', 'pinchpenny', 'hammy',
     ]);
     expect(SELECTABLE.some((f) => f.id === 'default')).toBe(false);
   });

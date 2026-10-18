@@ -35,6 +35,10 @@ export interface Projectile {
   aoeOnEnd?: { radius: number; dmg: number; status?: StatusKind; statusSec?: number };
   /** steers toward the nearest enemy in flight (lantern moths) */
   homing?: boolean;
+  /** boomerang: turns around at the end of `left` and flies back to its owner */
+  returns?: boolean;
+  /** set once the outbound leg is done (the return leg re-arms the hit list) */
+  returning?: boolean;
   /** status applied to every enemy it hits (bubble trap) */
   status?: StatusKind;
   /** element of the hit (defaults to the status element) */

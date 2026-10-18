@@ -64,6 +64,8 @@ export interface ProjectileAbility extends AbilityBase {
   statusSec?: number;
   /** steer toward the nearest enemy in flight (lantern moths) */
   homing?: boolean;
+  /** fly back to the caster when `range` runs out and hit every enemy a second time (boomerang) */
+  returns?: boolean;
 }
 
 export interface MeleeAbility extends AbilityBase {
@@ -123,6 +125,8 @@ export interface AoeAbility extends AbilityBase {
   statusSec?: number;
   /** doubloons scattered at the zone centre when it triggers (Register Crush) */
   dropGold?: number;
+  /** speed multiplier the caster keeps while the zone stands (Smoke Pop); 1 = no buff */
+  selfSpeedMul?: number;
 }
 
 export interface BuffAbility extends AbilityBase {
