@@ -345,7 +345,10 @@ Each reaction shows a big popup word ("SHOCK!").
 - [x] **T21 — Critterkin: Embercub + Mossback**
   - Note: kits registered — Embercub (Flame Swipe melee cone burn / Ember Roll burn-trail dash / Bonfire aim zone that ticks burn and heals the caster), Mossback (Seed Spit 3-seed tangled spread / Shell Spin buff dmgMul 0.5 for 2 s / Overgrowth root AoE). New primitive bits: `AoeAbility.selfHeal` (zone heals its owner per ½ s tick), `AoeAbility.rootSec` (rootLeft on victims), `BuffAbility.dmgMul` + `SimPlayer.dmgMul/dmgMulLeft` applied in `World.damage`; buff summary shows the multiplier. 8 new tests, 364 green, gallery shot T21-0 shows both new cards.
   - Test: `npm run check && npm run shot -- --name T21 --path /gallery.html`
-- [ ] **T22 — Weavers: Pip Windwhistle + Brak Stonefist**
+- [x] **T22 — Weavers: Pip Windwhistle + Brak Stonefist**
+  - Done: Pip (Gust Darts pair / Kite Lift dash / Whirlwind pull zone) and Brak (Gauntlet Pound / Stone Wall / Rockslide).
+  - New `wall` primitive in `shared/sim/walls.ts`: axis-aligned slab (200 u tall × 40 thick, 60 hp, 4 s), blocks bodies + shots, clears on round reset, drawn on its collision rect (prediction replays it too).
+  - Tests: `tests/unit/walls.test.ts` (7) + `tests/unit/weavers.test.ts` (7); `npm run check` green (378 tests).
   - Brak's Stone Wall adds a new primitive `wall` (temporary dynamic obstacle, 4 s, HP 60, in collision + projectile blocking).
   - Test: same pattern
 - [ ] **T23 — Saltwind: Sable Tripleblade + Bisque Legsworth**

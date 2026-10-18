@@ -81,6 +81,9 @@ export function cueForEvent(
     case 'chest':
       // a chest popping open: the reward chime, not another hit thud
       return { name: 'pickup', x: e.x, y: e.y };
+    case 'wall':
+      // a stone wall crumbling: a low thud
+      return { name: 'bonk', x: e.x, y: e.y };
     case 'pick':
       return { name: 'pickup', x: e.x, y: e.y };
     case 'passive':

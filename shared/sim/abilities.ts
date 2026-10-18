@@ -5,6 +5,7 @@ import { applyElementHit, applyStatus as storeStatus, ELEMENT_OF_STATUS } from '
 import { noteAttackHit } from './passives.ts';
 import { resolveWalls } from './collide.ts';
 import type { Projectile } from './combat.ts';
+import { wallFor, type Wall } from './walls.ts';
 import type { Chest, SimPlayer } from './world.ts';
 import { CHEST_RADIUS } from './tide.ts';
 
@@ -82,6 +83,8 @@ export interface CastHost {
   /** low-tide treasure (optional: tests may cast without scenery) */
   chests?: readonly Chest[];
   damageChest?(attacker: number, chest: Chest, dmg: number): void;
+  /** temporary stone walls (optional: tests may cast without them) */
+  walls?: Wall[];
 }
 
 function enemies(h: CastHost, owner: number): SimPlayer[] {
@@ -266,6 +269,15 @@ export function castAbility(
       });
       break;
     }
+    case 'wall': {
+      const spot = wallFor(p.x, p.y, p.aim, def);
+      h.walls ??= [];
+      h.walls.push({
+        id: h.newProjId(), owner: p.id, x: spot.x, y: spot.y, w: spot.w, h: spot.h,
+        hp: def.hp, mhp: def.hp, left: Math.max(0.2, def.sec),
+      });
+      break;
+    }
     case 'buff': {
       if (def.shield) p.shield = Math.max(p.shield, def.shield);
       if (def.heal) p.hp = Math.min(p.mhp, p.hp + def.heal);
@@ -311,6 +323,7 @@ export function abilityReach(def: AbilityDef): number {
     case 'aoe': return (def.at === 'self' ? 0 : def.range ?? 0) + def.radius;
     case 'status': return (def.at === 'self' ? 0 : def.range ?? 0) + def.radius;
     case 'burrow': return def.range + def.radius;
+    case 'wall': return def.range + def.len / 2;
     case 'buff': return Infinity; // self-targeted: always usable
   }
 }

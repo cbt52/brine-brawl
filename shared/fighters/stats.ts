@@ -61,7 +61,7 @@ export function abilitySummary(a: AbilityDef): string {
         .filter(Boolean)
         .join(' · ');
     case 'aoe': {
-      const parts = [a.at === 'self' ? 'around you' : 'at the aim point', `r ${range(a.radius)}`, `${a.dmg} dmg`];
+      const parts = [a.at === 'self' ? 'around you' : 'at aim', `r ${range(a.radius)}`, `${a.dmg} dmg`];
       if (a.tickDmg) parts.push(`+${a.tickDmg} per ½ s`);
       if (a.push) parts.push('shoves');
       if (a.pull || a.tickPull) parts.push('drags in');
@@ -78,6 +78,8 @@ export function abilitySummary(a: AbilityDef): string {
     }
     case 'status':
       return `${a.status} ${sec(a.sec)} s${a.dmg ? ` · ${a.dmg} dmg` : ''}`;
+    case 'wall':
+      return [`${range(a.len)} wall`, `${a.hp} hp`, `${sec(a.sec)} s`].join(' · ');
     case 'burrow':
       return [`${sec(a.dur)} s underground`, `pop up ${range(a.range)}`, `${a.dmg} dmg${a.status ? ` + ${a.status}` : ''}`].join(
         ' · ',

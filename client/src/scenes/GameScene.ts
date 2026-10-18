@@ -23,7 +23,7 @@ import { Sfx } from '../audio/sfx.ts';
 import { Shanty } from '../audio/music.ts';
 import { cueForEvent } from '../audio/map.ts';
 import { tideLevel } from '../../../shared/sim/tide.ts';
-import type { PickupKind } from '../../../shared/protocol.ts';
+import type { PickupKind, SnapWall } from '../../../shared/protocol.ts';
 
 const INTERP_DELAY_MS = 100;
 /** how long the taffy arm stays stretched out after a punch */
@@ -151,12 +151,13 @@ export class GameScene extends Phaser.Scene {
     syncResults(this.net.last?.m);
   }
 
-  /** Low-tide treasure: bobbing chests with a damage bar, and the rewards they drop. */
+  /** Low-tide treasure and standing stone walls: everything the deck itself spawns. */
   private drawLoot(nowMs: number): void {
     const g = this.lootGfx;
     g.clear();
     const snap = this.net.last;
     if (!snap) return;
+    for (const wl of snap.walls ?? []) this.drawWall(g, wl);
     for (const c of snap.chests ?? []) {
       const bob = Math.sin(nowMs / 420 + c.id) * 2;
       const y = c.y + bob;
@@ -178,6 +179,34 @@ export class GameScene extends Phaser.Scene {
       const y = pk.y - 10 + bob;
       g.fillStyle(0x1b1b2f, 0.55).fillEllipse(pk.x, pk.y + 8, 24, 9);
       this.drawPickup(g, pk.k, pk.x, y);
+    }
+  }
+
+  /** A stone slab from Brak's wall: drawn exactly on its collision rect, with an HP bar when chipped. */
+  private drawWall(g: Phaser.GameObjects.Graphics, wl: SnapWall): void {
+    const cx = wl.x + wl.w / 2;
+    g.fillStyle(0x1b1b2f, 0.35).fillEllipse(cx, wl.y + wl.h + 5, wl.w * 0.85, 12);
+    g.fillStyle(0x5c6675, 1).fillRoundedRect(wl.x + 3, wl.y + 5, wl.w, wl.h, 9);
+    g.fillStyle(0x8b95a6, 1).fillRoundedRect(wl.x, wl.y, wl.w, wl.h, 9);
+    g.lineStyle(3, 0x2f3540, 1).strokeRoundedRect(wl.x, wl.y, wl.w, wl.h, 9);
+    // chiselled facets: three lighter chips and one dark crack
+    const upright = wl.h >= wl.w;
+    for (let i = 0; i < 3; i++) {
+      const t = (i + 0.5) / 3;
+      const px = upright ? wl.x + wl.w * 0.45 : wl.x + wl.w * t;
+      const py = upright ? wl.y + wl.h * t : wl.y + wl.h * 0.45;
+      g.fillStyle(0xa7b1c0, 0.85).fillRoundedRect(px - 7, py - 9, 14, 18, 5);
+    }
+    g.lineStyle(2, 0x2f3540, 0.7);
+    if (upright) g.lineBetween(wl.x + 6, wl.y + wl.h * 0.32, wl.x + wl.w - 6, wl.y + wl.h * 0.55);
+    else g.lineBetween(wl.x + wl.w * 0.32, wl.y + 6, wl.x + wl.w * 0.55, wl.y + wl.h - 6);
+    // mossy top edge so the slab reads as deck stone, not a UI block
+    g.fillStyle(0x1c8a63, 0.5).fillRoundedRect(wl.x + 4, wl.y + 2, wl.w - 8, 7, 4);
+    const frac = Math.max(0, Math.min(1, wl.hp / wl.mhp));
+    if (frac < 1) {
+      const bw = Math.max(34, wl.w);
+      g.fillStyle(0x1b1b2f, 0.85).fillRect(cx - bw / 2, wl.y - 11, bw, 6);
+      g.fillStyle(frac > 0.5 ? 0xcfd6e0 : 0xff8f7a, 1).fillRect(cx - bw / 2 + 1, wl.y - 10, (bw - 2) * frac, 4);
     }
   }
 
@@ -388,6 +417,8 @@ export class GameScene extends Phaser.Scene {
     const own = snap?.players.find((q) => q.id === this.net.id);
     if (!snap || !own) return;
     const def = getFighter(own.f);
+    // stone walls block the local body too: replay them the same way the server collides
+    this.pred.setWalls((snap.walls ?? []).map((w) => ({ x: w.x, y: w.y, w: w.w, h: w.h })));
     if (!this.predReady) {
       this.pred.reset({ x: own.x, y: own.y }, own.f, def.radius);
       this.predReady = true;
@@ -482,6 +513,8 @@ export class GameScene extends Phaser.Scene {
         this.fx.cast(e.x, e.y, e.a ?? 0, elementColor(getArt(this.kinds.get(e.id)).element));
       } else if (e.k === 'chest') {
         this.fx.impact(e.x, e.y, 0xffd23f);
+      } else if (e.k === 'wall') {
+        this.fx.impact(e.x, e.y, 0x8b95a6);
       } else if (e.k === 'pick') {
         this.fx.impact(e.x, e.y, e.kind === 'heal' ? 0x8bff9e : e.kind === 'gold' ? 0xffd23f : 0x9fe7ff);
       } else if (e.k === 'react') {

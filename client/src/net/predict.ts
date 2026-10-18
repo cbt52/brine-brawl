@@ -1,4 +1,5 @@
 import { TICK_HZ } from '../../../shared/constants.ts';
+import type { Rect } from '../../../shared/arena/docks.ts';
 import { BASE_SPEED, stepMove } from '../../../shared/sim/world.ts';
 import { waterSpeedMul } from '../../../shared/sim/tide.ts';
 import { getFighter } from '../../../shared/fighters/index.ts';
@@ -50,10 +51,18 @@ export function pruneStale(pending: readonly PredInput[], now: number, maxAge = 
   return keep.length === pending.length ? (pending as PredInput[]) : keep;
 }
 
-/** Run pending inputs from an authoritative position (one shared movement step each). */
-export function replay(from: Pos, r: number, pending: readonly PredInput[], speed: number, waterLevel = 0): Pos {
+/** Run pending inputs from an authoritative position (one shared movement step each).
+ * `extra` holds dynamic obstacles (stone walls), so a wall prediction agrees with the server. */
+export function replay(
+  from: Pos,
+  r: number,
+  pending: readonly PredInput[],
+  speed: number,
+  waterLevel = 0,
+  extra?: readonly Rect[],
+): Pos {
   const p = { x: from.x, y: from.y, r };
-  for (const i of pending) stepMove(p, i.mx, i.my, speed * waterSpeedMul(p.x, p.y, waterLevel), DT);
+  for (const i of pending) stepMove(p, i.mx, i.my, speed * waterSpeedMul(p.x, p.y, waterLevel), DT, extra);
   return { x: p.x, y: p.y };
 }
 
@@ -76,6 +85,8 @@ export class Predictor {
   private speed = BASE_SPEED;
   /** rising-tide flood level, so water slow-down is predicted too (see shared/sim/tide.ts) */
   private waterLevel = 0;
+  /** stone walls from the last snapshot (dynamic obstacles the server collides with) */
+  private walls: readonly Rect[] = [];
   pending: PredInput[] = [];
 
   /** Start predicting a body (on welcome / first snapshot). */
@@ -94,12 +105,17 @@ export class Predictor {
     this.waterLevel = level;
   }
 
+  /** Feed the stone walls of the last snapshot, so the replay blocks on them like the server does. */
+  setWalls(rects: readonly Rect[]): void {
+    this.walls = rects;
+  }
+
   /** A local input left the client: move at once and remember it until it is acked. */
   applyInput(i: PredInput, dt = DT, now = nowMs()): void {
     this.pending.push(i.at === undefined ? { ...i, at: now } : i);
     if (this.pending.length > 240) this.pending.shift();
     const body = { x: this.pos.x, y: this.pos.y, r: this.r };
-    stepMove(body, i.mx, i.my, this.speed * waterSpeedMul(body.x, body.y, this.waterLevel), dt);
+    stepMove(body, i.mx, i.my, this.speed * waterSpeedMul(body.x, body.y, this.waterLevel), dt, this.walls);
     this.pos = { x: body.x, y: body.y };
   }
 
@@ -113,7 +129,7 @@ export class Predictor {
     this.speed = speedOf(fighter);
     this.r = r;
     this.pending = pruneStale(prunePending(this.pending, ack), nowMs());
-    const target = replay(server, r, this.pending, this.speed, this.waterLevel);
+    const target = replay(server, r, this.pending, this.speed, this.waterLevel, this.walls);
     const seen = this.visual();
     this.pos = target;
     if (down || Math.hypot(seen.x - target.x, seen.y - target.y) > SNAP_DIST) {

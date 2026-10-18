@@ -159,7 +159,28 @@ export interface BurrowAbility extends AbilityBase {
   statusSec?: number;
 }
 
-export type AbilityDef = ProjectileAbility | MeleeAbility | DashAbility | AoeAbility | BuffAbility | StatusAbility | BurrowAbility;
+/** A temporary dynamic obstacle: blocks bodies and shots until its HP or lifetime run out. */
+export interface WallAbility extends AbilityBase {
+  kind: 'wall';
+  /** distance in front of the caster where the slab stands */
+  range: number;
+  /** length of the slab across the aim */
+  len: number;
+  /** seconds it stands */
+  sec: number;
+  /** hit points: shots chew through the stone */
+  hp: number;
+}
+
+export type AbilityDef =
+  | ProjectileAbility
+  | MeleeAbility
+  | DashAbility
+  | AoeAbility
+  | BuffAbility
+  | StatusAbility
+  | BurrowAbility
+  | WallAbility;
 
 export interface FighterDef {
   /** registry key, also sent in `join.fighter` */

@@ -133,6 +133,18 @@ export interface SnapChest {
 
 export type PickupKind = 'heal' | 'ult' | 'gold';
 
+/** A temporary stone wall (Brak's Stone Wall, T22): blocks bodies and shots. */
+export interface SnapWall {
+  id: number;
+  x: number;
+  y: number;
+  /** footprint, so the client draws the slab exactly on the collision rect */
+  w: number;
+  h: number;
+  hp: number;
+  mhp: number;
+}
+
 /** A reward dropped by a broken chest. */
 export interface SnapPickup {
   id: number;
@@ -159,7 +171,9 @@ export type SimEvent =
   /** somebody grabbed a dropped reward */
   | { k: 'pick'; id: number; kind: PickupKind; x: number; y: number }
   /** a faction passive fired (T20); `a` = the other fighter for PLUNDER */
-  | { k: 'passive'; v: number; p: 'evolve' | 'flow' | 'plunder' | 'toon'; x: number; y: number; a?: number };
+  | { k: 'passive'; v: number; p: 'evolve' | 'flow' | 'plunder' | 'toon'; x: number; y: number; a?: number }
+  /** a stone wall crumbled (T22) */
+  | { k: 'wall'; x: number; y: number };
 
 export interface SnapMsg {
   t: 'snap';
@@ -176,6 +190,8 @@ export interface SnapMsg {
   chests?: SnapChest[];
   /** unclaimed chest rewards */
   picks?: SnapPickup[];
+  /** standing stone walls (T22) */
+  walls?: SnapWall[];
   /** match phase + timer (added by the room) */
   m?: MatchInfo;
 }

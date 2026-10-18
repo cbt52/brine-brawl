@@ -1,5 +1,6 @@
 import { TICK_HZ, WORLD_W, WORLD_H } from '../constants.ts';
 import { OBSTACLES, SPAWNS } from '../arena/docks.ts';
+import type { Rect } from '../arena/docks.ts';
 import type { PickupKind, SimEvent, SnapMsg, SnapPlayer } from '../protocol.ts';
 import { getFighter } from '../fighters/index.ts';
 import { statusMask, TRAP_BREAK_DMG, type FighterDef, type StatusKind } from '../fighters/types.ts';
@@ -8,6 +9,7 @@ import * as C from './combat.ts';
 import type { Projectile } from './combat.ts';
 import { castAbility, hitElement, stepBurrow, stepDash, stepZones, type BurrowState, type DashState, type Zone } from './abilities.ts';
 import { applyElementHit, applyStatus, BURN_DPS, BURN_TICK_SEC, STATUS_SEC, statusSpeedMul } from './elements.ts';
+import { stepWalls, wallRect, wallRects, type Wall } from './walls.ts';
 import { BOUNTY_START, bountyAfterKO, KO_COINS, koPurse } from './bounty.ts';
 import {
   bountyMulFor, noteAttackHit, onKO, resetOnDeath, resetOnSpawn, stepPassives, takeFlow, toonSave, ultGainMul,
@@ -126,15 +128,23 @@ export interface SimPlayer {
 
 const clamp1 = (n: number) => (Number.isFinite(n) ? Math.max(-1, Math.min(1, n)) : 0);
 
-/** Apply one movement step to a body; shared with client prediction. */
-export function stepMove(p: { x: number; y: number; r: number }, mx: number, my: number, speed: number, dt: number): void {
+/** Apply one movement step to a body; shared with client prediction.
+ * `extra` holds dynamic obstacles (stone walls), so prediction can replay the same step. */
+export function stepMove(
+  p: { x: number; y: number; r: number },
+  mx: number,
+  my: number,
+  speed: number,
+  dt: number,
+  extra?: readonly Rect[],
+): void {
   mx = clamp1(mx);
   my = clamp1(my);
   const len = Math.hypot(mx, my);
   if (len > 1) { mx /= len; my /= len; }
   p.x += mx * speed * dt;
   p.y += my * speed * dt;
-  resolveWalls(p, OBSTACLES);
+  resolveWalls(p, extra && extra.length ? OBSTACLES.concat(extra) : OBSTACLES);
 }
 
 export class World {
@@ -142,6 +152,8 @@ export class World {
   tick = 0;
   projs: Projectile[] = [];
   zones: Zone[] = [];
+  /** temporary stone walls built in-match (Brak's Stone Wall, T22) */
+  walls: Wall[] = [];
   events: SimEvent[] = [];
   /** rising-tide clock (design §2.10) */
   tide = new Tide();
@@ -269,9 +281,37 @@ export class World {
     });
   }
 
+  /** Chew a stone wall; it crumbles at 0 hp (scenery, so no killer credit). */
+  damageWall(attacker: number, wall: Wall, dmg: number): void {
+    if (dmg <= 0 || wall.hp <= 0) return;
+    wall.hp -= dmg;
+    const a = this.players.get(attacker);
+    if (a) a.uc = Math.min(a.def.ultCharge, a.uc + Math.min(dmg, wall.mhp) * 0.3 * ultGainMul(a));
+    if (wall.hp > 0) return;
+    wall.hp = 0;
+    this.walls = this.walls.filter((w) => w !== wall);
+    this.events.push({ k: 'wall', x: Math.round(wall.x + wall.w / 2), y: Math.round(wall.y + wall.h / 2) });
+  }
+
+  /** A shot that walks into a stone slab: stop it there and damage the slab. */
+  private wallHit(pr: Projectile): boolean {
+    if (!this.walls.length) return false;
+    const b = { x: pr.x, y: pr.y, r: pr.r };
+    for (const wall of this.walls) {
+      if (!pushOutRect(b, wallRect(wall))) continue;
+      pr.x = b.x;
+      pr.y = b.y;
+      this.damageWall(pr.owner, wall, Math.max(1, pr.dmg));
+      return true;
+    }
+    return false;
+  }
+
   step(dt = 1 / TICK_HZ): void {
     this.tick++;
     this.stepTide(dt);
+    // static coral plus whatever stone a fighter built: one list for bodies, one for aging
+    const block = this.walls.length ? OBSTACLES.concat(wallRects(this.walls)) : OBSTACLES;
     const list = [...this.players.values()];
     for (const p of list) {
       const i = p.input;
@@ -324,7 +364,7 @@ export class World {
           const spd = BASE_SPEED * p.speedMul * (p.buffLeft > 0 ? p.buffMul : 1) * statusSpeedMul(p.status)
             * (flooding ? WATER_SLOW : 1);
           const rooted = p.rootLeft > 0;
-          if (!rooted) stepMove(p, i.mx, i.my, spd, dt);
+          if (!rooted) stepMove(p, i.mx, i.my, spd, dt, block === OBSTACLES ? undefined : block);
         }
         if (!disabled && Number.isFinite(i.ax) && Number.isFinite(i.ay) && (i.ax !== 0 || i.ay !== 0)) p.aim = Math.atan2(i.ay, i.ax);
         p.ack = i.seq;
@@ -352,9 +392,10 @@ export class World {
       }
     }
     stepZones(this, dt);
+    this.walls = stepWalls(this.walls, dt);
     const alive = list.filter((p) => !p.down && !p.burrow);
     separate(alive);
-    for (const p of alive) resolveWalls(p, OBSTACLES);
+    for (const p of alive) resolveWalls(p, block);
     this.stepProjectiles(dt);
   }
 
@@ -413,6 +454,8 @@ export class World {
             break;
           }
           if (dead) break;
+          // stone walls block shots (no bounces: the slab takes the hit instead)
+          if (this.wallHit(pr)) { dead = true; break; }
         }
         for (const v of this.players.values()) {
           if (v.id === pr.owner || v.down || v.burrow) continue;
@@ -607,6 +650,8 @@ export class World {
   resetScores(): void {
     // the pools are stocked again for the new round (the next step seeds them while the tide is low)
     this.lootSeeded = false;
+    // stone walls do not survive the whistle either
+    this.walls = [];
     for (const p of this.players.values()) {
       p.kos = 0;
       p.deaths = 0;
@@ -642,6 +687,12 @@ export class World {
       tide: this.tide.info(),
       chests: this.chests.map((c) => ({ id: c.id, x: Math.round(c.x), y: Math.round(c.y), hp: c.hp, mhp: c.mhp })),
       picks: this.picks.map((k) => ({ id: k.id, x: Math.round(k.x), y: Math.round(k.y), k: k.kind })),
+      walls: this.walls.length
+        ? this.walls.map((w) => ({
+          id: w.id, x: Math.round(w.x), y: Math.round(w.y), w: w.w, h: w.h,
+          hp: Math.round(w.hp), mhp: w.mhp,
+        }))
+        : undefined,
     };
   }
 }
