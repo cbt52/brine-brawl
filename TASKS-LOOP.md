@@ -457,7 +457,6 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 ## 5. IMPROVEMENT BACKLOG (ordered; T99 takes from the top; user feedback goes first)
 11. Optional ONLY if the user asks: ComfyUI portraits (127.0.0.1:8188, 2–7 min/img, 16 GB RAM, never while the user is using it).
 
-21. Tips card on demand: the first-visit tips (`client/src/ui/tutorial.ts`, shown once via `brawl.tutorial`) can't be reopened today. Add a "How to play" button to the ☰ menu that mounts the same card again, and reuse `tutorialTips(touch)` so the text stays in one place.
 22. Colour-blind palette option in the ☰ menu: a shape-first set (crew rings and status chips already differ by shape; the element colours and the reaction popups still rely on hue alone). `client/src/fx/style.ts` holds the palette, so the option only swaps values there.
 23. Stats part 2 (slice 1 = `client/src/ui/stats.ts`, counted per finished round, panel in the lobby and the ☰ menu): win rate per fighter in the panel, and a "new best bounty" tag on the results poster (the round's bounty is already in `res`, compare it with the saved best before counting).
 24. Streak sticker: a fighter with three KOs in one round gets a bubble from the room (same four stickers, shared cooldown) so a streak reads above the body.
@@ -470,6 +469,7 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 31. Kill-cam part 3 (the remaining piece of old #18; slow motion and tap-to-skip are done in `client/src/net/killcam.ts`): the killer's own best KO also gets a short replay, so a KO you were in is seen again after the round. Reuse the 2 s lead-up and `KillCam.start`, and tag it "BEST KO CAM".
 32. MVP tag on the results poster: the round's top KO fighter gets a "MOST KOS" ribbon under the WANTED poster, so a round with no bounty winner still names a standout. Count KOs per player per round on the server (the same place bounty is counted) and send them in `res`, then unit-test the tie rule (the earliest KO wins).
 33. Showdown finish banner: when the last-standing rule ends a round early, the results poster says "LAST STANDING · <crew or name>" above the table, so an early finish reads as a win and not as a cut-off timer.
+34. Tips card, mode tip: the three tips never mention the modes. A fourth tip (Bounty coins, Treasure tide, Showdown ring) shown only in that room's mode, so `tutorialTips` takes the `RoomMode` and the card stays three-tip for the default mode.
 
 ---
 ## 6. LOG (one line per task/hotfix; archive older lines to `.loop/log-archive.md` if >40 lines)
@@ -511,3 +511,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T99 ✅ 2026-10-18 — Kill-cam part 2 (backlog #18): last 0,5 s before the KO at half speed, a tap/click ends the replay (`KillCam.skip`), tag says "tap to skip"; 3 new unit tests (9 total), 1 e2e tap test; check 673 grün, e2e killcam 4/4 grün, banner not shot-checked → §5 #31
 - T99 ✅ 2026-10-18 — Lint-Bereinigung (Backlog #19): ungenutzte `eslint-disable`-Zeile aus `tests/e2e/emotes.spec.ts` entfernt, `npm run lint` sauber; check 673 grün → neue Idee §5 #32 (MVP-Band)
 - T99 ✅ 2026-10-18 — Showdown part 3 (backlog #20): last-standing finish (`lastSideInRing`, one side inside the closing ring ends the round), outside-ring wash, Showdown rolls no Double Tide; 9 tests, check 682 grün, wash not shot-checked (no clock hook) → §5 #33
+- T99 ✅ 2026-10-18 — How to play (backlog #21): ☰ button reopens the tips card (`showTutorial`, same text), ☰ menu scrolls on short screens (was cut off at 720 px, so Leave was unreachable); 1 e2e, check 682 grün, e2e tutorial 2/2 grün → §5 #34

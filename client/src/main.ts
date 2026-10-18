@@ -32,7 +32,7 @@ function withFighter(q: URLSearchParams): URLSearchParams {
 }
 if (roomParam && (params.has('name') || params.has('bots'))) {
   net.start(withFighter(new URLSearchParams(params)));
-  mountMenu(net);
+  mountMenu(net, fxOpts.mobile);
   mountTutorial(fxOpts.mobile);
 } else {
   void showLobby(roomParam, params.get('name') ?? savedName).then((c) => {
@@ -46,7 +46,7 @@ if (roomParam && (params.has('name') || params.has('bots'))) {
     q.set('skin', String(c.skin));
     history.replaceState(null, '', `/?room=${encodeURIComponent(c.room)}`);
     net.start(q);
-    mountMenu(net);
+    mountMenu(net, fxOpts.mobile);
     mountTutorial(fxOpts.mobile);
     if (c.invite) showInvite(c.room);
   });

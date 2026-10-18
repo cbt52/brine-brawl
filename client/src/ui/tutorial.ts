@@ -49,12 +49,19 @@ function markSeen(): void {
   }
 }
 
-/**
- * Mount the tips card once the player is in a room. The card ignores pointer input except its
- * button, so the arena under it stays playable. Closing it (button or timer) saves the flag.
- */
+/** Mount the tips card on the first visit only (the ☰ menu's "How to play" reopens it). */
 export function mountTutorial(touch: boolean): void {
   if (!shouldShowTutorial(readStored())) return;
+  showTutorial(touch);
+}
+
+/**
+ * Show the tips card over the arena (backlog #21 reuses it from the ☰ menu). The card ignores
+ * pointer input except its button, so the arena under it stays playable. Closing it (button or
+ * timer) saves the flag; a card that is already up is replaced.
+ */
+export function showTutorial(touch: boolean): void {
+  document.getElementById('tutorial')?.remove();
   const el = document.createElement('div');
   el.id = 'tutorial';
   el.className = 'panel tutorial';

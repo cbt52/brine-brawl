@@ -4,6 +4,7 @@ import { copyText, inviteUrl } from './rooms.ts';
 import { fighterRowHtml, markFighterRow, nextSkin, saveFighter, saveSkin, savedFighter, savedSkin, skinLabel } from './select.ts';
 import { setShakeEnabled, shakeEnabled, setSfxEnabled, sfxEnabled, setMusicEnabled, musicEnabled } from './settings.ts';
 import { showStats } from './statsPage.ts';
+import { showTutorial } from './tutorial.ts';
 
 /** Invite panel: full URL, copy button (with HTTP fallback), share if available. */
 export function showInvite(room: string): void {
@@ -30,7 +31,7 @@ export function showInvite(room: string): void {
 }
 
 /** In-game ☰ menu: invite link, host bot controls, leave. */
-export function mountMenu(net: Net): void {
+export function mountMenu(net: Net, touch: boolean): void {
   const btn = document.createElement('button');
   btn.id = 'menu-btn';
   btn.setAttribute('data-testid', 'menu-btn');
@@ -52,6 +53,7 @@ export function mountMenu(net: Net): void {
     <div class="row" data-testid="menu-levels"></div>
     <small>Bot level: host only · bots already in the room switch too</small>
     <button class="big sm alt" data-testid="menu-stats">Stats</button>
+    <button class="big sm alt" data-testid="menu-howto">How to play</button>
     <button class="big sm alt" data-testid="menu-shake">Screenshake</button>
     <button class="big sm alt" data-testid="menu-sfx">Sound</button>
     <button class="big sm alt" data-testid="menu-music">Music</button>
@@ -136,6 +138,8 @@ export function mountMenu(net: Net): void {
   syncMusic();
   q('menu-invite').addEventListener('click', () => { panel.style.display = 'none'; showInvite(net.room); });
   q('menu-stats').addEventListener('click', () => { panel.style.display = 'none'; showStats(); });
+  // backlog #21: the first-visit tips card again, same text as before
+  q('menu-howto').addEventListener('click', () => { panel.style.display = 'none'; showTutorial(touch); });
   q('menu-leave').addEventListener('click', () => { location.href = '/'; });
   setInterval(() => { if (panel.style.display !== 'none') refresh(); }, 500);
 }
