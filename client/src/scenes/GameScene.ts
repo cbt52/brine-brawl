@@ -24,6 +24,7 @@ import { getArt } from '../art/manifest.ts';
 import { ArenaArt } from '../art/arena.ts';
 import { preloadGround } from '../art/ground.ts';
 import { preloadProps, sortDepth, type PropLook } from '../art/props.ts';
+import { preloadWater, type WaterLook } from '../art/water.ts';
 import { musicEnabled, sfxEnabled, shakeEnabled } from '../ui/settings.ts';
 import { Sfx } from '../audio/sfx.ts';
 import { Shanty } from '../audio/music.ts';
@@ -97,11 +98,17 @@ export class GameScene extends Phaser.Scene {
     preloadArt(this);
     preloadGround(this);
     preloadProps(this);
+    preloadWater(this);
   }
 
   /** The arena's prop sprites (debug hook / e2e, T43): frame, anchor and depth. */
   get props(): PropLook[] {
     return this.arena?.propLooks ?? [];
+  }
+
+  /** Lagoon caustics + flood pools (debug hook / e2e, T44). */
+  get water(): WaterLook | null {
+    return this.arena?.waterLook ?? null;
   }
 
   /** What each body shows (debug hook / e2e, T37): sheet or SVG, texture key, frame and depth. */
@@ -647,7 +654,7 @@ export class GameScene extends Phaser.Scene {
     this.arena.setArena(arenaById(m?.ar));
     this.arena.setTide(flood);
     this.pred.setWater(flood);
-    this.arena.updateWaves(time);
+    this.arena.updateWaves(time, this.fx.budget.low);
 
     const nowMs = performance.now();
     const replay = this.killCam.frame(nowMs);

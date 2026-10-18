@@ -582,7 +582,8 @@ Rules for every task:
     - The props atlas is ≤ 1024² and ≤ 300 KB.
   - Test: `npm run check && npm run e2e && npm run shot -- --name T43 --query "room=shot&bots=5&rects=1"`
 
-- [ ] **T44 — Water + tide states**
+- [x] **T44 — Water + tide states**
+  - Note: tile = `render_water.py` (emissive plane, 4D-torus-mapped Voronoi distance-to-edge + 4D noise warp → constant ramp: line/halo/clear, so it wraps exactly; `--raw`/`--cells`/`--span` tuning flags) via `npm run art:arena -- docks --water` (`scripts/lib/arena-water.mjs`: 512² → exact 2×2 box → 256², grey = alpha on tint `#E2F1EF`, palette PNG 21.6 KB). Seam proof = a 2-tiles-wide render whose halves differ by Δ 0.01 (neighbour-step `seamScore` misfires on thin lines). Client: `art/waterMath.ts` (pure: `lagoonHoles`, `lagoonStrips`, `waterScroll`, `poolLook`, `rimPoints`) + `art/water.ts` `WaterArt` (4 lagoon TileSprites, inverted GeometryMask of island+decks, WebGL only; per-pool caustics TileSprite masked by the live water rects; toon fill shallow/core + inner edge line, foam rim line + bobbing bubbles, 2 expanding ripple rings, whitecaps dropped). Level 0 now draws no water (matches `inWater`). Still in lowfx = `?lowfx=1` OR the FX watchdog's `budget.low` (passed per frame). Old open-water ripples are off when the tile shows (they crossed the sand). `decksFor`/`ISLAND` moved to `shared/arena/shore.ts`. `__brawl.water` + `tests/e2e/water.spec.ts`, `tests/unit/water.test.ts`, budget row. Shots: T44h viewed (lagoon caustics stop at foam/piers, pool reads as water); T44l by pixel count (pool corner 0 % water vs 81 % at high). FPS in lowfx not measured (T46).
   - Do:
     - Make a 256² seamless water tile (Blender or T41) and use it as a scrolling TileSprite in the lagoon band.
     - Restyle the flood overlay in `paintTide`: toon water fill, foam rim, ripples. Keep the same `waterRects` logic.
@@ -802,3 +803,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T41 ⏭ 2026-10-18 — skipped: Comfy Desktop no answer on :8188/:8000 within 3 min; `npm run comfy` + seamless lib kept; check 846 grün
 - T42 ✅ 2026-10-18 — Docks ground: render_arena.py top-down 1800×1200 jpg 121 KB, sat p95 39 %, piers/pads, beds, contact shadows; ?rects=1; check 856 + e2e 34 grün
 - T43 ✅ 2026-10-18 — Docks props atlas (procedural coral/barrel/crate/kelp, 35° + depth stretch), 14 frames 144 KB, y-sort; check 867 + e2e 36 grün
+- T44 ✅ 2026-10-18 — Water: seamless Blender caustics tile 21.6 KB, masked lagoon scroll, toon flood pools (foam/ripples), still in lowfx; check 880 + e2e 39 grün

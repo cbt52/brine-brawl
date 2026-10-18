@@ -2,10 +2,10 @@ import Phaser from 'phaser';
 import { WORLD_W, WORLD_H } from '../../../shared/constants.ts';
 import { DECOR, type Rect } from '../../../shared/arena/docks.ts';
 import { type Arena, type ArenaId, DOCKS_ARENA } from '../../../shared/arena/arena.ts';
-import { waterRects } from '../../../shared/sim/tide.ts';
 import { paintDeck } from './deckArt.ts';
 import { debugRects, groundKey, rectsWanted } from './ground.ts';
 import { ArenaProps, type PropLook } from './props.ts';
+import { WaterArt, type WaterLook } from './water.ts';
 
 const DEEP = 0x0e3a4e;
 const SAND = 0xe9d6a6;
@@ -23,13 +23,10 @@ export class ArenaArt {
   private ground: Phaser.GameObjects.RenderTexture;
   private kelp: Phaser.GameObjects.Graphics;
   private waves: Phaser.GameObjects.Graphics;
-  /** rising-tide water overlay, redrawn every frame (depth 1: above the ground, below the rigs) */
-  private water: Phaser.GameObjects.Graphics;
+  /** lagoon caustics + the rising-tide pools, redrawn every frame (depth 0.5–1.2: below the rigs) */
+  private water: WaterArt;
   private lowfx: boolean;
-  private tideLevel = 0;
   private arenaId?: ArenaId;
-  /** the on-screen layout's flood pools (empty on the deck) */
-  private pools: readonly Rect[] = [];
   /** `?rects=1` debug outlines (depth 40, above everything in the world) */
   private rects?: Phaser.GameObjects.Graphics;
   /** 3D-rendered walls, barrels/crates and kelp (T43); the painted ones when there is no atlas */
@@ -40,7 +37,7 @@ export class ArenaArt {
     this.lowfx = Boolean(opts.lowfx);
     this.ground = scene.add.renderTexture(0, 0, WORLD_W, WORLD_H).setOrigin(0).setDepth(0);
     this.kelp = scene.add.graphics().setDepth(26);
-    this.water = scene.add.graphics().setDepth(1);
+    this.water = new WaterArt(scene);
     this.waves = scene.add.graphics().setDepth(2);
     if (opts.rects ?? rectsWanted()) this.rects = scene.add.graphics().setDepth(40);
     this.props = new ArenaProps(scene, this.lowfx);
@@ -51,7 +48,7 @@ export class ArenaArt {
   setArena(arena: Arena): void {
     if (arena.id === this.arenaId) return;
     this.arenaId = arena.id;
-    this.pools = arena.shallows;
+    this.water.setArena(arena);
     const g = this.scene.make.graphics({}, false);
     this.ground.clear();
     const key = groundKey(arena.id);
@@ -69,6 +66,11 @@ export class ArenaArt {
     this.kelp.clear();
     if (!sprites) this.paintBushes(arena.bushes);
     this.paintRects(arena);
+  }
+
+  /** Lagoon + flood state (debug hook `__brawl.water`, e2e). */
+  get waterLook(): WaterLook {
+    return this.water.look;
   }
 
   /** The placed prop sprites (debug hook `__brawl.props`, e2e). */
@@ -188,9 +190,13 @@ export class ArenaArt {
     }
   }
 
-  /** gentle wave lines around the shore: recomputed on the wave layer only */
-  updateWaves(nowMs: number): void {
-    this.paintTide(nowMs);
+  /**
+   * Per frame: water (scrolling unless lowfx — `?lowfx=1` or the FX watchdog's `low`) and gentle
+   * wave lines around the shore on the wave layer.
+   */
+  updateWaves(nowMs: number, low = false): void {
+    const still = this.lowfx || low;
+    this.water.update(nowMs, still);
     const g = this.waves;
     g.clear();
     const t = nowMs / 900;
@@ -198,15 +204,15 @@ export class ArenaArt {
     // shore surf: short arcs along the island rim
     for (let i = 0; i < 26; i++) {
       const x = 120 + ((i * 197) % (WORLD_W - 240));
-      const bob = Math.sin(t + i) * 5;
+      const bob = still ? 0 : Math.sin(t + i) * 5;
       const top = i % 2 === 0;
       const y = (top ? 26 : WORLD_H - 26) + bob;
       g.beginPath();
       g.arc(x, y, 26, top ? 0.15 : Math.PI + 0.15, top ? Math.PI - 0.15 : Math.PI * 2 - 0.15);
       g.strokePath();
     }
-    if (this.lowfx) return;
-    // open-water ripples
+    // open-water ripples (the old look; the caustics tile replaces them, they also crossed the sand)
+    if (still || this.water.look.lagoon) return;
     g.lineStyle(2, 0x9fe7ff, 0.18);
     for (let i = 0; i < 14; i++) {
       const x = 90 + ((i * 311) % (WORLD_W - 180));
@@ -218,34 +224,6 @@ export class ArenaArt {
 
   /** Flood level from the sim (0 = tide out, 1 = high tide). */
   setTide(level: number): void {
-    this.tideLevel = Math.max(0, Math.min(1, level));
-  }
-
-  /** The flooded shallows: the pool grows with `tideLevel`, shrinks back as the tide runs out. */
-  private paintTide(nowMs: number): void {
-    const g = this.water;
-    g.clear();
-    const level = this.tideLevel;
-    const rects = waterRects(level, this.pools);
-    const t = nowMs / 700;
-    for (const r of rects) {
-      // the water is brighter and more opaque the higher the tide
-      g.fillStyle(0x1c7f96, 0.55 + level * 0.3).fillRoundedRect(r.x, r.y, r.w, r.h, 24 + level * 40);
-      g.lineStyle(3 + level * 2, 0xdff7ff, 0.35 + level * 0.4).strokeRoundedRect(r.x, r.y, r.w, r.h, 24 + level * 40);
-      if (level < 0.2) continue;
-      // surface ripples scale with the flooded area
-      for (let i = 0; i < 3; i++) {
-        const y = r.y + (r.h / 4) * (i + 1) + Math.sin(t + i * 1.3) * (4 + level * 4);
-        g.lineStyle(2 + level * 2, 0xdff7ff, 0.18 + level * 0.22);
-        g.lineBetween(r.x + 14, y, r.x + r.w - 14, y);
-      }
-      if (this.lowfx || level < 0.5) continue;
-      // whitecaps at high tide
-      for (let i = 0; i < 4; i++) {
-        const x = r.x + 20 + ((i * 97 + Math.sin(t * 0.7 + i) * 20) % Math.max(30, r.w - 40));
-        const y = r.y + 26 + (i * 61) % Math.max(24, r.h - 40);
-        g.fillStyle(0xeafcff, 0.5).fillCircle(x, y, 3);
-      }
-    }
+    this.water.setTide(level);
   }
 }

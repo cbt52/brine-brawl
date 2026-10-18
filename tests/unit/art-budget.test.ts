@@ -92,3 +92,26 @@ describe('arena props (art budget)', () => {
     expect(st.black).toBe(0);
   });
 });
+
+describe('water tile (art budget)', () => {
+  const PNG = 'client/public/art/arena/docks-water.png';
+
+  it('docks-water.png is 256², ≤ 60 KB, see-through and muted', async () => {
+    const { default: sharp } = await import('sharp');
+    const { saturationStats } = await import('../../scripts/lib/ground-stats.mjs');
+    expect(statSync(PNG).size).toBeLessThanOrEqual(60 * 1024);
+    const { data, info } = await sharp(PNG).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    expect([info.width, info.height]).toEqual([256, 256]);
+    // mostly clear water: the caustic lines are a minority of the pixels, the rest shows the ground
+    let clear = 0;
+    const lines: number[] = [];
+    for (let i = 0; i < data.length; i += 4) {
+      if (data[i + 3] < 16) clear++;
+      else lines.push(data[i], data[i + 1], data[i + 2]);
+    }
+    expect(clear / (data.length / 4)).toBeGreaterThan(0.6);
+    const st = saturationStats({ data: Buffer.from(lines), channels: 3 });
+    expect(st.p95).toBeLessThanOrEqual(0.45);
+    expect(st.black).toBe(0);
+  });
+});
