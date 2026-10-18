@@ -274,6 +274,8 @@ export type SimEvent =
   | { k: 'wall'; x: number; y: number }
   /** a teammate was patched up (Remedy Dart, Field Surgery; T31) */
   | { k: 'heal'; v: number; n: number; x: number; y: number }
+  /** Purrl patched a hurt fighter up (backlog #25); x/y = that fighter, so the bubble ring and pop sit on them */
+  | { k: 'purrl'; v: number; n: number; x: number; y: number }
   /** two teammates' ults paired up into a Crew Combo (T28) */
   | { k: 'combo'; a: number; b: number; v: number; n: string; x: number; y: number }
   /** somebody sent a sticker (T99); `e` is an index into EMOTES (shared/emotes.ts) */

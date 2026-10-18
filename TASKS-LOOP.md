@@ -457,7 +457,6 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 ## 5. IMPROVEMENT BACKLOG (ordered; T99 takes from the top; user feedback goes first)
 11. Optional ONLY if the user asks: ComfyUI portraits (127.0.0.1:8188, 2–7 min/img, 16 GB RAM, never while the user is using it).
 
-25. Purrl heal feedback: when the snail heals a fighter, a small bubble ring and a "+10" pop show on that fighter (today the heal is silent apart from the number in the event list), so humans learn that the snail heals them too.
 26. Taffy Galleon, part 3 (slice 2 = `shared/arena/galleon.ts`: deck obstacles, spawns and four rail cannons, unit-tested, not wired): `World`, bots and prediction take an arena instead of the docks constants, the cannons come from `GALLEON_CANNONS` and damage bodies once per volley (`volleyHits` + `k`), rocking deck art in `client/src/art/arena.ts`.
 27. Host-only bot controls: non-hosts see the ☰ bot count and level buttons but tapping them does nothing (the server ignores them). Send an `host` flag in the match info and grey out the bot and level rows for non-hosts, with a 'host only' hint.
 28. Ready count on the results screen: the poster shows "2/3 ready" (a `rd` count in MatchInfo, from `Room.rematch`'s ready set) so players see who the round is waiting for, and the footer shows "Next round in Ns" only once the round is ready.
@@ -470,8 +469,10 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 35. Killcam e2e flake: `tests/e2e/killcam.spec.ts` "replay ends without errors" fails about 1 run in 8 (`--repeat-each=4`), on HEAD as well as with the colour-blind change. The replay should end about 2.5 s after the KO, yet `__brawl.replaying` sometimes stays true past 5 s. Find out whether `KillCam.frame()` stops being called under load, then make the spec wait on the replay's own end instead of a fixed window.
 36. Pirate log part 3: the best KO run of one round (most KOs without dying) is saved next to `bestKey` and shown as "Best run: N KOs" in `client/src/ui/statsPage.ts`, so streaks are kept between sessions too.
 37. Streak sticker that cannot be blocked: the streak greeting shares the emote cooldown, so a human who sent a sticker up to 1.2 s before their third KO loses it silently. Let streak stickers skip the wheel cooldown (own 1.2 s clock) so a third KO always speaks.
+38. Purrl chime: the snail's patch-up has no sound, so add a soft bubble chime for the `purrl` event in `client/src/audio/map.ts` (the heal ring and pop are visual only), kept quiet so it does not drown out hits.
 
 ---
+
 ## 6. LOG (one line per task/hotfix; archive older lines to `.loop/log-archive.md` if >40 lines)
 - T17 ✅ 2026-10-18 — Elemente/Statuses: 6-Reaktions-Tabelle, Burn-Tick, Mud-Root, Steam-Cloud, st-Bitmaske, Status-FX+Reaktionsworte; check grün
 - T18 ✅ 2026-10-18 — Rising Tide: 35/5/15/5-Zyklus, Flut-Rects + Wading-Slow/Wet, Schock-Kette, Low-Tide-Chests+Pickups, Tide-Meter+Hupe; 13 Tests grün
@@ -513,3 +514,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T99 ✅ 2026-10-18 — Colour-blind palette (backlog #22): ☰ toggle `brawl.cb` (opt-in), `ELEMENT_COLOR_CB` via `elementColor` (sparks, chips, reactions); 5 unit + 1 e2e, check 687 grün, no screenshot → §5 #35 (killcam flake)
 - T99 ✅ 2026-10-18 — Stats part 2 (backlog #23): Siegquote pro Kämpfer im Piratenbuch (`wonBy`), „New best bounty“-Tag auf dem Results-Poster (`bestKey`, nur bei echtem Rekord); 4 neue Unit-Tests, check 691 grün, e2e match 4/4 grün, kein Screenshot → §5 #36
 - T99 ✅ 2026-10-18 — Streak sticker (backlog #24): third KO of a round sends one room sticker for that fighter (human or bot, once per round, shared emote cooldown, `STREAK_KOS`/`streakSticker` in shared/emotes.ts, `answerStreak` in server/rooms.ts); 3 unit tests, check 694 grün → §5 #37 (cooldown jump)
+- T99 ✅ 2026-10-18 — Purrl heal feedback (backlog #25): snail heal is a `purrl` event at the fighter, bubble ring + "+N" pop on them; 1 new unit test, check 695 grün → §5 #38 (Purrl chime)

@@ -14,7 +14,7 @@ const onTop = (w: World, id: number) => {
   w.purrl.y = p.y;
 };
 
-const heals = (w: World) => w.events.filter((e) => e.k === 'heal');
+const heals = (w: World) => w.events.filter((e) => e.k === 'purrl');
 
 const inside = (x: number, y: number, r: { x: number; y: number; w: number; h: number }) =>
   x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
@@ -61,7 +61,21 @@ describe('Purrl: the wandering sea snail (backlog #1)', () => {
     w.events.length = 0;
     w.step();
     expect(p.hp).toBe(p.mhp - 30 + PURRL_HEAL);
-    expect(heals(w)).toEqual([expect.objectContaining({ k: 'heal', v: 1, n: PURRL_HEAL })]);
+    expect(heals(w)).toEqual([expect.objectContaining({ k: 'purrl', v: 1, n: PURRL_HEAL })]);
+  });
+
+  it('the heal event sits on the fighter, not on the snail, so the ring and pop land on them', () => {
+    const w = new World();
+    w.addPlayer(1, 'a', 'default');
+    const p = w.players.get(1)!;
+    p.hp = p.mhp - 30;
+    onTop(w, 1);
+    w.purrl.x = p.x + 12;
+    w.purrl.y = p.y;
+    w.purrl.pause = 99;
+    w.events.length = 0;
+    w.step();
+    expect(heals(w)).toEqual([expect.objectContaining({ x: Math.round(p.x), y: Math.round(p.y) })]);
   });
 
   it('a fighter gets only one heal per life', () => {

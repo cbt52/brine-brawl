@@ -857,7 +857,7 @@ export class World {
       p.hp = Math.min(p.mhp, p.hp + PURRL_HEAL);
       p.purrlFed = true;
       this.events.push({
-        k: 'heal', v: p.id, n: Math.round(p.hp - before), x: Math.round(this.purrl.x), y: Math.round(this.purrl.y),
+        k: 'purrl', v: p.id, n: Math.round(p.hp - before), x: Math.round(p.x), y: Math.round(p.y),
       });
     }
   }

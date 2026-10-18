@@ -230,6 +230,12 @@ export class CombatFx {
     });
   }
 
+  /** Small pale-cyan bubble ring for Purrl's patch-up (backlog #25); lighter than an impact, no sparks. */
+  bubbleRing(x: number, y: number): void {
+    this.spawn(FX.ring, x, y, { life: 420, scale: 0.3, scaleTo: 1.5, alpha: 0.9, tint: 0x9fe7ff, ease: 'Cubic.easeOut' });
+    this.spawn(FX.circle, x, y, { life: 200, scale: 0.25, scaleTo: 0.8, alpha: 0.6, tint: 0xffffff });
+  }
+
   /** Green `+n` number for a patched-up teammate (Remedy Dart, Field Surgery; T31). */
   heal(x: number, y: number, n: number): void {
     const t = this.scene.add

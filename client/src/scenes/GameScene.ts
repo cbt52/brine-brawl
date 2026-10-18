@@ -689,6 +689,9 @@ export class GameScene extends Phaser.Scene {
       } else if (e.k === 'heal') {
         this.fx.impact(e.x, e.y, 0x8bff9e);
         this.fx.heal(e.x, e.y, e.n);
+      } else if (e.k === 'purrl') {
+        this.fx.bubbleRing(e.x, e.y);
+        this.fx.heal(e.x, e.y, e.n);
       } else if (e.k === 'pick') {
         this.fx.impact(e.x, e.y, e.kind === 'heal' ? 0x8bff9e : e.kind === 'gold' ? 0xffd23f : 0x9fe7ff);
       } else if (e.k === 'react') {
