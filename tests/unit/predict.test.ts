@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { TICK_HZ } from '../../shared/constants.ts';
 import { BASE_SPEED } from '../../shared/sim/world.ts';
-import { BLEND_MS, Predictor, SNAP_DIST, prunePending, replay, speedOf } from '../../client/src/net/predict.ts';
+import { BLEND_MS, Predictor, SNAP_DIST, prunePending, pruneStale, replay, speedOf } from '../../client/src/net/predict.ts';
 
 const speed = BASE_SPEED; // 'default' kit has speedMul 1
 const right = { mx: 1, my: 0 };
@@ -16,6 +16,33 @@ describe('prunePending', () => {
 
   it('keeps everything when the ack is older than the list', () => {
     expect(prunePending([{ seq: 5, ...right }], 1)).toHaveLength(1);
+  });
+});
+
+describe('pruneStale', () => {
+  it('drops unacknowledged inputs the server forgot (they would replay forever)', () => {
+    const p = [{ seq: 1, ...right, at: 1000 }, { seq: 2, ...right, at: 4900 }];
+    expect(pruneStale(p, 5000).map((i) => i.seq)).toEqual([2]);
+  });
+
+  it('keeps an input that is merely in flight (150 ms lag holds ~600 ms of them)', () => {
+    const p = [{ seq: 1, ...right, at: 4400 }];
+    expect(pruneStale(p, 5000)).toHaveLength(1);
+  });
+
+  it('keeps untimed inputs (unit tests and an older snapshot) and fresh ones', () => {
+    expect(pruneStale([{ seq: 1, ...right }], 999_999)).toHaveLength(1);
+    expect(pruneStale([{ seq: 1, ...right, at: 900 }], 1000)).toHaveLength(1);
+  });
+
+  it('reconcile prunes stale pending inputs', () => {
+    const p = new Predictor();
+    p.reset({ x: 0, y: 0 }, 'default', 32);
+    // reconcile reads the wall clock, so use timestamps far outside any real run
+    p.applyInput({ seq: 1, ...right }, undefined, -1_000_000);
+    p.applyInput({ seq: 2, ...right }, undefined, 1_000_000_000);
+    p.reconcile({ x: 0, y: 0 }, 0, 1, 32, 'default');
+    expect(p.pending.map((i) => i.seq)).toEqual([2]);
   });
 });
 

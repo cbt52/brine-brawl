@@ -192,7 +192,9 @@ export class HudScene extends Phaser.Scene {
     const open = this.sbPinned || this.sbHeld;
     this.sbText.setVisible(open);
     if (open) {
-      const rows = [...view].sort((a, b) => b.k - a.k || a.d - b.d || a.n.localeCompare(b.n));
+      // prefer the server's unfiltered roster: `view` hides fighters behind kelp
+      const roster = m?.ros?.length ? m.ros : view;
+      const rows = [...roster].sort((a, b) => b.k - a.k || a.d - b.d || a.n.localeCompare(b.n));
       const lines = ['SCOREBOARD'];
       rows.forEach((p, i) => lines.push(`${i + 1}. ${p.n}${p.id === selfId ? ' (you)' : ''} — ${p.k} KO${p.k === 1 ? '' : 's'}`));
       this.sbText.setText(lines.join('\n'));

@@ -1,6 +1,6 @@
 import type { WebSocket } from 'ws';
 import { MAX_HUMANS, MAX_NAME_LEN, TICK_HZ } from '../shared/constants.ts';
-import type { InputMsg } from '../shared/protocol.ts';
+import type { InputMsg, ScoreRow } from '../shared/protocol.ts';
 import { World } from '../shared/sim/world.ts';
 import { BotBrain } from '../shared/sim/bot.ts';
 import { randomFighterId, resolveFighterId } from '../shared/fighters/index.ts';
@@ -40,6 +40,18 @@ export class Room {
   acc = 0;
   last = Date.now();
   constructor(public id: string) {}
+
+  /**
+   * Full roster for the scoreboard — every combatant, including fighters the viewer's snapshot
+   * hides behind kelp (the `players` list is filtered per viewer).
+   */
+  roster(): ScoreRow[] {
+    return rankPlayers(
+      [...this.world.players.values()].map((p) => ({
+        id: p.id, name: p.name, kos: p.kos, deaths: p.deaths, bot: this.bots.has(p.id),
+      })),
+    );
+  }
 
   /** Advance the sim by wall-clock time using a fixed 30 Hz step. */
   advance(now: number): number {
@@ -156,6 +168,8 @@ export class RoomManager {
       if (r.clients.size === 0) continue;
       r.advance(Date.now());
       const info = r.match.info();
+      // unfiltered roster: the per-viewer snapshot list hides fighters behind kelp
+      info.ros = r.roster();
       for (const c of r.clients.values()) {
         if (c.ws.readyState !== 1) continue;
         const snap = r.world.snapshotFor(c.id);

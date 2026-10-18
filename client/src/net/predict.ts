@@ -11,6 +11,8 @@ export interface PredInput {
   seq: number;
   mx: number;
   my: number;
+  /** client clock when it was sent (ms); stale entries are dropped on reconcile */
+  at?: number;
 }
 
 export interface Pos {
@@ -18,8 +20,16 @@ export interface Pos {
   y: number;
 }
 
-/** One prediction step lasts exactly one sim tick, so local and replayed input agree. */
+/** One prediction step lasts exactly one sim tick, so local and replayed input agree.
+ * Valid because `Controls` emits one input per tick (see input/controls.ts). */
 const DT = 1 / TICK_HZ;
+/** An input the server never acknowledged is dropped after this age instead of being replayed forever
+ * (a dropped message is never re-acked, and re-acking it would leave a permanent position offset).
+ * One second is far above any live round-trip (the ?lag=150 e2e run holds ~600 ms of inputs) but
+ * still bounds a stuck replay. */
+export const MAX_PENDING_MS = 1000;
+
+const nowMs = (): number => (typeof performance !== 'undefined' ? performance.now() : Date.now());
 
 /** Movement speed of a kit, including its own speed multiplier. */
 export function speedOf(fighter: string): number {
@@ -31,6 +41,12 @@ export function prunePending(pending: readonly PredInput[], ack: number): PredIn
   let n = 0;
   while (n < pending.length && pending[n].seq <= ack) n++;
   return n === 0 ? (pending as PredInput[]) : pending.slice(n);
+}
+
+/** Drop unacknowledged inputs older than `maxAge` ms so a lost message cannot replay forever. */
+export function pruneStale(pending: readonly PredInput[], now: number, maxAge = MAX_PENDING_MS): PredInput[] {
+  const keep = pending.filter((i) => i.at === undefined || now - i.at <= maxAge);
+  return keep.length === pending.length ? (pending as PredInput[]) : keep;
 }
 
 /** Run pending inputs from an authoritative position (one shared movement step each). */
@@ -71,8 +87,8 @@ export class Predictor {
   }
 
   /** A local input left the client: move at once and remember it until it is acked. */
-  applyInput(i: PredInput, dt = DT): void {
-    this.pending.push(i);
+  applyInput(i: PredInput, dt = DT, now = nowMs()): void {
+    this.pending.push(i.at === undefined ? { ...i, at: now } : i);
     if (this.pending.length > 240) this.pending.shift();
     const body = { x: this.pos.x, y: this.pos.y, r: this.r };
     stepMove(body, i.mx, i.my, this.speed, dt);
@@ -88,20 +104,18 @@ export class Predictor {
     this.lastTick = tick;
     this.speed = speedOf(fighter);
     this.r = r;
-    this.pending = prunePending(this.pending, ack);
+    this.pending = pruneStale(prunePending(this.pending, ack), nowMs());
     const target = replay(server, r, this.pending, this.speed);
     const seen = this.visual();
-    const dx = target.x - seen.x;
-    const dy = target.y - seen.y;
     this.pos = target;
-    if (down || Math.hypot(dx, dy) > SNAP_DIST) {
+    if (down || Math.hypot(seen.x - target.x, seen.y - target.y) > SNAP_DIST) {
       this.off = { x: 0, y: 0 };
       this.blendLeft = 0;
       return;
     }
-    // keep the drawn body where it was and fade the difference out
-    this.off.x += seen.x - target.x;
-    this.off.y += seen.y - target.y;
+    // re-base the drawn body on the new target: the offset IS the error, so assign it — adding to the
+    // old offset feeds `off` back into `visual()` and makes it grow on every snapshot
+    this.off = { x: seen.x - target.x, y: seen.y - target.y };
     this.blendLeft = BLEND_MS;
   }
 

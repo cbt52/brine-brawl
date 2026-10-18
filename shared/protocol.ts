@@ -44,6 +44,9 @@ export interface MatchInfo {
   r: number;
   /** final ranking — results phase only */
   res?: ScoreRow[];
+  /** every combatant (id/name/kos/deaths), unfiltered — the scoreboard uses this because the
+   * snapshot `players` list hides fighters behind kelp */
+  ros?: ScoreRow[];
 }
 
 export interface DbgMsg {
