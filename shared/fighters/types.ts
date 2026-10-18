@@ -9,10 +9,10 @@ export type Faction = 'critterkin' | 'weavers' | 'saltwind' | 'bubblebottom';
 
 export type Element = 'neutral' | 'water' | 'fire' | 'volt' | 'earth' | 'leaf' | 'air';
 
-export type StatusKind = 'wet' | 'burn' | 'static' | 'heavy' | 'tangled';
+export type StatusKind = 'wet' | 'burn' | 'static' | 'heavy' | 'tangled' | 'stun';
 
 /** Snapshot code for a status (`st`), 0 = none. */
-export const STATUS_CODE: Record<StatusKind, number> = { wet: 1, burn: 2, static: 3, heavy: 4, tangled: 5 };
+export const STATUS_CODE: Record<StatusKind, number> = { wet: 1, burn: 2, static: 3, heavy: 4, tangled: 5, stun: 6 };
 
 export type Role = 'allrounder' | 'bruiser' | 'sharpshooter' | 'skirmisher' | 'support';
 
@@ -50,6 +50,9 @@ export interface MeleeAbility extends AbilityBase {
   range: number;
   dmg: number;
   knockback: number;
+  /** optional on-hit status (e.g. Water Whip → wet) */
+  status?: StatusKind;
+  statusSec?: number;
 }
 
 export interface DashAbility extends AbilityBase {
@@ -61,6 +64,8 @@ export interface DashAbility extends AbilityBase {
   contactDmg?: number;
   /** cosmetic: leave a trail */
   trail?: boolean;
+  /** functional trail: damage/status zones dropped along the dash path */
+  trailZone?: { radius: number; dmg?: number; status?: StatusKind; statusSec?: number };
 }
 
 export interface AoeAbility extends AbilityBase {
@@ -80,6 +85,13 @@ export interface AoeAbility extends AbilityBase {
   zoneSec?: number;
   /** damage every 0.5 s while the zone is alive */
   tickDmg?: number;
+  /** pull toward the centre every 0.5 s while the zone is alive (Maelstrom) */
+  tickPull?: number;
+  /** cone centred on the aim (degrees); victims outside it are ignored */
+  coneDeg?: number;
+  /** status applied to everything the zone touches */
+  status?: StatusKind;
+  statusSec?: number;
 }
 
 export interface BuffAbility extends AbilityBase {
@@ -105,7 +117,20 @@ export interface StatusAbility extends AbilityBase {
   dmg?: number;
 }
 
-export type AbilityDef = ProjectileAbility | MeleeAbility | DashAbility | AoeAbility | BuffAbility | StatusAbility;
+export interface BurrowAbility extends AbilityBase {
+  kind: 'burrow';
+  /** seconds underground (untargetable, cannot move or cast) */
+  dur: number;
+  /** how far toward the aim point the burrow ends */
+  range: number;
+  /** arrival blast */
+  radius: number;
+  dmg: number;
+  status?: StatusKind;
+  statusSec?: number;
+}
+
+export type AbilityDef = ProjectileAbility | MeleeAbility | DashAbility | AoeAbility | BuffAbility | StatusAbility | BurrowAbility;
 
 export interface FighterDef {
   /** registry key, also sent in `join.fighter` */

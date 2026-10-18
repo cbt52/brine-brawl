@@ -3,7 +3,7 @@ import { World, type SimInput } from '../../shared/sim/world.ts';
 import { castAbility, abilityReach } from '../../shared/sim/abilities.ts';
 import { BotBrain } from '../../shared/sim/bot.ts';
 import { TICK_HZ } from '../../shared/constants.ts';
-import { getFighter, resolveFighterId, FIGHTERS } from '../../shared/fighters/index.ts';
+import { getFighter, randomFighterId, resolveFighterId, FIGHTERS } from '../../shared/fighters/index.ts';
 import type { AbilityDef } from '../../shared/fighters/types.ts';
 
 const inp = (o: Partial<SimInput> = {}): SimInput => ({ seq: 1, mx: 0, my: 0, ax: 1, ay: 0, atk: false, spc: false, ult: false, ...o });
@@ -23,7 +23,7 @@ function setup(fighter = 'default', gap = 300) {
 describe('registry', () => {
   it('falls back to the default fighter for unknown or hostile ids', () => {
     expect(resolveFighterId('default')).toBe('default');
-    expect(resolveFighterId('mira')).toBe('default');
+    expect(resolveFighterId('unknown-kit')).toBe('default');
     expect(resolveFighterId('../../etc/passwd')).toBe('default');
     expect(resolveFighterId(undefined)).toBe('default');
     expect(resolveFighterId(42)).toBe('default');
@@ -272,5 +272,84 @@ describe('bots press their buttons', () => {
     }
     expect(casts).toBeGreaterThan(0);
     expect(casts).toBeLessThanOrEqual(2);
+  });
+});
+
+describe('T10 kits: Voltbun + Mira Tidecaller', () => {
+  it('registers both kits and bots pick registered ids at random', () => {
+    expect(getFighter('voltbun').id).toBe('voltbun');
+    expect(getFighter('mira').id).toBe('mira');
+    for (let i = 0; i < 20; i++) {
+      const id = randomFighterId();
+      expect(FIGHTERS.some((f) => f.id === id)).toBe(true);
+    }
+  });
+
+  it('Spark Hop fires two short bolts', () => {
+    const { w, a } = setup('voltbun');
+    castAbility(w, a, getFighter('voltbun').attack);
+    expect(w.projs).toHaveLength(2);
+  });
+
+  it('Static Dash leaves a static trail behind the dasher', () => {
+    const { w, a, b } = setup('voltbun', 150);
+    b.y = 1070; // beside the dash lane, inside the trail radius
+    const x0 = a.x;
+    castAbility(w, a, getFighter('voltbun').special);
+    run(w, 0.3);
+    expect(a.x - x0).toBeGreaterThan(200);
+    expect(b.status).toBe('static');
+  });
+
+  it('Thunder Burrow: untargetable underground, then lands at the aim point with a stun blast', () => {
+    const { w, a, b } = setup('voltbun', 400);
+    b.x = 1400;
+    const hp0 = a.hp;
+    castAbility(w, a, getFighter('voltbun').ult);
+    expect(a.burrow).not.toBeNull();
+    w.damage(2, a, 10, a.x, a.y); // enemy fire cannot touch the burrower
+    expect(a.hp).toBe(hp0);
+    expect(w.snapshotFor(2).players.some((p) => p.id === 1)).toBe(false);
+    expect(w.snapshotFor(1).players.some((p) => p.id === 1)).toBe(true);
+    run(w, 0.8);
+    expect(a.burrow).toBeNull();
+    expect(a.x).toBeGreaterThan(1350);
+    expect(b.hp).toBe(b.mhp - 28);
+    expect(b.status).toBe('stun');
+  });
+
+  it('Water Whip is a long thin lash that soaks the target', () => {
+    const { w, a, b } = setup('mira', 240);
+    const behind = w.addPlayer(3, 'C');
+    behind.x = 900; behind.y = 1000; behind.shield = 0;
+    castAbility(w, a, getFighter('mira').attack);
+    expect(b.hp).toBe(b.mhp - 18);
+    expect(b.status).toBe('wet');
+    expect(behind.hp).toBe(behind.mhp);
+  });
+
+  it('Tide Push shoves only the cone in front of Mira', () => {
+    const { w, a, b } = setup('mira', 180);
+    const behind = w.addPlayer(3, 'C');
+    behind.x = 820; behind.y = 1000; behind.shield = 0;
+    const front0 = b.x;
+    const back0 = behind.x;
+    castAbility(w, a, getFighter('mira').special);
+    run(w, 0.1);
+    expect(b.x - front0).toBeGreaterThan(80);
+    expect(behind.x).toBe(back0);
+    expect(behind.hp).toBe(behind.mhp);
+  });
+
+  it('Maelstrom drags the target toward the vortex and ticks damage', () => {
+    const { w, a, b } = setup('mira', 400);
+    b.x = 1400;
+    const hp0 = b.hp;
+    castAbility(w, a, getFighter('mira').ult);
+    run(w, 0.4);
+    const d0 = Math.abs(b.x - 1320);
+    run(w, 1.0);
+    expect(b.hp).toBeLessThan(hp0);
+    expect(Math.abs(b.x - 1320)).toBeLessThan(d0);
   });
 });

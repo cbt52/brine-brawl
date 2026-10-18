@@ -243,7 +243,7 @@ Each reaction shows a big popup word ("SHOCK!").
   - Accept: the gallery screenshot is readable and the two fighters are clearly distinct and charming.
   - Test: `npm run check && npm run shot -- --name T09 --query "" --path /gallery.html`
 
-- [ ] **T10 — Kits: Voltbun + Mira Tidecaller**
+- [x] **T10 — Kits: Voltbun + Mira Tidecaller**
   - Do: data and hooks per §4, plus FX keys. Mira's whip = melee arc with a long thin range. Tide Push = aoe cone push. Maelstrom = aoe pull zone. Voltbun's Static Dash = dash with a trail zone. Thunder Burrow = become untargetable for 0.6 s, reappear at the aim point, aoe stun.
   - Unit tests: each ability hits as designed. Bots pick these fighters at random.
   - Test: `npm run check && npm run smoke`
@@ -536,3 +536,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T08 ✅ 2026-10-18 — Fighter-Registry + 6 Ability-Primitive generisch, Ult-Ladung/Special-CD im Snap+HUD, Bots nutzen beides
 - T09 ✅ 2026-10-18 — SVG-Pipeline (3 Kämpfer + Hurt-Faces, art.test), FighterSprite-Rig ersetzt Kreise, /gallery.html
 - T08b ✅ 2026-10-18 — Kunst-Pipeline: 24 Kämpfer + Deckhand aus EINEM Modell → SVG-Sprites + three-Blockouts, Galerie ?look=3d
+- T10 ✅ 2026-10-18 — Voltbun+Mira-Kits (Burrow-/Trail-/Cone-/TickPull-Primitive), Bots mit Zufalls-Kits; check+smoke grün

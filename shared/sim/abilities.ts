@@ -23,6 +23,12 @@ export interface Zone {
   tickDmg: number;
   push: number;
   pull: number;
+  tickPull: number;
+  /** cone centred on `aim` (degrees); 0 = full circle */
+  coneDeg: number;
+  aim: number;
+  status: StatusKind | null;
+  statusSec: number;
   tickT: number;
   fired: boolean;
 }
@@ -33,6 +39,19 @@ export interface DashState {
   left: number;
   dmg: number;
   hit: Set<number>;
+  /** trail zones dropped along the path */
+  trail: { radius: number; dmg: number; status: StatusKind | null; statusSec: number } | null;
+  trailT: number;
+}
+
+export interface BurrowState {
+  left: number;
+  tx: number;
+  ty: number;
+  radius: number;
+  dmg: number;
+  status: StatusKind | null;
+  statusSec: number;
 }
 
 /**
@@ -50,7 +69,7 @@ export interface CastHost {
 
 function enemies(h: CastHost, owner: number): SimPlayer[] {
   const out: SimPlayer[] = [];
-  for (const v of h.players.values()) if (v.id !== owner && !v.down && v.hp > 0) out.push(v);
+  for (const v of h.players.values()) if (v.id !== owner && !v.down && v.hp > 0 && !v.burrow) out.push(v);
   return out;
 }
 
@@ -60,18 +79,35 @@ function shove(v: SimPlayer, ux: number, uy: number, amount: number): void {
   resolveWalls(v, OBSTACLES);
 }
 
-/** Damage (and optional push/pull) everything inside a circle. */
-function hitAll(h: CastHost, owner: number, x: number, y: number, radius: number, dmg: number, push = 0, pull = 0): void {
+/** Extra options for `hitAll` (cone gating, status on hit). */
+interface HitOpts {
+  coneDeg?: number;
+  aim?: number;
+  status?: StatusKind | null;
+  statusSec?: number;
+}
+
+/** Damage (and optional push/pull) everything inside a circle (or cone). */
+function hitAll(
+  h: CastHost, owner: number, x: number, y: number, radius: number, dmg: number,
+  push = 0, pull = 0, o: HitOpts = {},
+): void {
+  const half = ((o.coneDeg ?? 0) * Math.PI) / 360;
   for (const v of enemies(h, owner)) {
     const dx = v.x - x;
     const dy = v.y - y;
     const d = Math.hypot(dx, dy);
     if (d > radius + v.r) continue;
+    if (half > 0 && d > v.r && Math.abs(wrapPi(Math.atan2(dy, dx) - (o.aim ?? 0))) > half) continue;
     if (dmg > 0) h.damage(owner, v, dmg, v.x, v.y);
     const ux = d > 1e-6 ? dx / d : 1;
     const uy = d > 1e-6 ? dy / d : 0;
     if (push) shove(v, ux, uy, push);
     if (pull) shove(v, -ux, -uy, Math.min(pull, Math.max(0, d)));
+    if (o.status && !v.down) {
+      applyStatus(v, o.status, o.statusSec ?? 1);
+      h.events.push({ k: 'status', v: v.id, s: o.status, sec: o.statusSec ?? 1 });
+    }
   }
 }
 
@@ -121,12 +157,35 @@ export function castAbility(h: CastHost, p: SimPlayer, def: AbilityDef): boolean
         if (d > v.r && Math.abs(wrapPi(Math.atan2(dy, dx) - p.aim)) > half) continue;
         h.damage(p.id, v, def.dmg, v.x, v.y);
         if (def.knockback) shove(v, d > 1e-6 ? dx / d : ax, d > 1e-6 ? dy / d : ay, def.knockback);
+        if (def.status && !v.down) {
+          applyStatus(v, def.status, def.statusSec ?? 1);
+          h.events.push({ k: 'status', v: v.id, s: def.status, sec: def.statusSec ?? 1 });
+        }
       }
       break;
     }
     case 'dash': {
       const dur = Math.max(0.02, def.dur);
-      p.dash = { vx: (ax * def.dist) / dur, vy: (ay * def.dist) / dur, left: dur, dmg: def.contactDmg ?? 0, hit: new Set() };
+      p.dash = {
+        vx: (ax * def.dist) / dur, vy: (ay * def.dist) / dur, left: dur, dmg: def.contactDmg ?? 0, hit: new Set(),
+        trail: def.trailZone
+          ? { radius: def.trailZone.radius, dmg: def.trailZone.dmg ?? 0, status: def.trailZone.status ?? null, statusSec: def.trailZone.statusSec ?? 0 }
+          : null,
+        trailT: 0,
+      };
+      break;
+    }
+    case 'burrow': {
+      p.burrow = {
+        left: Math.max(0.05, def.dur),
+        tx: p.x + ax * def.range,
+        ty: p.y + ay * def.range,
+        radius: def.radius,
+        dmg: def.dmg,
+        status: def.status ?? null,
+        statusSec: def.statusSec ?? 0,
+      };
+      p.dash = null;
       break;
     }
     case 'aoe': {
@@ -136,6 +195,8 @@ export function castAbility(h: CastHost, p: SimPlayer, def: AbilityDef): boolean
         id: h.newProjId(), owner: p.id, x: zx, y: zy, r: def.radius,
         delay: Math.max(0, def.delay), dur: Math.max(0, def.zoneSec ?? 0),
         dmg: def.dmg, tickDmg: def.tickDmg ?? 0, push: def.push ?? 0, pull: def.pull ?? 0,
+        tickPull: def.tickPull ?? 0, coneDeg: def.coneDeg ?? 0, aim: p.aim,
+        status: def.status ?? null, statusSec: def.statusSec ?? 0,
         tickT: 0, fired: false,
       });
       break;
@@ -179,6 +240,7 @@ export function abilityReach(def: AbilityDef): number {
     case 'dash': return def.dist;
     case 'aoe': return (def.at === 'self' ? 0 : def.range ?? 0) + def.radius;
     case 'status': return (def.at === 'self' ? 0 : def.range ?? 0) + def.radius;
+    case 'burrow': return def.range + def.radius;
     case 'buff': return Infinity; // self-targeted: always usable
   }
 }
@@ -187,17 +249,19 @@ export function abilityReach(def: AbilityDef): number {
 export function stepZones(h: CastHost, dt: number): void {
   const keep: Zone[] = [];
   for (const z of h.zones) {
+    const opts: HitOpts = { coneDeg: z.coneDeg, aim: z.aim, status: z.status, statusSec: z.statusSec };
     if (!z.fired) {
       z.delay -= dt;
       if (z.delay > 0) { keep.push(z); continue; }
       z.fired = true;
-      hitAll(h, z.owner, z.x, z.y, z.r, z.dmg, z.push, z.pull);
+      hitAll(h, z.owner, z.x, z.y, z.r, z.dmg, z.push, z.pull, opts);
     }
     if (z.dur > 0) {
       z.tickT += dt;
       while (z.tickT >= ZONE_TICK_SEC) {
         z.tickT -= ZONE_TICK_SEC;
-        if (z.tickDmg > 0) hitAll(h, z.owner, z.x, z.y, z.r, z.tickDmg);
+        if (z.tickDmg > 0 || z.tickPull > 0) hitAll(h, z.owner, z.x, z.y, z.r, z.tickDmg, 0, z.tickPull, opts);
+        else if (z.status && opts.statusSec) hitAll(h, z.owner, z.x, z.y, z.r, 0, 0, 0, opts);
       }
       z.dur -= dt;
       if (z.dur > 0) keep.push(z);
@@ -206,6 +270,9 @@ export function stepZones(h: CastHost, dt: number): void {
   h.zones = keep;
 }
 
+/** How often a dash trail drops a new zone (seconds). */
+const TRAIL_GAP_SEC = 0.05;
+
 /** Advance an active dash. Returns true when it took over this tick's movement. */
 export function stepDash(h: CastHost, p: SimPlayer, dt: number): boolean {
   const d = p.dash;
@@ -213,6 +280,17 @@ export function stepDash(h: CastHost, p: SimPlayer, dt: number): boolean {
   p.x += d.vx * dt;
   p.y += d.vy * dt;
   resolveWalls(p, OBSTACLES);
+  if (d.trail) {
+    d.trailT -= dt;
+    if (d.trailT <= 0) {
+      d.trailT = TRAIL_GAP_SEC;
+      h.zones.push({
+        id: h.newProjId(), owner: p.id, x: p.x, y: p.y, r: d.trail.radius,
+        delay: 0, dur: 0, dmg: d.trail.dmg, tickDmg: 0, push: 0, pull: 0, tickPull: 0,
+        coneDeg: 0, aim: 0, status: d.trail.status, statusSec: d.trail.statusSec, tickT: 0, fired: false,
+      });
+    }
+  }
   if (d.dmg > 0) {
     for (const v of enemies(h, p.id)) {
       if (d.hit.has(v.id)) continue;
@@ -225,4 +303,22 @@ export function stepDash(h: CastHost, p: SimPlayer, dt: number): boolean {
   d.left -= dt;
   if (d.left <= 0) p.dash = null;
   return true;
+}
+
+/**
+ * Advance a burrow. Returns true while the player is underground (untargetable, no input).
+ * On the landing tick it teleports, blasts and returns false so movement resumes immediately.
+ */
+export function stepBurrow(h: CastHost, p: SimPlayer, dt: number): boolean {
+  const b = p.burrow;
+  if (!b) return false;
+  b.left -= dt;
+  if (b.left > 0) return true;
+  p.x = b.tx;
+  p.y = b.ty;
+  resolveWalls(p, OBSTACLES);
+  p.burrow = null;
+  hitAll(h, p.id, p.x, p.y, b.radius, b.dmg, 0, 0, { status: b.status, statusSec: b.statusSec });
+  h.events.push({ k: 'cast', id: p.id, ab: 'burrow', x: Math.round(p.x), y: Math.round(p.y), a: 0 });
+  return false;
 }

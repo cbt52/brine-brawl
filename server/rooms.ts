@@ -3,7 +3,7 @@ import { MAX_HUMANS, MAX_NAME_LEN, TICK_HZ } from '../shared/constants.ts';
 import type { InputMsg } from '../shared/protocol.ts';
 import { World } from '../shared/sim/world.ts';
 import { BotBrain } from '../shared/sim/bot.ts';
-import { resolveFighterId } from '../shared/fighters/index.ts';
+import { randomFighterId, resolveFighterId } from '../shared/fighters/index.ts';
 import { Match, rankPlayers } from './match.ts';
 
 const ROOM_RE = /^[a-z0-9-]{1,24}$/;
@@ -75,7 +75,8 @@ export class Room {
       const id = this.nextBot++;
       const used = new Set([...this.world.players.values()].map((p) => p.name));
       const name = BOT_NAMES.find((n) => !used.has(n)) ?? `Bot ${id}`;
-      this.world.addPlayer(id, name, 'default', true);
+      // bots show up with a random real kit (T10)
+      this.world.addPlayer(id, name, randomFighterId(), true);
       this.bots.set(id, new BotBrain(id, 'normal'));
     }
   }

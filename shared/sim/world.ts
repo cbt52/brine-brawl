@@ -6,7 +6,7 @@ import { STATUS_CODE, type FighterDef, type StatusKind } from '../fighters/types
 import { pushOutRect, resolveWalls, separate } from './collide.ts';
 import * as C from './combat.ts';
 import type { Projectile } from './combat.ts';
-import { castAbility, stepDash, stepZones, type DashState, type Zone } from './abilities.ts';
+import { castAbility, stepBurrow, stepDash, stepZones, type BurrowState, type DashState, type Zone } from './abilities.ts';
 
 export const BASE_SPEED = 240;
 /** default body radius (kits carry their own `radius`) */
@@ -49,6 +49,8 @@ export interface SimPlayer {
   /** ult charge, in damage points (0 … def.ultCharge) */
   uc: number;
   dash: DashState | null;
+  /** underground: untargetable, no input, no movement */
+  burrow: BurrowState | null;
   /** temporary speed multiplier from a buff */
   buffMul: number;
   buffLeft: number;
@@ -89,7 +91,7 @@ export class World {
     const p: SimPlayer = {
       id, name, fighter: def.id, def, x: s.x, y: s.y, r: def.radius,
       hp: def.maxHp, mhp: def.maxHp, speedMul: def.speedMul, aim: 0, ack: 0, input: null,
-      ammo: def.ammo, reload: 0, fireCd: 0, fireLatch: false, spcCd: 0, uc: 0, dash: null,
+      ammo: def.ammo, reload: 0, fireCd: 0, fireLatch: false, spcCd: 0, uc: 0, dash: null, burrow: null,
       buffMul: 1, buffLeft: 0, status: null, statusLeft: 0,
       down: false, respawn: 0, shield: C.SHIELD_SEC, kos: 0, deaths: 0, bot,
     };
@@ -136,6 +138,8 @@ export class World {
         p.statusLeft -= dt;
         if (p.statusLeft <= 0) { p.statusLeft = 0; p.status = null; }
       }
+      const burrowing = stepBurrow(this, p, dt);
+      if (burrowing) { p.fireLatch = false; continue; }
       const dashing = stepDash(this, p, dt);
       if (i) {
         if (!dashing) {
@@ -153,7 +157,7 @@ export class World {
       if (i?.ult && p.uc >= p.def.ultCharge && castAbility(this, p, p.def.ult)) p.uc = 0;
     }
     stepZones(this, dt);
-    const alive = list.filter((p) => !p.down);
+    const alive = list.filter((p) => !p.down && !p.burrow);
     separate(alive);
     for (const p of alive) resolveWalls(p, OBSTACLES);
     this.stepProjectiles(dt);
@@ -210,7 +214,7 @@ export class World {
           if (dead) break;
         }
         for (const v of this.players.values()) {
-          if (v.id === pr.owner || v.down) continue;
+          if (v.id === pr.owner || v.down || v.burrow) continue;
           if (Math.hypot(v.x - pr.x, v.y - pr.y) >= v.r + pr.r) continue;
           if (pr.pierce) {
             pr.hit ??= new Set();
@@ -226,7 +230,8 @@ export class World {
       if (dead && pr.aoeOnEnd) {
         this.zones.push({
           id: this.newProjId(), owner: pr.owner, x: pr.x, y: pr.y, r: pr.aoeOnEnd.radius,
-          delay: 0, dur: 0, dmg: pr.aoeOnEnd.dmg, tickDmg: 0, push: 0, pull: 0, tickT: 0, fired: false,
+          delay: 0, dur: 0, dmg: pr.aoeOnEnd.dmg, tickDmg: 0, push: 0, pull: 0, tickPull: 0,
+          coneDeg: 0, aim: 0, status: null, statusSec: 0, tickT: 0, fired: false,
         });
       }
       if (!dead && pr.left > 0) keep.push(pr);
@@ -236,7 +241,7 @@ export class World {
 
   /** Single damage entry point: also feeds the attacker's ult charge. */
   damage(attacker: number, v: SimPlayer, dmg: number, x: number, y: number): void {
-    if (v.shield > 0 || v.down) return;
+    if (v.shield > 0 || v.down || v.burrow) return;
     const dealt = Math.max(0, Math.min(v.hp, dmg));
     v.hp = Math.max(0, v.hp - dmg);
     this.events.push({ k: 'hit', a: attacker, v: v.id, dmg, x: Math.round(x), y: Math.round(y) });
@@ -247,6 +252,7 @@ export class World {
     v.respawn = C.RESPAWN_SEC;
     v.deaths++;
     v.dash = null;
+    v.burrow = null;
     v.status = null;
     v.statusLeft = 0;
     if (a) a.kos++;
@@ -275,6 +281,7 @@ export class World {
     p.fireCd = 0;
     p.spcCd = 0;
     p.dash = null;
+    p.burrow = null;
     p.buffMul = 1;
     p.buffLeft = 0;
     p.status = null;
@@ -306,6 +313,8 @@ export class World {
   snapshotFor(viewerId: number): SnapMsg {
     const players: SnapPlayer[] = [];
     for (const p of this.players.values()) {
+      // underground players are hidden from everybody but the owner
+      if (p.burrow && p.id !== viewerId) continue;
       players.push({
         id: p.id, x: Math.round(p.x), y: Math.round(p.y), hp: p.hp, mhp: p.mhp,
         f: p.fighter, n: p.name, st: p.status ? STATUS_CODE[p.status] : 0,
