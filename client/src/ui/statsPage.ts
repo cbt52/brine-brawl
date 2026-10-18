@@ -22,6 +22,7 @@ export function showStats(): void {
       <dt>Wins</dt><dd data-testid="stats-wins">${s.wins} (${winRate}%)</dd>
       <dt>KOs</dt><dd data-testid="stats-kos">${s.kos}</dd>
       <dt>Best bounty</dt><dd data-testid="stats-best">${s.bestBounty} 🪙</dd>
+      <dt>Best run</dt><dd data-testid="stats-run">${s.bestRun} KOs</dd>
       <dt>Favorite</dt><dd data-testid="stats-fav">${fav ? escapeHtml(getFighter(fav).name) : '—'}</dd>
     </dl>
     <ol class="stats-plays" data-testid="stats-plays">${plays || '<li>No rounds yet</li>'}</ol>

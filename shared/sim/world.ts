@@ -141,6 +141,10 @@ export interface SimPlayer {
   kos: number;
   /** sim tick of each KO this round, oldest first (backlog #32: the Most KOs tie-break) */
   koTicks: number[];
+  /** KOs since this fighter last died (backlog #36) */
+  run: number;
+  /** the longest `run` this round: most KOs without dying (backlog #36) */
+  bestRun: number;
   deaths: number;
   /** fighter id picked mid-match; swapped in by the next respawn */
   pendingFighter: string | null;
@@ -252,7 +256,7 @@ export class World {
       hp: def.maxHp, mhp: def.maxHp, speedMul: def.speedMul, aim: 0, ack: 0, input: null,
       ammo: def.ammo, reload: 0, fireCd: 0, fireLatch: false, spcCd: 0, uc: 0, dash: null, burrow: null,
       buffMul: 1, buffLeft: 0, dmgMul: 1, dmgMulLeft: 0, status: null, statusLeft: 0, rootLeft: 0, burnT: 0, edgeT: 0, trapTook: 0,
-      revealT: 0, down: false, respawn: 0, shield: C.SHIELD_SEC, kos: 0, koTicks: [], deaths: 0, pendingFighter: null, purrlFed: false,
+      revealT: 0, down: false, respawn: 0, shield: C.SHIELD_SEC, kos: 0, koTicks: [], run: 0, bestRun: 0, deaths: 0, pendingFighter: null, purrlFed: false,
       gold: 0, bounty: BOUNTY_START, waterT: 0, bot, team, carry: 0,
       evolveKos: 0, evolved: false, flowHits: 0, flowT: 0, flowReady: false, toonUsed: false, toonLeft: 0,
     };
@@ -827,6 +831,7 @@ export class World {
     v.down = true;
     v.respawn = C.RESPAWN_SEC;
     v.deaths++;
+    v.run = 0;
     v.dash = null;
     v.burrow = null;
     v.status = null;
@@ -838,6 +843,10 @@ export class World {
     if (a) {
       a.kos++;
       a.koTicks.push(this.tick);
+      if (a.id !== v.id) {
+        a.run++;
+        a.bestRun = Math.max(a.bestRun, a.run);
+      }
     }
     if (a && a.id !== v.id && !this.treasure) {
       a.gold += pay;
@@ -1029,6 +1038,8 @@ export class World {
     for (const p of this.players.values()) {
       p.kos = 0;
       p.koTicks = [];
+      p.run = 0;
+      p.bestRun = 0;
       p.deaths = 0;
       p.bounty = BOUNTY_START;
       p.gold = 0;

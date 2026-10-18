@@ -81,6 +81,7 @@ export class Room {
       // Treasure Tide scores the coins on the body, Bounty Brawl the bounty (T27)
       bounty: treasure ? p.carry : p.bounty,
       fighter: p.fighter, bot: this.bots.has(p.id), team: p.team ?? undefined, skin: p.skin,
+      bestRun: p.bestRun,
     }));
     const ranked = rankPlayers(rows);
     if (!treasure) return ranked;

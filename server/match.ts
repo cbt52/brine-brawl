@@ -128,6 +128,8 @@ export function rankPlayers(
     team?: Team;
     /** skin index (backlog #16); 0 or omitted = the drawn look and no `sk` in the row */
     skin?: number;
+    /** best KO run this round (backlog #36); 0 or omitted = no `run` in the row */
+    bestRun?: number;
   }[],
 ): ScoreRow[] {
   return ps
@@ -137,6 +139,7 @@ export function rankPlayers(
       f: p.fighter ?? '', bot: p.bot ? 1 : 0,
       ...(p.team === 0 || p.team === 1 ? { tm: p.team } : {}),
       ...(p.skin ? { sk: p.skin } : {}),
+      ...(p.bestRun ? { run: p.bestRun } : {}),
     }))
     .sort((a, b) => b.b - a.b || b.k - a.k || a.d - b.d || a.n.localeCompare(b.n));
 }

@@ -11,6 +11,8 @@ export interface LocalStats {
   kos: number;
   /** biggest bounty banked in one round (doubloons) */
   bestBounty: number;
+  /** longest KO run in one round: most KOs without dying (backlog #36) */
+  bestRun: number;
   /** rounds per fighter id */
   plays: Record<string, number>;
   /** rounds won per fighter id (rounds before this field existed count as not won) */
@@ -22,7 +24,7 @@ export interface LocalStats {
 }
 
 export const EMPTY_STATS: LocalStats = {
-  matches: 0, wins: 0, kos: 0, bestBounty: 0, plays: {}, wonBy: {}, bestKey: '', last: '',
+  matches: 0, wins: 0, kos: 0, bestBounty: 0, bestRun: 0, plays: {}, wonBy: {}, bestKey: '', last: '',
 };
 
 /** Adds one finished round for `selfId`; returns the same object when nothing changes. */
@@ -36,6 +38,7 @@ export function addRound(s: LocalStats, rows: ScoreRow[], selfId: number, key: s
     wins: s.wins + (won ? 1 : 0),
     kos: s.kos + me.k,
     bestBounty: Math.max(s.bestBounty, me.b),
+    bestRun: Math.max(s.bestRun, me.run ?? 0),
     // strictly higher only: matching the record is not a new best
     bestKey: me.b > s.bestBounty ? key : s.bestKey,
     plays: { ...s.plays, [me.f]: (s.plays[me.f] ?? 0) + 1 },
@@ -84,6 +87,7 @@ export function loadStats(): LocalStats {
       wins: num(raw.wins),
       kos: num(raw.kos),
       bestBounty: num(raw.bestBounty),
+      bestRun: num(raw.bestRun),
       plays,
       wonBy,
       bestKey: typeof raw.bestKey === 'string' ? raw.bestKey : '',

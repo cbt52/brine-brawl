@@ -71,3 +71,38 @@ describe('KO log in the sim (backlog #32)', () => {
     expect(mvpId([...w.players.values()])).toBeNull();
   });
 });
+
+describe('KO run in the sim (backlog #36)', () => {
+  function trio() {
+    const w = new World();
+    const a = w.addPlayer(1, 'Hunter', 'default');
+    const b = w.addPlayer(2, 'Prey', 'default');
+    const c = w.addPlayer(3, 'Other', 'default');
+    for (const p of [a, b, c]) {
+      p.shield = 0;
+      p.toonUsed = true;
+    }
+    return { w, a, b, c };
+  }
+
+  it('counts KOs since the last death and keeps the longest run', () => {
+    const { w, a, b, c } = trio();
+    w.damage(1, b, b.hp + 10, b.x, b.y);
+    w.damage(1, c, c.hp + 10, c.x, c.y);
+    expect(a.run).toBe(2);
+    expect(a.bestRun).toBe(2);
+    // a death ends the run, the record stays
+    w.damage(2, a, a.hp + 10, a.x, a.y);
+    expect(a.run).toBe(0);
+    expect(a.bestRun).toBe(2);
+    expect(c.run).toBe(0);
+  });
+
+  it('a round reset clears the runs', () => {
+    const { w, a, b } = trio();
+    w.damage(1, b, b.hp + 10, b.x, b.y);
+    w.resetScores();
+    expect(a.bestRun).toBe(0);
+    expect(a.run).toBe(0);
+  });
+});

@@ -135,3 +135,14 @@ describe('early finish (Treasure Tide, T27)', () => {
     expect(m.finish()).toBe(null);
   });
 });
+
+describe('rankPlayers best run (backlog #36)', () => {
+  it('passes the round best KO run into the row, and leaves it out at zero', () => {
+    const [a, b] = rankPlayers([
+      { id: 1, name: 'Ada', kos: 3, deaths: 0, bestRun: 3 },
+      { id: 2, name: 'Bo', kos: 1, deaths: 2, bestRun: 0 },
+    ]);
+    expect(a.run).toBe(3);
+    expect(b).not.toHaveProperty('run');
+  });
+});

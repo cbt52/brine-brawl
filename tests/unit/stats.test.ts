@@ -74,6 +74,16 @@ describe('local stats (backlog #9)', () => {
     expect(newBestFor(none, 'room:3')).toBe(0);
   });
 
+  it('keeps the longest KO run of the player across rounds (backlog #36)', () => {
+    const run = (id: number, n: number): ScoreRow => ({ ...row(id, 'voltbun', 0, 0), run: n });
+    const a = addRound(EMPTY_STATS, [run(1, 3), run(2, 0)], 1, 'room:1');
+    expect(a.bestRun).toBe(3);
+    const b = addRound(a, [run(1, 1), run(2, 5)], 1, 'room:2');
+    expect(b.bestRun).toBe(3);
+    // a round without a `run` field (no streak) keeps the record
+    expect(addRound(b, [row(1, 'voltbun', 0, 0)], 1, 'room:3').bestRun).toBe(3);
+  });
+
   it('picks the most played fighter, first one played on a tie', () => {
     const none: LocalStats = { ...EMPTY_STATS };
     expect(favoriteFighter(none)).toBeUndefined();
@@ -83,7 +93,7 @@ describe('local stats (backlog #9)', () => {
   it('reads saved stats and clamps bad values to zero', () => {
     stubStorage('{"matches":3,"wins":"x","kos":-4,"plays":{"sudsy":-2,"tide":4},"last":5}');
     expect(loadStats()).toEqual({
-      matches: 3, wins: 0, kos: 0, bestBounty: 0, plays: { sudsy: 0, tide: 4 }, wonBy: {}, bestKey: '', last: '',
+      matches: 3, wins: 0, kos: 0, bestBounty: 0, bestRun: 0, plays: { sudsy: 0, tide: 4 }, wonBy: {}, bestKey: '', last: '',
     });
   });
 

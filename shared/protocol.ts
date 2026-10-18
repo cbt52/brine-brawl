@@ -55,6 +55,8 @@ export interface ScoreRow {
   f: string;
   /** 1 = bot */
   bot: number;
+  /** best KO run this round, most KOs without dying (backlog #36); absent when 0 */
+  run?: number;
   /** crew 0/1 when the match runs teams; absent in a free-for-all */
   tm?: number;
   /** skin index (shared/skins.ts) so the WANTED poster matches the body; absent = the drawn look */

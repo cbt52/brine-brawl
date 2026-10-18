@@ -457,7 +457,6 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 ## 5. IMPROVEMENT BACKLOG (ordered; T99 takes from the top; user feedback goes first)
 11. Optional ONLY if the user asks: ComfyUI portraits (127.0.0.1:8188, 2–7 min/img, 16 GB RAM, never while the user is using it).
 
-36. Pirate log part 3: the best KO run of one round (most KOs without dying) is saved next to `bestKey` and shown as "Best run: N KOs" in `client/src/ui/statsPage.ts`, so streaks are kept between sessions too.
 37. Streak sticker that cannot be blocked: the streak greeting shares the emote cooldown, so a human who sent a sticker up to 1.2 s before their third KO loses it silently. Let streak stickers skip the wheel cooldown (own 1.2 s clock) so a third KO always speaks.
 38. Purrl chime: the snail's patch-up has no sound, so add a soft bubble chime for the `purrl` event in `client/src/audio/map.ts` (the heal ring and pop are visual only), kept quiet so it does not drown out hits.
 39. Cannon hit cause: a volley's `hit` event carries attacker -1, the same as burn and edge damage, so the client cannot tell a cannon hit from a burn tick. Give cannon damage its own slot or cause in the event and a short thud in `client/src/audio/map.ts`, so the bar's hit reads as a cannon hit.
@@ -476,11 +475,11 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 51. Showdown title names the wrong side: the results title is always "<first row> wins!" (the bounty leader), so a last-standing win by a crew can read as a fighter from the losing crew winning. When `ls` is set, title the poster with that label ("CREW A wins!" or the fighter's name) in `syncResults` (`client/src/ui/results.ts`), with a unit test on the title helper.
 52. Bounty coins have no tip: #34 keeps Bounty Brawl (the default) at three tips, so the KO purse and the crown are never explained. Find a one-line home for it (crown label or stats page) rather than a fourth card.
 53. Killcam flake, root cause open: #35 made `KillCam.playing(now)` judge the replay on its clock (`replaying` no longer waits for the next `GameScene.update`), but the render-loop stall was never reproduced (0 failures in 24 runs). If the killcam e2e flakes again, log `game.loop.actualFps` and the time of the last `GameScene.update` next to the failure to see whether the loop stopped.
+54. Best-run tag: when a round's best KO run beats the saved `bestRun`, the results poster shows a "New best run" tag like the bounty tag (`newBestFor` in `client/src/ui/stats.ts`, a `bestRunKey` next to `bestKey`), so a streak record is celebrated the same way.
 
 ---
 
 ## 6. LOG (one line per task/hotfix; archive older lines to `.loop/log-archive.md` if >40 lines)
-- T99 ✅ 2026-10-18 — Taffy Galleon slice 1: `shared/sim/cannon.ts` (Kanone: 1 s Telegraph, wandernde Leiste, Zeit-pure Treffer, Aim-Winkel); 8 Unit-Tests, check 505 grün; Arena-Rest → §5 #13
 - T99 ✅ 2026-10-18 — Skins slice 2: `join.skin` → room → `world.setSkin` → snapshot `sk`; lobby Skin button (localStorage); rig `setSkin` with async `addtexture` fallback, skin copies from recoloured SVG text; gallery shows both swaps; 4 unit tests, check 574 + e2e 19/19 + shot ok
 - T99 ✅ 2026-10-18 — Weird Weather slice 1: `shared/sim/weather.ts` (Double Tide = tide clock ×2, 50 % roll per round in `server/rooms.ts`), `wx` in MatchInfo, HUD tag; 8 unit tests, check 581 grün; Jelly/Bubble → §5 #17
 - T99 ✅ 2026-10-18 — Kill-cam (backlog #5): own KO replays the 2 s before it (`net/killcam.ts`, `Net.buffer` kept 3 s by age), camera on the killer, "KO CAM · name" tag, events muted during replay; 7 unit + 1 e2e, check 588 + e2e desktop 20/20 grün; banner not screenshot-checked → §5 #18
@@ -519,3 +518,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T99 ✅ 2026-10-18 — Showdown finish banner (backlog #33): `lastSideIds` + `World.lastStandingLabel` ("CREW A" / fighter name), `Room.lastStand` → `MatchInfo.ls`, "LAST STANDING · <side>" above the table; 9 unit, check 763 grün, no screenshot → §5 #51 (title names the winner)
 - T99 ✅ 2026-10-18 — Mode tip (backlog #34): `tutorialTips(touch, mode)`, Treasure/Showdown get a 4th card (Bounty stays 3); wired in main/menu; 3 unit + 2 e2e tutorial, check 766 grün, shot ok → §5 #52 (bounty coins)
 - T99 ✅ 2026-10-18 — Killcam flake (backlog #35): `KillCam.playing(now)` judges the replay on its clock, `replaying` uses it; the stall did not reproduce (16/16 + 8/8 e2e), so the root cause is open → §5 #53; 1 unit, check 768 grün, killcam e2e 8/8 grün
+- T99 ✅ 2026-10-18 — Best KO run (backlog #36): `run`/`bestRun` per fighter in the sim (KOs since last death, reset on death and round), `ScoreRow.run` in the ranking, pirate log "Best run" row; 5 new unit tests, check 772 grün → §5 #54
