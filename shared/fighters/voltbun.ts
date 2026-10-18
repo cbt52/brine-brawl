@@ -10,12 +10,12 @@ export const VOLTBUN: FighterDef = {
   blurb: 'A cheeky battery-tailed bunny who zaps in, stuns and hops out again.',
   moves: { attack: 'Spark Hop', special: 'Static Dash', ult: 'Thunder Burrow' },
   radius: 28,
-  maxHp: 90,
-  speedMul: 1.2,
+  maxHp: 80,
+  speedMul: 1.14,
   ammo: 4,
-  reload: 0.9,
+  reload: 1.05,
   // Spark Hop: two quick short bolts per shot
-  attack: { kind: 'projectile', count: 2, spread: 10, speed: 1000, range: 480, dmg: 11, radius: 6, fx: 'spark' },
+  attack: { kind: 'projectile', count: 2, spread: 10, speed: 1000, range: 480, dmg: 9, radius: 6, fx: 'spark' },
   // Static Dash: short dash that leaves a static-charged trail
   special: {
     kind: 'dash',

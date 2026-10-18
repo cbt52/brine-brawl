@@ -10,8 +10,8 @@ export const MIRA: FighterDef = {
   blurb: 'A shell-braided tide-weaver who soaks the deck and pulls stragglers into the deep.',
   moves: { attack: 'Water Whip', special: 'Tide Push', ult: 'Maelstrom' },
   radius: 30,
-  maxHp: 105,
-  speedMul: 1,
+  maxHp: 112,
+  speedMul: 1.02,
   ammo: 3,
   reload: 1.1,
   // Water Whip: long thin lash that soaks the target

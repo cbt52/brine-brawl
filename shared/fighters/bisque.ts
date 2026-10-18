@@ -15,7 +15,7 @@ export const BISQUE: FighterDef = {
   ammo: 3,
   reload: 1,
   // Ladle Kick: a straight leg out, ladle swinging behind for balance
-  attack: { kind: 'melee', arcDeg: 85, range: 170, dmg: 19, knockback: 65, fx: 'ladle-kick' },
+  attack: { kind: 'melee', arcDeg: 85, range: 182, dmg: 20, knockback: 65, fx: 'ladle-kick' },
   // Skillet Rocket Kick: a screaming fire-kick that leaves a burning pan-track behind
   special: {
     kind: 'dash',

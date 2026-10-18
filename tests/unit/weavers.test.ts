@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { World, type SimInput } from '../../shared/sim/world.ts';
 import { castAbility } from '../../shared/sim/abilities.ts';
 import { getFighter } from '../../shared/fighters/index.ts';
+import { attackDamage } from '../../shared/fighters/stats.ts';
 import { TICK_HZ } from '../../shared/constants.ts';
 
 const inp = (o: Partial<SimInput> = {}): SimInput => ({ seq: 1, mx: 0, my: 0, ax: 1, ay: 0, atk: false, spc: false, ult: false, ...o });
@@ -75,7 +76,7 @@ describe('Weavers roster', () => {
     a.shield = 0; b.shield = 0;
     const hp0 = b.hp;
     castAbility(w, a, getFighter('brak').attack, 'attack');
-    expect(b.hp).toBe(hp0 - 24);
+    expect(b.hp).toBe(hp0 - attackDamage(getFighter('brak')));
     expect(b.status).toBe('heavy');
   });
 

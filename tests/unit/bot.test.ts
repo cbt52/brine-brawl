@@ -52,4 +52,22 @@ describe('BotBrain', () => {
     expect(a.hp).toBeGreaterThan(40);
     expect(a.spcCd).toBeGreaterThan(0);
   });
+
+  it('closes to its own melee reach instead of holding the ranged stand-off', () => {
+    const w = new World();
+    // Brak swings at 185 u; the old fixed 380 u stand-off meant a melee bot never connected
+    const a = w.addPlayer(1, 'brak', 'brak', true);
+    const b = w.addPlayer(2, 'target', 'pinchpenny');
+    a.x = 700; a.y = 800; b.x = 1300; b.y = 800;
+    a.shield = 0; b.shield = 0;
+    const brain = new BotBrain(1, 'normal', () => 0.5);
+    for (let i = 0; i < 4 * TICK_HZ; i++) {
+      w.setInput(1, brain.think(w, 1 / TICK_HZ));
+      w.step();
+      w.clearEvents();
+    }
+    // it walks in (a ranged bot parks at ~380 u) and its pound actually lands
+    expect(Math.hypot(a.x - b.x, a.y - b.y)).toBeLessThan(300);
+    expect(b.hp).toBeLessThan(b.mhp);
+  });
 });

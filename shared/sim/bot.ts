@@ -12,6 +12,9 @@ const PARAMS = {
   normal: { errDeg: 9, react: 0.15 },
 };
 const PREF_RANGE = 380;
+/** Melee kits must walk into their own reach; a ranged bot keeps this much of its shot range. */
+const prefRangeFor = (kind: string, reach: number): number =>
+  kind === 'projectile' ? Math.min(PREF_RANGE, reach * 0.8) : Math.max(110, reach * 0.75);
 const SEE_RANGE = 1100;
 const FLEE_FRAC = 0.3;
 /** Bots head for a chest when no fight is closer than this. */
@@ -59,15 +62,20 @@ export class BotBrain {
   private vel = { x: 0, y: 0 };
   private reactT = 0;
   private wanderT = 0;
-  private wanderAng = Math.random() * Math.PI * 2;
-  private strafeDir = Math.random() < 0.5 ? 1 : -1;
+  private wanderAng = 0;
+  private strafeDir: 1 | -1 = 1;
   private strafeT = 0;
   private err = 0;
   private errT = 0;
   private readonly prm: { errDeg: number; react: number };
+  /** randomness source: `Math.random` in play, a seeded PRNG in the balance harness */
+  private readonly rng: () => number;
 
-  constructor(public id: number, difficulty: BotDifficulty = 'normal') {
+  constructor(public id: number, difficulty: BotDifficulty = 'normal', rng: () => number = Math.random) {
     this.prm = PARAMS[difficulty];
+    this.rng = rng;
+    this.wanderAng = rng() * Math.PI * 2;
+    this.strafeDir = rng() < 0.5 ? 1 : -1;
   }
 
   private perceive(world: World, me: SimPlayer, dt: number): void {
@@ -97,9 +105,9 @@ export class BotBrain {
 
     this.perceive(world, me, dt);
     this.errT -= dt;
-    if (this.errT <= 0) { this.errT = 0.4; this.err = (Math.random() * 2 - 1) * this.prm.errDeg * RAD; }
+    if (this.errT <= 0) { this.errT = 0.4; this.err = (this.rng() * 2 - 1) * this.prm.errDeg * RAD; }
     this.strafeT -= dt;
-    if (this.strafeT <= 0) { this.strafeT = 0.6 + Math.random() * 1.2; this.strafeDir = Math.random() < 0.5 ? 1 : -1; }
+    if (this.strafeT <= 0) { this.strafeT = 0.6 + this.rng() * 1.2; this.strafeDir = this.rng() < 0.5 ? 1 : -1; }
 
     const t = this.seen;
     let heading: number;
@@ -111,11 +119,13 @@ export class BotBrain {
     const atk = me.def.attack;
     const shotRange = atk.kind === 'projectile' ? atk.range : abilityReach(atk);
     const shotSpeed = atk.kind === 'projectile' ? atk.speed : 900;
+    // a melee kit that holds the ranged stand-off never swings: prefer to fight inside its own reach
+    const prefRange = prefRangeFor(atk.kind, shotRange);
 
     if (!t) {
       this.state = 'wander';
       this.wanderT -= dt;
-      if (this.wanderT <= 0) { this.wanderT = 1 + Math.random() * 2; this.wanderAng = Math.random() * Math.PI * 2; }
+      if (this.wanderT <= 0) { this.wanderT = 1 + this.rng() * 2; this.wanderAng = this.rng() * Math.PI * 2; }
       heading = this.wanderAng;
       move = 0.6;
     } else {
@@ -139,13 +149,13 @@ export class BotBrain {
         const lead = dist / shotSpeed;
         aim = Math.atan2(dy + this.vel.y * lead, dx + this.vel.x * lead) + this.err;
         fire = me.ammo > 0 && dist < shotRange * 0.9;
-        if (dist > PREF_RANGE * 1.2) {
+        if (dist > prefRange * 1.2) {
           this.state = 'chase';
           heading = to;
         } else {
           this.state = 'kite';
           // strafe around the target; back off when too close
-          heading = dist < PREF_RANGE * 0.7 ? to + Math.PI + 0.5 * this.strafeDir : to + (Math.PI / 2) * this.strafeDir;
+          heading = dist < prefRange * 0.7 ? to + Math.PI + 0.5 * this.strafeDir : to + (Math.PI / 2) * this.strafeDir;
         }
       }
     }

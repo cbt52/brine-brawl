@@ -10,10 +10,10 @@ export const MOSSBACK: FighterDef = {
   blurb: 'A squat tortoise with a tiny bonsai on its shell; slow, stubborn and impossible to shove off the pier.',
   moves: { attack: 'Seed Spit', special: 'Shell Spin', ult: 'Overgrowth' },
   radius: 38,
-  maxHp: 165,
+  maxHp: 155,
   speedMul: 0.88,
   ammo: 3,
-  reload: 1.4,
+  reload: 1.52,
   // Seed Spit: a three-seed spread that tangles whoever it touches
   attack: {
     kind: 'projectile',

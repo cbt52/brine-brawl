@@ -15,7 +15,7 @@ export const SABLE: FighterDef = {
   ammo: 3,
   reload: 0.85,
   // Twin Slash: both sabers in one wide, fast arc — cheap per hit, but the arc is huge
-  attack: { kind: 'melee', arcDeg: 150, range: 185, dmg: 15, knockback: 30, fx: 'twin-slash' },
+  attack: { kind: 'melee', arcDeg: 150, range: 198, dmg: 16, knockback: 30, fx: 'twin-slash' },
   // Claw Dash Cut: the claw arm drags her through the first thing she touches
   special: { kind: 'dash', dist: 290, dur: 0.22, contactDmg: 20, cd: 6, fx: 'claw-dash-cut' },
   // Three-Tide Tempest: a spinning three-blade cut that catches everyone around her, three times

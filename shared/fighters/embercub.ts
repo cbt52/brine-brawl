@@ -10,21 +10,21 @@ export const EMBERCUB: FighterDef = {
   blurb: 'A red-panda cub with a glowing ember ring on its tail; everything it touches ends up on fire.',
   moves: { attack: 'Flame Swipe', special: 'Ember Roll', ult: 'Bonfire' },
   radius: 34,
-  maxHp: 140,
+  maxHp: 126,
   speedMul: 0.95,
   ammo: 3,
   reload: 1.15,
   // Flame Swipe: a wide paw swipe that leaves the target burning
-  attack: { kind: 'melee', arcDeg: 100, range: 200, dmg: 21, knockback: 55, status: 'burn', statusSec: 3, fx: 'flame-swipe' },
+  attack: { kind: 'melee', arcDeg: 100, range: 215, dmg: 22, knockback: 55, status: 'burn', statusSec: 3, fx: 'flame-swipe' },
   // Ember Roll: rolls forward, scorching a burning trail behind the ball
   special: {
     kind: 'dash',
     dist: 300,
     dur: 0.3,
-    contactDmg: 18,
+    contactDmg: 17,
     trail: true,
     trailZone: { radius: 62, dmg: 0, status: 'burn', statusSec: 1.5 },
-    cd: 7,
+    cd: 7.5,
     fx: 'ember-roll',
   },
   // Bonfire: a burning zone at the aim point that hurts enemies and patches Embercub up

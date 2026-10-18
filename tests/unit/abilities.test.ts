@@ -4,6 +4,7 @@ import { castAbility, abilityReach } from '../../shared/sim/abilities.ts';
 import { BotBrain } from '../../shared/sim/bot.ts';
 import { TICK_HZ } from '../../shared/constants.ts';
 import { getFighter, randomFighterId, resolveFighterId, FIGHTERS } from '../../shared/fighters/index.ts';
+import { attackDamage } from '../../shared/fighters/stats.ts';
 import { STATUS_BIT } from '../../shared/fighters/types.ts';
 import type { AbilityDef } from '../../shared/fighters/types.ts';
 
@@ -400,7 +401,11 @@ describe('T11 kits: Cap\'n Noodle + Sudsy Loofah', () => {
     expect(a.x - x0).toBeGreaterThan(120);
     expect(a.x).toBeLessThan(b.x); // stopped on contact instead of flying past
     expect(a.dash).toBeNull();
-    expect(b.hp).toBe(b.mhp - 26); // more than the jab's 22
+    // the grab hits harder than the jab it replaces
+    const grab = getFighter('noodle').special;
+    const bonus = grab.kind === 'dash' ? (grab.contactDmg ?? 0) : 0;
+    expect(b.hp).toBe(b.mhp - bonus);
+    expect(bonus).toBeGreaterThan(attackDamage(getFighter('noodle')));
   });
 
   it('Sling Grab stops at a wall', () => {
@@ -549,7 +554,7 @@ describe('T21 kits: Embercub + Mossback', () => {
     const behind = w.addPlayer(3, 'C');
     behind.x = 800; behind.y = 1000; behind.shield = 0;
     castAbility(w, a, getFighter('embercub').attack);
-    expect(b.hp).toBe(b.mhp - 21);
+    expect(b.hp).toBe(b.mhp - attackDamage(getFighter('embercub')));
     expect(b.status).toBe('burn');
     expect(behind.hp).toBe(behind.mhp);
   });

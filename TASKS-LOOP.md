@@ -324,24 +324,6 @@ Each reaction shows a big popup word ("SHOCK!").
   - Note: `shared/sim/bounty.ts` (`BOUNTY_START` 100, +100 per KO, purse `50 + 50 %` floored, 3 coins, `crownHolder`); `SimPlayer.bounty`/`gold`, KO pays the killer + drops 3 gold pickups, victim resets to 100, `resetScores` clears bounty+stash; snapshot `b`, `ScoreRow {b,f}`, `rankPlayers` sorts by bounty; HUD shows own bounty + bounty scoreboard, GameScene draws the crown + `WANTED` tag over the leader; results = canvas parchment posters (`client/src/ui/wanted.ts`, portrait from `/art/<id>.svg`) with runner-up mini sheets; 9 tests in tests/unit/bounty.test.ts, 339 green, e2e 15/15; shot T19-0.
 
 - [x] **T20 — Faction passives** · CP: yes
-  - Do:
-    - `shared/sim/passives.ts` with the four faction passives from §2.6:
-      - EVOLVE (Critterkin): 2 KOs without dying → +12 % size, +20 % max HP, +25 % ult gain; lost on KO.
-      - FLOW (Weavers): 3 attack hits within 3 s → the next attack deals +50 % dmg and ×2 status duration.
-      - PLUNDER (Saltwind): a KO steals 30 % of the victim's ult charge and pays +25 % bounty.
-      - TOON LOGIC (Bubblebottom): once per life a lethal hit leaves 1 HP plus a 0.5 s pancake (immobile).
-    - Reset the passive state on spawn/death; expose it in the snapshot (`ev`).
-    - Client: golden crest + aura on an evolved toon, ribbon swirl on FLOW, flying coins on PLUNDER,
-      BOING! + stars on TOON LOGIC, one sound stinger per passive, and a passive line on every
-      character card (select screen).
-    - Unit tests for all four passives and their resets.
-  - Test: `npm run check`
-  - Checkpoint: CP5 — see §0.7 (`npm run e2e` green, `scripts/serve.sh` + `curl -sf http://127.0.0.1:8720/healthz`, `.loop/checkpoint.md` written).
-  - Note: `shared/sim/passives.ts` (EVOLVE 2 KOs → +12 % r, +20 % mhp, +25 % ult via `ultGainMul`; FLOW 3 attack hits in 3 s → next attack ×1.5 dmg, ×2 status via a `CastMod` into `castAbility`, projectiles carry `slot`, melee counted in the primitive; PLUNDER steals 30 % uc + `bountyAfterKO(b, 1.25)`; TOON LOGIC 1-HP save + 0.5 s pancake in `damage()`), spawn/death resets, snapshot `ev`; client: golden aura + crest (`drawEvolved`), `rig.setEvolved` 1.12, `rig.pancake`, `fx.passive` (aura burst / ribbon swirl / flying coins / BOING! + star), passive sound stingers, passive line on every character card; 8 tests in tests/unit/passives.test.ts, 347 green, smoke OK, e2e 15/15, shot T20-0.
-
-### CP6 — "Die Crew wächst: 12 Kämpfer + Balance"
-(Each fighter task: SVG + hurt SVG, data kit, hooks if needed, unit test per ability, gallery shot ≤1 PNG viewed.)
-
 - [x] **T21 — Critterkin: Embercub + Mossback**
   - Note: kits registered — Embercub (Flame Swipe melee cone burn / Ember Roll burn-trail dash / Bonfire aim zone that ticks burn and heals the caster), Mossback (Seed Spit 3-seed tangled spread / Shell Spin buff dmgMul 0.5 for 2 s / Overgrowth root AoE). New primitive bits: `AoeAbility.selfHeal` (zone heals its owner per ½ s tick), `AoeAbility.rootSec` (rootLeft on victims), `BuffAbility.dmgMul` + `SimPlayer.dmgMul/dmgMulLeft` applied in `World.damage`; buff summary shows the multiplier. 8 new tests, 364 green, gallery shot T21-0 shows both new cards.
   - Test: `npm run check && npm run shot -- --name T21 --path /gallery.html`
@@ -359,7 +341,7 @@ Each reaction shows a big popup word ("SHOCK!").
   - Done: Pinchpenny (`shared/fighters/pinchpenny.ts`) — Coin Flick (2 piercing coins, 5° apart) / Claw Clamp (self AoE r 235, 9 dmg + pull 145 + heavy) / Register Crush (self AoE r 230, 18 dmg, drops 3 doubloons). Hammy (`shared/fighters/hammy.ts`) — Karate Chop (70° arc, 13 dmg, 4 ammo) / Tank Rocket (310 u dash, 17 contact) / Helmet Pop (r 255 field, 7 + 2 per ½ s, heavy 3 s). New data-only bit: `AoeAbility.dropGold` + `Zone.dropGold` → `World.dropGold(x,y,n)` (KO purse reuses it); art already on disk from T08b.
   - Tests: `tests/unit/bubblebottom.test.ts` (8) + SELECTABLE list in `tests/unit/fighter-stats.test.ts`; `npm run check` green (394 tests), gallery shot T24-0.
   - Test: same pattern
-- [ ] **T25 — Balance harness + pass** · CP: yes
+- [x] **T25 — Balance harness + pass** · CP: yes
   - Do:
     - `scripts/balance.ts` (`npm run balance`): headless World with BotBrain(normal), no network, fast-forward sim.
     - Every fighter pair runs 1v1 ×10 seeds × 60 s, plus 6-bot FFA ×20.
@@ -368,6 +350,7 @@ Each reaction shows a big popup word ("SHOCK!").
     - `npm run balance -- --quick` runs in <30 s and is covered by a unit test.
   - Checkpoint: "CP6 ✅ 12 Kämpfer", the new names plus a one-liner on balance.
   - Test: `npm run check && npm run balance -- --quick`
+  - Note: `scripts/balance.ts` + `scripts/lib/balance.ts` (`npm run balance`, `--quick` ≈1 s): headless `World` + `BotBrain(normal)` with a seeded mulberry32, every SELECTABLE pair ×10 seeds ×60 s (fresh `World` per match, 60 s ≈ 10 s wall clock), 6-bot FFA ×20, KOs→deaths→damage decides the winner, `.loop/balance.md` holds the tables + the edit history. Enabling fix: `shared/sim/bot.ts` used the flat 380 u stand-off for every kit, so melee bots never swung and every melee kit scored 0–31 % — `prefRangeFor()` now takes 0.75× its own reach for melee kits (unit test in tests/unit/bot.test.ts). 3 data passes (all ≤10 % steps, logged in `.loop/balance.md`): outliers 11 → 5, mean winrate 50 %. Still outside 40–60 %: noodle 73, embercub 70, voltbun 66, pinchpenny 31, sudsy 27 — mobility decides bot duels more than the numbers, so the next pass goes to T99/T33. 397 unit tests green, e2e 15/15, healthz on 8720 OK.
 
 ### CP7 — "Team-Modus: Treasure Tide + Crew-Kombos"
 
@@ -548,3 +531,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T21 ✅ 2026-10-18 — Embercub+Mossback-Kits (Zone-SelfHeal/Tick-Burn, Root-AoE, Buff-DmgMul), 8 neue Tests, check+364 Tests+shot grün
 - T22 ✅ 2026-10-18 — Pip+Brak-Kits (Gust-Pair, Kite-Dash, Pull-Zone; Wall-Primitive `shared/sim/walls.ts`), 14 neue Tests, check+378 grün
 - T23 ✅ 2026-10-18 — Sable+Bisque-Kits (breiter Saber-Arc, Claw-Dash, Spin-Ult; Fire-Dash-Trail, 5-Gang-Combo-Cone), 8 neue Tests, check+386+shot grün
+- T25 ✅ 2026-10-18 — Balance-Harness (`npm run balance`, --quick 1 s): 12×12-Paare ×10 Seeds ×60 s + FFA×20, `.loop/balance.md`; Bot-Nahkampf-Fix (prefRange aus der eigenen Reichweite); 3 Balance-Pässe, Outliers 11→5; CP6, 397 Tests+e2e 15/15+healthz grün

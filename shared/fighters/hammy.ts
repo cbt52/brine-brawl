@@ -10,12 +10,12 @@ export const HAMMY: FighterDef = {
   blurb: 'A karate hamster who dives at problems helmet-first; the fishbowl is armour and airway at once.',
   moves: { attack: 'Karate Chop', special: 'Tank Rocket', ult: 'Helmet Pop' },
   radius: 30,
-  maxHp: 112,
-  speedMul: 1.14,
+  maxHp: 119,
+  speedMul: 1.2,
   ammo: 4,
-  reload: 0.7,
+  reload: 0.66,
   // Karate Chop: a fast, short handblade — four chops per magazine
-  attack: { kind: 'melee', arcDeg: 70, range: 150, dmg: 13, knockback: 35, fx: 'karate-chop' },
+  attack: { kind: 'melee', arcDeg: 70, range: 172, dmg: 15, knockback: 35, fx: 'karate-chop' },
   // Tank Rocket: the air tank vents and launches him at the target, helmet forward
   special: { kind: 'dash', dist: 310, dur: 0.24, contactDmg: 17, cd: 5.5, fx: 'tank-rocket' },
   // Helmet Pop: the bowl pops off in a fizzy field that slows everyone standing in it

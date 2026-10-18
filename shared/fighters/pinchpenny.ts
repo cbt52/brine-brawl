@@ -10,8 +10,8 @@ export const PINCHPENNY: FighterDef = {
   blurb: 'A lobster shopkeeper who fights like he is collecting a debt: coins first, claws second, register last.',
   moves: { attack: 'Coin Flick', special: 'Claw Clamp', ult: 'Register Crush' },
   radius: 36,
-  maxHp: 150,
-  speedMul: 0.92,
+  maxHp: 168,
+  speedMul: 0.99,
   ammo: 3,
   reload: 1.35,
   // Coin Flick: two coins flicked flat, tunnelling through everyone in the line

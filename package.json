@@ -15,7 +15,8 @@
     "shot": "node scripts/shot.mjs",
     "e2e": "playwright test --project=desktop",
     "e2e:all": "playwright test",
-    "art": "node scripts/art-gen.mjs && node scripts/blockout.mjs"
+    "art": "node scripts/art-gen.mjs && node scripts/blockout.mjs",
+    "balance": "node --import tsx scripts/balance.ts"
   },
   "keywords": [],
   "author": "",

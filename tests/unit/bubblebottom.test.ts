@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { World, type SimInput } from '../../shared/sim/world.ts';
 import { castAbility } from '../../shared/sim/abilities.ts';
 import { getFighter, SELECTABLE } from '../../shared/fighters/index.ts';
+import { attackDamage } from '../../shared/fighters/stats.ts';
 import { TICK_HZ } from '../../shared/constants.ts';
 
 const inp = (o: Partial<SimInput> = {}): SimInput => ({ seq: 1, mx: 0, my: 0, ax: 1, ay: 0, atk: false, spc: false, ult: false, ...o });
@@ -78,7 +79,7 @@ describe('Bubblebottom roster (CP6)', () => {
     side.x = 1000; side.y = 1120; side.aim = -Math.PI / 2;
     front.shield = 0; side.shield = 0;
     castAbility(w, a, getFighter('hammy').attack, 'attack');
-    expect(front.hp).toBe(front.mhp - 13);
+    expect(front.hp).toBe(front.mhp - attackDamage(getFighter('hammy')));
     expect(side.hp).toBe(side.mhp);
     expect(getFighter('hammy').attack.kind === 'melee' && getFighter('hammy').reload).toBeLessThan(1);
   });

@@ -10,10 +10,10 @@ export const PIP: FighterDef = {
   blurb: 'A small wind-whistler in an oversized poncho; shoots two darts at a time and never quite lands.',
   moves: { attack: 'Gust Darts', special: 'Kite Lift', ult: 'Whirlwind' },
   radius: 28,
-  maxHp: 95,
+  maxHp: 90,
   speedMul: 1.18,
   ammo: 3,
-  reload: 0.95,
+  reload: 1.03,
   // Gust Darts: a tight pair of fast darts, the lightest attack in the roster but easy to land twice
   attack: { kind: 'projectile', count: 2, spread: 8, speed: 860, range: 540, dmg: 7, radius: 6, fx: 'gust-darts' },
   // Kite Lift: hops along the wind, clipping whoever is in the way (keeps going)

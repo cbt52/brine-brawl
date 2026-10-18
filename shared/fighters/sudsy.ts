@@ -10,10 +10,10 @@ export const SUDSY: FighterDef = {
   blurb: 'A squeaky-clean fry cook who lobs slow bouncing bubbles and seals rivals inside them.',
   moves: { attack: 'Bubble Volley', special: 'Bubble Trap', ult: 'Mega Bubble' },
   radius: 32,
-  maxHp: 120,
-  speedMul: 1,
+  maxHp: 136,
+  speedMul: 1.11,
   ammo: 3,
-  reload: 1.3,
+  reload: 1.22,
   // Bubble Volley: three slow bubbles that ricochet twice
   attack: {
     kind: 'projectile',
