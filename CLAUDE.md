@@ -11,7 +11,7 @@ Server-authoritative Node + `ws`; Phaser 3 client. Task plan: `TASKS-LOOP.md` (f
 - `npm run e2e` (desktop) / `npm run e2e:all` — Playwright
 - `scripts/serve.sh` — build + (re)start live server on 8720
 - `npm run art:3d -- <id…> [--still] [--contact]` — Blender 3D sprites (`$BLENDER`, `blender` on PATH, or /Applications/Blender.app)
-- `npm run art:arena -- docks` — Blender top-down ground → `client/public/art/arena/docks-ground.jpg` (layout from `shared/arena/` via tsx)
+- `npm run art:arena -- docks [--ground|--props]` — Blender top-down ground → `client/public/art/arena/docks-ground.jpg` + 35° props atlas `docks-props.{png,json}` (layout from `shared/arena/` via tsx)
 - `npm run art:selftest -- --contact` — toolchain check → `.loop/shots/T34-contact.png` (`npm run check` never needs Blender)
 
 ## Directory map

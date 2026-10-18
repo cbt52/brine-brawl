@@ -143,6 +143,14 @@ scripts/art3d.mjs ──► blender -b --factory-startup --python scripts/blende
   beds, pebbles); contact shadows come from hidden caster slabs on the collision rects. Ground colours are
   palette × a light factor (0.66 shadow … 1.0 sun) and stay ≤ 45 % saturation (p95, checked by the script and
   the budget test). `?art=svg` skips it and paints the old ground; `?rects=1` outlines every gameplay rect.
+- Arena props (`npm run art:arena -- docks --props`; `--ground` = ground only, neither = both): coral walls,
+  barrels/crates and kelp, procedural (`scripts/blender/lib/props.py`, no vendored kits), rendered with the
+  fighters' 35° camera at 1.5 px per world unit into `arena/docks-props.{png,json}` (≤ 1024², ≤ 300 KB).
+  Each model's ground depth is stretched by 1 / sin 35°, so its base covers its collision rect on the
+  top-down ground (checked ±6 u per frame) and only the height is foreshortened. One frame per rect size
+  (walls: an `_a`/`_b` variant for the top/bottom half); the right half reuses it with `flipX`. The JSON
+  holds a `pivot` per frame plus `px` and `props` (world anchor = the rect's bottom-edge middle). Walls and
+  barrels y-sort with the fighters (`sortDepth`), kelp sits at depth 26 and sways (off in lowfx).
 
 ## Originality
 

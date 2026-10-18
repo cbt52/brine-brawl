@@ -5,6 +5,7 @@ import { type Arena, type ArenaId, DOCKS_ARENA } from '../../../shared/arena/are
 import { waterRects } from '../../../shared/sim/tide.ts';
 import { paintDeck } from './deckArt.ts';
 import { debugRects, groundKey, rectsWanted } from './ground.ts';
+import { ArenaProps, type PropLook } from './props.ts';
 
 const DEEP = 0x0e3a4e;
 const SAND = 0xe9d6a6;
@@ -31,6 +32,8 @@ export class ArenaArt {
   private pools: readonly Rect[] = [];
   /** `?rects=1` debug outlines (depth 40, above everything in the world) */
   private rects?: Phaser.GameObjects.Graphics;
+  /** 3D-rendered walls, barrels/crates and kelp (T43); the painted ones when there is no atlas */
+  private props: ArenaProps;
 
   constructor(scene: Phaser.Scene, opts: { lowfx?: boolean; rects?: boolean } = {}) {
     this.scene = scene;
@@ -40,6 +43,7 @@ export class ArenaArt {
     this.water = scene.add.graphics().setDepth(1);
     this.waves = scene.add.graphics().setDepth(2);
     if (opts.rects ?? rectsWanted()) this.rects = scene.add.graphics().setDepth(40);
+    this.props = new ArenaProps(scene, this.lowfx);
     this.setArena(DOCKS_ARENA);
   }
 
@@ -51,18 +55,25 @@ export class ArenaArt {
     const g = this.scene.make.graphics({}, false);
     this.ground.clear();
     const key = groundKey(arena.id);
+    // walls, barrels/crates and kelp as y-sorted 3D sprites (T43) when the atlas is loaded
+    const sprites = this.props.show(arena.id);
     if (arena.id === 'docks' && this.scene.textures.exists(key)) {
-      // the Blender ground (T42) holds the flat things; walls and barrels still paint on top until T43
+      // the Blender ground (T42) holds only the flat things
       const img = this.scene.make.image({ key }, false).setOrigin(0).setDisplaySize(WORLD_W, WORLD_H);
       this.ground.draw(img);
       img.destroy();
-      this.paintProps(g, arena);
-    } else this.paint(g, arena);
+      if (!sprites) this.paintProps(g, arena);
+    } else this.paint(g, arena, !sprites);
     this.ground.draw(g);
     g.destroy();
     this.kelp.clear();
-    this.paintBushes(arena.bushes);
+    if (!sprites) this.paintBushes(arena.bushes);
     this.paintRects(arena);
+  }
+
+  /** The placed prop sprites (debug hook `__brawl.props`, e2e). */
+  get propLooks(): PropLook[] {
+    return this.props.looks;
   }
 
   /** Outlines every gameplay rect (`?rects=1`) so art can be checked against collision. */
@@ -77,7 +88,7 @@ export class ArenaArt {
   }
 
   /** lagoon, sand island, pier planks, shallows, coral walls, props, vignette (the deck has its own) */
-  private paint(g: Phaser.GameObjects.Graphics, arena: Arena): void {
+  private paint(g: Phaser.GameObjects.Graphics, arena: Arena, props: boolean): void {
     if (arena.id === 'galleon') {
       paintDeck(g, arena);
       return;
@@ -107,7 +118,7 @@ export class ArenaArt {
       g.fillStyle(0x7d967f, 0.5).fillEllipse(s.x + s.w / 2, s.y + s.h / 2, s.w * 0.62, s.h * 0.62);
     }
 
-    this.paintProps(g, arena);
+    if (props) this.paintProps(g, arena);
 
     // edge vignette
     for (let i = 0; i < 6; i++) {
@@ -122,7 +133,7 @@ export class ArenaArt {
     g.lineStyle(8, 0x0b2a38, 1).strokeRect(0, 0, WORLD_W, WORLD_H);
   }
 
-  /** coral walls and barrels/crates, painted top-down (T43 turns them into 3D sprites) */
+  /** coral walls and barrels/crates, painted top-down (`?art=svg`; T43 renders them as 3D sprites) */
   private paintProps(g: Phaser.GameObjects.Graphics, arena: Arena): void {
     // coral walls, exactly on the collision rects
     for (const o of arena.obstacles) {

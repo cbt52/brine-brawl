@@ -92,6 +92,7 @@ window.__brawl = {
   get replaying() { return (game.scene.getScene('game') as GameScene | null)?.replaying ?? false; },
   /** per-body look: 3D sheet or SVG, texture, frame (T37) */
   get looks() { return (game.scene.getScene('game') as GameScene | null)?.looks ?? []; },
+  get props() { return (game.scene.getScene('game') as GameScene | null)?.props ?? []; },
   build: BUILD_ID,
   state: () => net.last,
   send: (m: C2S) => net.send(m),

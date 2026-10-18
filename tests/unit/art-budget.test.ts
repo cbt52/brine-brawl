@@ -71,3 +71,24 @@ describe('arena ground (art budget)', () => {
     expect(st.black).toBe(0);
   });
 });
+
+describe('arena props (art budget)', () => {
+  const PNG = 'client/public/art/arena/docks-props.png';
+
+  it('docks-props.png is ≤ 1024², ≤ 300 KB, matches its JSON and stays muted (p95 saturation ≤ 45 %)', async () => {
+    const { default: sharp } = await import('sharp');
+    const { saturationStats } = await import('../../scripts/lib/ground-stats.mjs');
+    const json = JSON.parse(readFileSync('client/public/art/arena/docks-props.json', 'utf8'));
+    expect(statSync(PNG).size).toBeLessThanOrEqual(300 * 1024);
+    const { data, info } = await sharp(PNG).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    expect([info.width, info.height]).toEqual([json.meta.size.w, json.meta.size.h]);
+    expect(info.width).toBeLessThanOrEqual(1024);
+    expect(info.height).toBeLessThanOrEqual(1024);
+    // only the opaque pixels count: the transparent margins are black RGB
+    const opaque: number[] = [];
+    for (let i = 0; i < data.length; i += 4) if (data[i + 3] > 200) opaque.push(data[i], data[i + 1], data[i + 2]);
+    const st = saturationStats({ data: Buffer.from(opaque), channels: 3 });
+    expect(st.p95).toBeLessThanOrEqual(0.45);
+    expect(st.black).toBe(0);
+  });
+});

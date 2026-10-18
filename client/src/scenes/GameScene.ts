@@ -23,6 +23,7 @@ import { FighterSprite, preloadArt } from '../art/rig.ts';
 import { getArt } from '../art/manifest.ts';
 import { ArenaArt } from '../art/arena.ts';
 import { preloadGround } from '../art/ground.ts';
+import { preloadProps, sortDepth, type PropLook } from '../art/props.ts';
 import { musicEnabled, sfxEnabled, shakeEnabled } from '../ui/settings.ts';
 import { Sfx } from '../audio/sfx.ts';
 import { Shanty } from '../audio/music.ts';
@@ -95,6 +96,12 @@ export class GameScene extends Phaser.Scene {
   preload(): void {
     preloadArt(this);
     preloadGround(this);
+    preloadProps(this);
+  }
+
+  /** The arena's prop sprites (debug hook / e2e, T43): frame, anchor and depth. */
+  get props(): PropLook[] {
+    return this.arena?.propLooks ?? [];
   }
 
   /** What each body shows (debug hook / e2e, T37): sheet or SVG, texture key, frame and depth. */
@@ -679,8 +686,8 @@ export class GameScene extends Phaser.Scene {
       // palette-swap skin (backlog #3): the drawn look when the snapshot leaves `sk` out
       rig.setSkin(p.sk ?? 0);
       rig.sync(p.x, p.y, p.a, Boolean(p.dn));
-      // y-sort the bodies (T37): lower on screen draws in front, all inside the 20–21 fighter band
-      rig.setDepth(20 + p.y / WORLD_H);
+      // y-sort the bodies with the walls and barrels (T37/T43): lower on screen draws in front (20–21)
+      rig.setDepth(sortDepth(p.y));
       rig.setBars(p.hp / p.mhp, p.am, def.ammo, art.color);
       // spawn shield blinks; a KO'd fighter keeps its rig for the death animation;
       // your own body shows through the kelp so you can still steer
