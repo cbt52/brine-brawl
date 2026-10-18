@@ -326,7 +326,7 @@ Each reaction shows a big popup word ("SHOCK!").
   - Test: `npm run check && npm run shot -- --name T18 --query "room=shot&bots=3&tide=high"` (ALLOW_DEBUG override)
   - Note: `shared/sim/tide.ts` (35/5/15/5 s cycle, `waterRects`/`inWater`/`waterSpeedMul`/`pickupFor`), snapshot `tide:{phase,t,level}` + `chests` + `picks`; chests (HP 40) surface when the tide *enters* low and the rising flood swallows the rest, `damageChest` drops heal 30 / +40 % ult / `gold++`, pickups sink after 12 s; wading ×0.7 + Wet each second, shock chains 1 hop to a wet *or* flooded neighbour (`inWaterAt` host hook); client grows the water overlay from the flood level (arena.ts `paintTide`), HUD meter with the 5 s TIDE RISING flash + horn, chest/pickup sprites (GameScene `drawLoot`); bots loot chests and leave/avoid high-tide water (`leaveWater`); `?tide=high` debug join param (ALLOW_DEBUG); 13 tests in tests/unit/tide.test.ts, 330 green. Shot T18-0/T18b-0 show the meter; live check (tide=falling) delivered 2 chests at low tide with zero console errors.
 
-- [ ] **T19 — Bounty Brawl + WANTED poster**
+- [x] **T19 — Bounty Brawl + WANTED poster**
   - Do:
     - Every player starts with 100 doubloons of bounty.
     - On a KO, the killer gets `50 + 50% of the victim's bounty` and their own bounty +100. The victim drops 3 coin pickups.
@@ -335,6 +335,7 @@ Each reaction shows a big popup word ("SHOCK!").
     - Results screen: procedurally drawn WANTED poster (parchment SVG/canvas, winner portrait, name, "WANTED – DRENCHED OR DRY", bounty with coin icon). Runners-up as small posters.
     - Unit tests for bounty math.
   - Test: `npm run check && npm run e2e`
+  - Note: `shared/sim/bounty.ts` (`BOUNTY_START` 100, +100 per KO, purse `50 + 50 %` floored, 3 coins, `crownHolder`); `SimPlayer.bounty`/`gold`, KO pays the killer + drops 3 gold pickups, victim resets to 100, `resetScores` clears bounty+stash; snapshot `b`, `ScoreRow {b,f}`, `rankPlayers` sorts by bounty; HUD shows own bounty + bounty scoreboard, GameScene draws the crown + `WANTED` tag over the leader; results = canvas parchment posters (`client/src/ui/wanted.ts`, portrait from `/art/<id>.svg`) with runner-up mini sheets; 9 tests in tests/unit/bounty.test.ts, 339 green, e2e 15/15; shot T19-0.
 
 - [ ] **T20 — Faction passives** · CP: yes
   - Do:
@@ -537,3 +538,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T13 ✅ 2026-10-18 — Juice-Pass: Partikel (Mündungsfeuer, Impact-Ringe, Funken, Staub, KO-Sterne), Hitstop, Screenshake-Toggle, Vignette, lowfx-Budget; check+e2e+shot grün
 - T14 ✅ 2026-10-18 — Arena-Art in RenderTexture (Sand/Planken/Korallen/Shallows/Waves), Kelp-Büsche verstecken Kämpfer (200 u / 1 s Reveal, Bots+Snapshot gefiltert); check+shot grün
 - T15 ✅ 2026-10-18 — Prozedurales Audio (11 Presets, Distanz-Dämpfung, iOS-Unlock, Shanty-Loop, ☰ Sound/Music-Toggles, cast-slot für Ult-SFX); cp1-e2e-Position aus dem Busch; check+e2e grün
+- T19 ✅ 2026-10-18 — Bounty Brawl: 100-Start, KO-Purse 50+50 %, +100 Bounty, 3 Münzen, Krone+WANTED-Marker, WANTED-Poster-Results; check+339 Tests+e2e 15/15 grün

@@ -33,6 +33,10 @@ export interface ScoreRow {
   n: string;
   k: number;
   d: number;
+  /** bounty in doubloons — the Bounty Brawl score (T19) */
+  b: number;
+  /** fighter id, so the results poster can draw the portrait */
+  f: string;
   /** 1 = bot */
   bot: number;
 }
@@ -89,6 +93,8 @@ export interface SnapPlayer {
   sh: number;
   k: number;
   d: number;
+  /** bounty in doubloons (Bounty Brawl score) */
+  b: number;
   /** ult charge in percent (0-100) */
   uc: number;
   /** special cooldown remaining in seconds */
@@ -138,7 +144,7 @@ export type AbilitySlot = 'attack' | 'special' | 'ult';
 export type SimEvent =
   | { k: 'shot'; id: number; x: number; y: number; a: number }
   | { k: 'hit'; a: number; v: number; dmg: number; x: number; y: number }
-  | { k: 'ko'; a: number; v: number }
+  | { k: 'ko'; a: number; v: number; /** doubloons the killer collected (bounty mode) */ pay?: number }
   | { k: 'spawn'; id: number }
   /** an ability was cast (cosmetic hook for the FX + audio passes); `slot` lets the client pick ult sfx */
   | { k: 'cast'; id: number; ab: string; x: number; y: number; a: number; slot?: AbilitySlot }

@@ -100,9 +100,18 @@ export class Match {
   }
 }
 
-/** FFA ranking: most KOs first, then fewer deaths, then name. */
-export function rankPlayers(ps: { id: number; name: string; kos: number; deaths: number; bot?: boolean }[]): ScoreRow[] {
+/**
+ * Bounty Brawl ranking (T19): highest bounty first, then KOs, then fewer deaths, then name.
+ * Rows without a bounty (older scoreboard callers) keep the plain KO order because they all tie at 0.
+ */
+export function rankPlayers(
+  ps: { id: number; name: string; kos: number; deaths: number; bounty?: number; fighter?: string; bot?: boolean }[],
+): ScoreRow[] {
   return ps
-    .map((p) => ({ id: p.id, n: p.name, k: p.kos, d: p.deaths, bot: p.bot ? 1 : 0 }))
-    .sort((a, b) => b.k - a.k || a.d - b.d || a.n.localeCompare(b.n));
+    .map((p) => ({
+      id: p.id, n: p.name, k: p.kos, d: p.deaths,
+      b: typeof p.bounty === 'number' && Number.isFinite(p.bounty) ? p.bounty : 0,
+      f: p.fighter ?? '', bot: p.bot ? 1 : 0,
+    }))
+    .sort((a, b) => b.b - a.b || b.k - a.k || a.d - b.d || a.n.localeCompare(b.n));
 }

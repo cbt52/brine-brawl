@@ -45,6 +45,8 @@ export class GameScene extends Phaser.Scene {
   private lootGfx!: Phaser.GameObjects.Graphics;
   /** bubbles and stretchy arms drawn above the rigs */
   private overGfx!: Phaser.GameObjects.Graphics;
+  /** "WANTED" tag floating above the crown holder (T19) */
+  private wantedText!: Phaser.GameObjects.Text;
   private armUntil = new Map<number, { until: number; a: number; range: number }>();
   private kinds = new Map<number, string>();
   private rigs = new Map<number, FighterSprite>();
@@ -79,6 +81,14 @@ export class GameScene extends Phaser.Scene {
     this.projGfx = this.add.graphics().setDepth(10);
     this.lootGfx = this.add.graphics().setDepth(12);
     this.overGfx = this.add.graphics().setDepth(30);
+    this.wantedText = this.add
+      .text(0, 0, 'WANTED', {
+        fontFamily: '"Lilita One", system-ui, sans-serif', fontSize: '13px', color: '#ffd23f',
+        stroke: '#1b1b2f', strokeThickness: 4,
+      })
+      .setOrigin(0.5, 1)
+      .setDepth(31)
+      .setVisible(false);
     this.cameras.main.setBounds(-100, -100, WORLD_W + 200, WORLD_H + 200);
     this.cameras.main.centerOn(WORLD_W / 2, WORLD_H / 2);
     this.applyZoom();
@@ -198,6 +208,7 @@ export class GameScene extends Phaser.Scene {
   private drawOverlays(view: SnapPlayer[], nowMs: number): void {
     const g = this.overGfx;
     g.clear();
+    this.drawCrown(g, view, nowMs);
     for (const p of view) {
       if (hasStatus(p.st, 'trapped') && !p.dn) {
         const r = getFighter(p.f).radius * 1.75;
@@ -235,6 +246,43 @@ export class GameScene extends Phaser.Scene {
       g.fillStyle(0xe8c7a0, 1).fillCircle(fist[0], fist[1], 15);
       g.lineStyle(4, 0x1b1b2f, 1).strokeCircle(fist[0], fist[1], 15);
     }
+  }
+
+  /**
+   * Bounty Brawl (T19): the living fighter with the highest bounty wears a floating crown, so
+   * everyone can see who is worth hunting.
+   */
+  private drawCrown(g: Phaser.GameObjects.Graphics, view: SnapPlayer[], nowMs: number): void {
+    let leader: SnapPlayer | null = null;
+    for (const p of view) {
+      if (p.dn) continue;
+      if (!leader || p.b > leader.b || (p.b === leader.b && p.id < leader.id)) leader = p;
+    }
+    if (!leader) {
+      this.wantedText.setVisible(false);
+      return;
+    }
+    const r = getFighter(leader.f).radius;
+    const top = (this.rigs.get(leader.id)?.headTopY ?? leader.y - r - 40) - 26;
+    const y = top + Math.sin(nowMs / 380 + leader.id) * 3;
+    const x = leader.x;
+    // crown: gold band + five points, dark outline so it reads on any arena tile
+    const pts: { x: number; y: number }[] = [];
+    const w = 20;
+    const h = 15;
+    pts.push({ x: x - w / 2, y: y }, { x: x + w / 2, y: y });
+    pts.push({ x: x + w / 2, y: y - h * 0.35 });
+    for (let i = 0; i < 4; i++) {
+      pts.push({ x: x + w / 2 - (i + 0.5) * (w / 4), y: y - h });
+      pts.push({ x: x + w / 2 - (i + 1) * (w / 4), y: y - h * 0.3 });
+    }
+    pts.push({ x: x - w / 2, y: y - h * 0.35 });
+    g.fillStyle(0xffd23f, 1).fillPoints(pts, true);
+    g.lineStyle(2.5, 0x1b1b2f, 1).strokePoints(pts, true);
+    g.fillStyle(0xe63946, 1).fillCircle(x, y - h * 0.18, 2.6);
+    g.fillStyle(0x2ec4b6, 1).fillCircle(x - w * 0.3, y - h * 0.12, 1.9);
+    g.fillStyle(0x2ec4b6, 1).fillCircle(x + w * 0.3, y - h * 0.12, 1.9);
+    this.wantedText.setPosition(x, y - h - 7).setVisible(true);
   }
 
   /**

@@ -34,14 +34,24 @@ body.in-lobby #rotate { display: none; }
   -webkit-tap-highlight-color: transparent; }
 #sb-btn.on { background: #ffc93c; border-color: #1b1b2f; }
 
-/* results overlay: ranking + confetti, auto-removed when the next countdown starts */
-#results { z-index: 25; min-width: min(360px, 88vw); overflow: hidden; gap: 10px; }
+/* results overlay: WANTED posters + ranking + confetti, auto-removed when the next countdown starts */
+#results { z-index: 25; min-width: min(380px, 92vw); max-height: 92vh; overflow-y: auto; overflow-x: hidden; gap: 10px; }
 #results h2 { margin: 0; font-size: clamp(20px, 6vw, 30px); color: #ffc93c; text-align: center;
   -webkit-text-stroke: 2px #1b1b2f; paint-order: stroke fill; }
-#results ol { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; width: 100%; }
-#results li { display: grid; grid-template-columns: 34px 1fr auto auto; gap: 8px; align-items: center; font-size: 16px;
-  background: #ffffff14; border-radius: 10px; padding: 6px 10px; }
-#results li:first-child { background: #ffc93c2e; }
+/* Bounty Brawl posters (T19): canvas parchment sheets, winner big + runners-up small */
+.wanted-row { display: flex; gap: 10px; align-items: flex-start; justify-content: center; flex-wrap: wrap; width: 100%; }
+.wanted-big { display: flex; justify-content: center; }
+.wanted { display: block; height: auto; filter: drop-shadow(0 4px 8px #0006); }
+.wanted-lg { width: min(300px, 46vw); }
+.wanted-rest { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center;
+  align-content: flex-start; max-width: 44vw; }
+.wanted-rest li { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.wanted-rest .pos { font-size: 12px; color: #ffc93c; -webkit-text-stroke: 2px #1b1b2f; paint-order: stroke fill; }
+.wanted-sm { width: clamp(74px, 18vw, 132px); }
+#results ol.rank-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; width: 100%; }
+#results .rank-list li { display: grid; grid-template-columns: 34px 1fr auto auto; gap: 8px; align-items: center; font-size: 15px;
+  background: #ffffff14; border-radius: 10px; padding: 5px 10px; }
+#results .rank-list li:first-child { background: #ffc93c2e; }
 #results .pos { font-size: 18px; color: #ffc93c; }
 #results .who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #results .bot { font-size: 11px; opacity: .7; }

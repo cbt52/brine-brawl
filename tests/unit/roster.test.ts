@@ -25,8 +25,8 @@ describe('room roster (scoreboard source)', () => {
     const rows = room.roster();
     expect(rows.map((r) => r.id).sort()).toEqual([1, 2]);
     const row = rows.find((r) => r.id === 2)!;
-    expect(row).toEqual({ id: 2, n: 'B', k: 3, d: 1, bot: 0 });
-    // sorted by KOs, so the hidden fighter still leads
+    expect(row).toEqual({ id: 2, n: 'B', k: 3, d: 1, b: 100, f: 'default', bot: 0 });
+    // sorted by bounty (then KOs), so the hidden fighter still leads
     expect(rows[0].id).toBe(2);
   });
 

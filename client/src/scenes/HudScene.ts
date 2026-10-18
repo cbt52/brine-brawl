@@ -134,7 +134,8 @@ export class HudScene extends Phaser.Scene {
     if (!this.feedText) return; // scene still booting
     for (const e of events) {
       if (e.k !== 'ko') continue;
-      this.feed.push(`${nameOf(e.a)} bonked ${nameOf(e.v)}!`);
+      const pay = e.pay ? ` +${e.pay} 🪙` : '';
+      this.feed.push(`${nameOf(e.a)} bonked ${nameOf(e.v)}!${pay}`);
     }
     if (this.feed.length > FEED_MAX) this.feed.splice(0, this.feed.length - FEED_MAX);
   }
@@ -180,7 +181,7 @@ export class HudScene extends Phaser.Scene {
     if (!this.koText) return; // scene still booting
     this.drawTide(tide);
     const me = view.find((p) => p.id === selfId);
-    this.koText.setText(`KOs ${me?.k ?? 0}  ·  KO'd ${me?.d ?? 0}`);
+    this.koText.setText(`KOs ${me?.k ?? 0}  ·  KO'd ${me?.d ?? 0}  ·  ${me?.b ?? 0} 🪙`);
     this.pingText.setVisible(ping > 0);
     if (ping > 0) this.pingText.setText(`${ping} ms`).setColor(ping < 60 ? '#b8ffb0' : ping < 120 ? '#ffd23f' : '#ff8f8f');
     if (me) this.setAbilities(me);
@@ -236,9 +237,9 @@ export class HudScene extends Phaser.Scene {
     if (open) {
       // prefer the server's unfiltered roster: `view` hides fighters behind kelp
       const roster = m?.ros?.length ? m.ros : view;
-      const rows = [...roster].sort((a, b) => b.k - a.k || a.d - b.d || a.n.localeCompare(b.n));
+      const rows = [...roster].sort((a, b) => b.b - a.b || b.k - a.k || a.d - b.d || a.n.localeCompare(b.n));
       const lines = ['SCOREBOARD'];
-      rows.forEach((p, i) => lines.push(`${i + 1}. ${p.n}${p.id === selfId ? ' (you)' : ''} — ${p.k} KO${p.k === 1 ? '' : 's'}`));
+      rows.forEach((p, i) => lines.push(`${i + 1}. ${p.n}${p.id === selfId ? ' (you)' : ''} — ${p.b} 🪙 · ${p.k} KO${p.k === 1 ? '' : 's'}`));
       this.sbText.setText(lines.join('\n'));
     }
     this.lastPhase = phase;

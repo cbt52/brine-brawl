@@ -8,6 +8,7 @@ import * as C from './combat.ts';
 import type { Projectile } from './combat.ts';
 import { castAbility, hitElement, stepBurrow, stepDash, stepZones, type BurrowState, type DashState, type Zone } from './abilities.ts';
 import { applyElementHit, applyStatus, BURN_DPS, BURN_TICK_SEC, STATUS_SEC, statusSpeedMul } from './elements.ts';
+import { BOUNTY_START, bountyAfterKO, KO_COINS, koPurse } from './bounty.ts';
 import { canSee, REVEAL_SEC } from './visibility.ts';
 import {
   CHEST_HP, CHEST_RADIUS, CHEST_SPOTS, PICKUP_HEAL, PICKUP_RADIUS, PICKUP_SEC, PICKUP_ULT_FRAC,
@@ -98,8 +99,10 @@ export interface SimPlayer {
   deaths: number;
   /** fighter id picked mid-match; swapped in by the next respawn */
   pendingFighter: string | null;
-  /** doubloons collected from chests (spent by the bounty mode, T19) */
+  /** doubloons collected from chests and KO purses (the coin stash) */
   gold: number;
+  /** Bounty Brawl score (T19): starts at BOUNTY_START and grows with every KO */
+  bounty: number;
   /** seconds of continuous flood water under the body (see tide.ts) */
   waterT: number;
   bot?: boolean;
@@ -143,7 +146,7 @@ export class World {
       ammo: def.ammo, reload: 0, fireCd: 0, fireLatch: false, spcCd: 0, uc: 0, dash: null, burrow: null,
       buffMul: 1, buffLeft: 0, status: null, statusLeft: 0, rootLeft: 0, burnT: 0, trapTook: 0,
       revealT: 0, down: false, respawn: 0, shield: C.SHIELD_SEC, kos: 0, deaths: 0, pendingFighter: null,
-      gold: 0, waterT: 0, bot,
+      gold: 0, bounty: BOUNTY_START, waterT: 0, bot,
     };
     this.players.set(id, p);
     this.events.push({ k: 'spawn', id });
@@ -440,8 +443,27 @@ export class World {
     v.status = null;
     v.statusLeft = 0;
     v.trapTook = 0;
+    // Bounty Brawl (T19): the purse comes out of the victim's bounty and the body drops coins
+    const pay = a && a.id !== v.id ? koPurse(v.bounty) : 0;
     if (a) a.kos++;
-    this.events.push({ k: 'ko', a: attacker, v: v.id });
+    if (a && a.id !== v.id) {
+      a.gold += pay;
+      a.bounty = bountyAfterKO(a.bounty);
+    }
+    v.bounty = BOUNTY_START;
+    this.dropCoins(v, KO_COINS);
+    this.events.push({ k: 'ko', a: attacker, v: v.id, pay });
+  }
+
+  /** Scatter doubloon pickups around a KO'd body (the corpse pays out three coins). */
+  private dropCoins(p: SimPlayer, n: number): void {
+    const r = Math.max(24, p.r + 18);
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * Math.PI * 2 + 0.5;
+      const x = Math.max(24, Math.min(WORLD_W - 24, p.x + Math.cos(a) * r));
+      const y = Math.max(24, Math.min(WORLD_H - 24, p.y + Math.sin(a) * r));
+      this.picks.push({ id: this.newProjId(), x, y, kind: 'gold', left: PICKUP_SEC });
+    }
   }
 
   /** Spawn point maximizing the distance to the nearest living enemy. */
@@ -519,9 +541,17 @@ export class World {
     this.events = [];
   }
 
-  /** New round: clear the scoreboard (positions, HP and live projectiles stay as they are). */
+  /**
+   * New round: clear the scoreboard once the bounty went. The coin stash resets too, so both
+   * results screens talk about this round only; positions, HP and live projectiles stay.
+   */
   resetScores(): void {
-    for (const p of this.players.values()) { p.kos = 0; p.deaths = 0; }
+    for (const p of this.players.values()) {
+      p.kos = 0;
+      p.deaths = 0;
+      p.bounty = BOUNTY_START;
+      p.gold = 0;
+    }
   }
 
   snapshotFor(viewerId: number): SnapMsg {
@@ -538,7 +568,7 @@ export class World {
         id: p.id, x: Math.round(p.x), y: Math.round(p.y), hp: p.hp, mhp: p.mhp,
         f: p.fighter, n: p.name, st: statusMask(p.status),
         a: Math.round((p.aim * 180) / Math.PI),
-        am: p.ammo, dn: p.down ? 1 : 0, sh: p.shield > 0 ? 1 : 0, k: p.kos, d: p.deaths,
+        am: p.ammo, dn: p.down ? 1 : 0, sh: p.shield > 0 ? 1 : 0, k: p.kos, d: p.deaths, b: p.bounty,
         uc: Math.round(Math.max(0, Math.min(1, p.uc / p.def.ultCharge)) * 100),
         cd: Math.round(p.spcCd * 10) / 10,
       });

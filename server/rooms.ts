@@ -48,7 +48,8 @@ export class Room {
   roster(): ScoreRow[] {
     return rankPlayers(
       [...this.world.players.values()].map((p) => ({
-        id: p.id, name: p.name, kos: p.kos, deaths: p.deaths, bot: this.bots.has(p.id),
+        id: p.id, name: p.name, kos: p.kos, deaths: p.deaths, bounty: p.bounty,
+        fighter: p.fighter, bot: this.bots.has(p.id),
       })),
     );
   }
@@ -72,7 +73,7 @@ export class Room {
   private stepMatch(dt: number): void {
     const ev = this.match.update(dt, this.world.players.size);
     if (ev === 'start') this.world.resetScores();
-    else if (ev === 'end') this.match.ranking = rankPlayers([...this.world.players.values()]);
+    else if (ev === 'end') this.match.ranking = this.roster();
   }
 
   /** Bots fill free slots up to the requested count; humans take priority. */
