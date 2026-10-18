@@ -8,6 +8,7 @@ export const MIRA: FighterDef = {
   element: 'water',
   role: 'support',
   blurb: 'A shell-braided tide-weaver who soaks the deck and pulls stragglers into the deep.',
+  moves: { attack: 'Water Whip', special: 'Tide Push', ult: 'Maelstrom' },
   radius: 30,
   maxHp: 105,
   speedMul: 1,

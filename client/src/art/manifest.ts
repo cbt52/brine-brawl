@@ -32,6 +32,14 @@ export const FACTION_COLOR: Record<Faction, number> = {
   bubblebottom: 0xff7aa2,
 };
 
+/** Long faction names for badges and the gallery. */
+export const FACTION_LABEL: Record<Faction, string> = {
+  critterkin: 'Critterkin',
+  weavers: 'Elemental Weavers',
+  saltwind: 'Saltwind Crew',
+  bubblebottom: 'Bubblebottom Folk',
+};
+
 export const ELEMENT_LABEL: Record<Element, string> = {
   neutral: 'Neutral',
   water: 'Water',

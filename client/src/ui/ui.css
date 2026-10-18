@@ -1,6 +1,6 @@
 /* portrait rotate hint covers gameplay, not the lobby (you type your name in portrait) */
 body.in-lobby #rotate { display: none; }
-#lobby { position: fixed; inset: 0; z-index: 15; display: flex; flex-direction: column; align-items: center; justify-content: center;
+#lobby { position: fixed; inset: 0; z-index: 15; display: flex; flex-direction: column; align-items: center; justify-content: flex-start;
   gap: 12px; padding: 12px; background: radial-gradient(circle at 50% 30%, #1d5a78, #0e2a3a 70%); color: #fff;
   font-family: 'Lilita One', system-ui, sans-serif; overflow: auto; touch-action: pan-y; }
 #lobby .title { margin: 0 0 4px; font-size: clamp(26px, 10vw, 72px); font-weight: 400; color: #ffc93c; letter-spacing: 2px;
@@ -51,3 +51,36 @@ body.in-lobby #rotate { display: none; }
 .confetti i { position: absolute; top: -14px; width: 8px; height: 14px; border-radius: 2px; animation-name: fall; animation-timing-function: linear;
   animation-iteration-count: infinite; }
 @keyframes fall { to { transform: translateY(360px) rotate(540deg); opacity: .2; } }
+
+/* character select (T12): one scrollable grid inside the lobby, no extra screen */
+.lobby-inner { margin: auto; display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; max-width: 900px; }
+#lobby .fh { margin: 0; font-size: 13px; font-weight: 400; letter-spacing: 2px; text-transform: uppercase; color: #9fd6d0; }
+#lobby .fighters { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100%; }
+.cards { display: grid; gap: 8px; width: 100%; justify-content: center;
+  grid-template-columns: repeat(auto-fit, minmax(148px, 168px)); }
+.card { display: flex; flex-direction: column; gap: 3px; align-items: stretch; text-align: left; padding: 7px 8px; border-radius: 12px;
+  border: 3px solid #ffffff26; background: #0b2130cc; color: #fff; font: inherit; cursor: pointer; touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent; }
+.card[aria-pressed='true'] { border-color: #ffc93c; background: #123647; box-shadow: 0 0 12px #ffc93c55; }
+.card .portrait { width: 52px; height: 52px; align-self: center; pointer-events: none; }
+.card .cname { font-size: 15px; line-height: 1.1; color: #ffc93c; }
+.card .tags { display: flex; flex-wrap: wrap; gap: 3px; font-family: system-ui, sans-serif; font-size: 9px; }
+.card .tags i { font-style: normal; padding: 1px 5px; border-radius: 999px; border: 1px solid #ffffff33; white-space: nowrap; }
+.card .tags .faction { color: #1b1b2f; border-color: #1b1b2f; font-weight: 700; }
+.card .tags .elem, .card .tags .role { background: #ffffff14; color: #cfe9e5; }
+.card .bars { display: flex; flex-direction: column; gap: 2px; margin: 2px 0; }
+.card .stat { display: grid; grid-template-columns: 26px 1fr; gap: 4px; align-items: center; }
+.card .stat em { font-style: normal; font-family: system-ui, sans-serif; font-size: 8px; color: #9fd6d0; letter-spacing: .5px; }
+.card .stat i { height: 6px; border-radius: 4px; background: #ffffff1f; overflow: hidden; }
+.card .stat i b { display: block; height: 100%; border-radius: 4px; background: linear-gradient(90deg, #2ec4b6, #ffc93c); }
+.card .moves { display: flex; flex-direction: column; gap: 1px; font-family: system-ui, sans-serif; font-size: 9px;
+  color: #b9dcd6; line-height: 1.25; }
+.card .moves b { font-family: 'Lilita One', system-ui, sans-serif; font-weight: 400; font-size: 10px; color: #fff; margin-right: 2px; }
+#menu .frow { flex-wrap: wrap; max-width: 280px; }
+.big.pick { font-size: 12px; padding: 4px 8px; background: #26506a; }
+.big.pick.on { background: #ffc93c; color: #1b1b2f; text-shadow: none; }
+@media (max-height: 560px) {
+  #lobby .title { font-size: clamp(22px, 6vw, 40px); }
+  .card .moves { display: none; }
+  .cards { grid-template-columns: repeat(auto-fit, minmax(120px, 140px)); }
+}

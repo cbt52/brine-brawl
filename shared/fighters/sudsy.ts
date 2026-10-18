@@ -8,6 +8,7 @@ export const SUDSY: FighterDef = {
   element: 'water',
   role: 'support',
   blurb: 'A squeaky-clean fry cook who lobs slow bouncing bubbles and seals rivals inside them.',
+  moves: { attack: 'Bubble Volley', special: 'Bubble Trap', ult: 'Mega Bubble' },
   radius: 32,
   maxHp: 120,
   speedMul: 1,

@@ -8,6 +8,7 @@ export const DEFAULT_FIGHTER: FighterDef = {
   element: 'neutral',
   role: 'allrounder',
   blurb: 'A steady hand with a slingshot and a bad attitude about seagulls.',
+  moves: { attack: 'Slingshot', special: 'Splash Bomb', ult: 'Fan Fire' },
   radius: 32,
   maxHp: 100,
   speedMul: 1,

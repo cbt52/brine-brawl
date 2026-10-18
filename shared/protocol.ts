@@ -57,7 +57,13 @@ export interface BotsMsg {
   n: number;
 }
 
-export type C2S = JoinMsg | InputMsg | DbgMsg | BotsMsg | { t: 'ping'; ts?: number };
+/** Change your fighter; it takes effect on the next respawn (no debug flag needed). */
+export interface PickMsg {
+  t: 'pick';
+  fighter: string;
+}
+
+export type C2S = JoinMsg | InputMsg | DbgMsg | BotsMsg | PickMsg | { t: 'ping'; ts?: number };
 
 export interface SnapPlayer {
   id: number;

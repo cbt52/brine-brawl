@@ -1,5 +1,6 @@
 import type { Net } from '../net.ts';
 import { copyText, inviteUrl } from './rooms.ts';
+import { fighterRowHtml, markFighterRow, saveFighter, savedFighter } from './select.ts';
 
 /** Invite panel: full URL, copy button (with HTTP fallback), share if available. */
 export function showInvite(room: string): void {
@@ -37,6 +38,8 @@ export function mountMenu(net: Net): void {
   panel.setAttribute('data-testid', 'menu');
   panel.style.display = 'none';
   panel.innerHTML = `<button class="big sm" data-testid="menu-invite">Copy invite link</button>
+    <div class="row frow" data-testid="menu-fighters"></div>
+    <small>Fighter — applies on your next respawn</small>
     <div class="row"><button class="big sm alt" data-testid="menu-bot-minus">− Bot</button>
     <span data-testid="menu-bots"></span>
     <button class="big sm alt" data-testid="menu-bot-plus">+ Bot</button></div>
@@ -56,8 +59,23 @@ export function mountMenu(net: Net): void {
     window.dispatchEvent(new CustomEvent('brawl:scoreboard', { detail: sbOn }));
   });
   const q = (id: string) => panel.querySelector(`[data-testid=${id}]`)!;
+  const frow = q('menu-fighters') as HTMLElement;
+  frow.innerHTML = fighterRowHtml(savedFighter());
+  const myFighter = () => (net.last?.players ?? []).find((p) => p.id === net.id)?.f ?? '';
+  const pick = (id: string) => {
+    net.send({ t: 'pick', fighter: id });
+    saveFighter(id);
+    markFighterRow(frow, id);
+  };
+  frow.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-fighter]');
+    if (btn) pick(btn.dataset.fighter!);
+  });
   const bots = () => (net.last?.players ?? []).filter((p) => p.id >= 1000).length;
-  const refresh = () => { q('menu-bots').textContent = `${bots()} bots`; };
+  const refresh = () => {
+    q('menu-bots').textContent = `${bots()} bots`;
+    markFighterRow(frow, myFighter());
+  };
   const setBots = (n: number) => { net.send({ t: 'bots', n: Math.max(0, Math.min(7, n)) }); };
   btn.addEventListener('click', () => {
     panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';

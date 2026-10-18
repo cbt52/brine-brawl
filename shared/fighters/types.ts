@@ -152,6 +152,8 @@ export interface FighterDef {
   role: Role;
   /** one-liner for the select screen */
   blurb: string;
+  /** display names for the three moves (select screen shows them above the generated one-liners) */
+  moves?: { attack: string; special: string; ult: string };
   radius: number;
   maxHp: number;
   /** movement multiplier on BASE_SPEED (0.85–1.25) */

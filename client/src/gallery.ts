@@ -1,6 +1,6 @@
 import '@fontsource/lilita-one';
 import Phaser from 'phaser';
-import { ART, ELEMENT_LABEL, FACTION_COLOR } from './art/manifest.ts';
+import { ART, ELEMENT_LABEL, FACTION_COLOR, FACTION_LABEL } from './art/manifest.ts';
 import { FighterSprite, preloadArt, type RigState } from './art/rig.ts';
 
 /**
@@ -9,13 +9,6 @@ import { FighterSprite, preloadArt, type RigState } from './art/rig.ts';
  * against the lit volume it was derived from.
  */
 const DEMO: RigState[] = ['idle', 'idle', 'run', 'attack', 'hit', 'ko'];
-
-const FACTION_LABEL: Record<string, string> = {
-  critterkin: 'Critterkin',
-  weavers: 'Elemental Weavers',
-  saltwind: 'Saltwind Crew',
-  bubblebottom: 'Bubblebottom Folk',
-};
 
 const refKey = (id: string): string => `ref-${id}`;
 

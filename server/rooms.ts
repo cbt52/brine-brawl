@@ -81,6 +81,13 @@ export class Room {
     }
   }
 
+  /** Fighter change from the in-game menu: takes effect on the client's next respawn. */
+  setFighter(c: Client, fighter: unknown): void {
+    const id = resolveFighterId(fighter);
+    c.fighter = id;
+    this.world.setFighter(c.id, id);
+  }
+
   setInput(c: Client, i: InputMsg): void {
     const n = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
     this.world.setInput(c.id, {

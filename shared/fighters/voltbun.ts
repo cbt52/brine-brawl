@@ -8,6 +8,7 @@ export const VOLTBUN: FighterDef = {
   element: 'volt',
   role: 'skirmisher',
   blurb: 'A cheeky battery-tailed bunny who zaps in, stuns and hops out again.',
+  moves: { attack: 'Spark Hop', special: 'Static Dash', ult: 'Thunder Burrow' },
   radius: 28,
   maxHp: 90,
   speedMul: 1.2,

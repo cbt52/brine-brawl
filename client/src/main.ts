@@ -7,6 +7,7 @@ import { Net, BUILD_ID } from './net.ts';
 import { GameScene } from './scenes/GameScene.ts';
 import { HudScene } from './scenes/HudScene.ts';
 import { showLobby } from './ui/lobby.ts';
+import { savedFighter } from './ui/select.ts';
 import { mountMenu, showInvite } from './ui/menu.ts';
 
 const params = new URLSearchParams(location.search);
@@ -16,8 +17,13 @@ const net = new Net();
 // shows the "Join room x" screen with the (saved) name prefilled. No ?room= → lobby.
 const roomParam = params.get('room');
 const savedName = localStorage.getItem('brawl.name');
+// the last picked fighter rides along on every join (the lobby grid persists it in localStorage)
+function withFighter(q: URLSearchParams): URLSearchParams {
+  if (!q.get('fighter')) q.set('fighter', savedFighter());
+  return q;
+}
 if (roomParam && (params.has('name') || params.has('bots'))) {
-  net.start(params);
+  net.start(withFighter(new URLSearchParams(params)));
   mountMenu(net);
 } else {
   void showLobby(roomParam, params.get('name') ?? savedName).then((c) => {
@@ -25,6 +31,7 @@ if (roomParam && (params.has('name') || params.has('bots'))) {
     q.set('room', c.room);
     if (c.name) q.set('name', c.name);
     q.set('bots', String(c.bots));
+    q.set('fighter', c.fighter);
     history.replaceState(null, '', `/?room=${encodeURIComponent(c.room)}`);
     net.start(q);
     mountMenu(net);

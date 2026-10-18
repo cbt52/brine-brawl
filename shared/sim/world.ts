@@ -63,6 +63,8 @@ export interface SimPlayer {
   shield: number;
   kos: number;
   deaths: number;
+  /** fighter id picked mid-match; swapped in by the next respawn */
+  pendingFighter: string | null;
   bot?: boolean;
 }
 
@@ -95,7 +97,7 @@ export class World {
       hp: def.maxHp, mhp: def.maxHp, speedMul: def.speedMul, aim: 0, ack: 0, input: null,
       ammo: def.ammo, reload: 0, fireCd: 0, fireLatch: false, spcCd: 0, uc: 0, dash: null, burrow: null,
       buffMul: 1, buffLeft: 0, status: null, statusLeft: 0, trapTook: 0,
-      down: false, respawn: 0, shield: C.SHIELD_SEC, kos: 0, deaths: 0, bot,
+      down: false, respawn: 0, shield: C.SHIELD_SEC, kos: 0, deaths: 0, pendingFighter: null, bot,
     };
     this.players.set(id, p);
     this.events.push({ k: 'spawn', id });
@@ -104,6 +106,20 @@ export class World {
 
   removePlayer(id: number): void {
     this.players.delete(id);
+  }
+
+  /**
+   * Pick a different fighter. Swapping kits mid-life would change HP/radius under the player, so the
+   * change is parked in `pendingFighter` and applied by the next respawn (`respawnPlayer`).
+   * Returns true when a change is queued.
+   */
+  setFighter(id: number, fighter: string): boolean {
+    const p = this.players.get(id);
+    if (!p) return false;
+    const def = getFighter(fighter);
+    if (def.id === p.fighter) { p.pendingFighter = null; return false; }
+    p.pendingFighter = def.id;
+    return true;
   }
 
   setInput(id: number, input: SimInput): void {
@@ -290,7 +306,22 @@ export class World {
     return best;
   }
 
+  /** Swap in a fighter picked mid-match (stats, body size and kit change together). */
+  private applyPendingFighter(p: SimPlayer): void {
+    const id = p.pendingFighter;
+    if (!id) return;
+    p.pendingFighter = null;
+    const def = getFighter(id);
+    p.fighter = def.id;
+    p.def = def;
+    p.r = def.radius;
+    p.mhp = def.maxHp;
+    p.speedMul = def.speedMul;
+    p.uc = Math.min(p.uc, def.ultCharge);
+  }
+
   private respawnPlayer(p: SimPlayer): void {
+    this.applyPendingFighter(p);
     const s = this.spawnFor(p);
     p.x = s.x; p.y = s.y;
     p.hp = p.mhp;
@@ -314,6 +345,14 @@ export class World {
   debugTeleport(id: number, x: number, y: number): void {
     const p = this.players.get(id);
     if (p && Number.isFinite(x) && Number.isFinite(y)) { p.x = x; p.y = y; resolveWalls(p, OBSTACLES); }
+  }
+
+  /** Debug: KO a player without an attacker (tests the respawn path). */
+  debugKill(id: number): void {
+    const p = this.players.get(id);
+    if (!p) return;
+    p.shield = 0; // spawn shield would otherwise swallow the KO
+    this.damage(-1, p, p.hp + 1, p.x, p.y);
   }
 
   debugHp(id: number, hp: number): void {

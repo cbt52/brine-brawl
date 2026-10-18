@@ -79,6 +79,9 @@ function onConnection(ws: WebSocket): void {
       case 'in':
         if (joined) joined.room.setInput(joined.client, msg);
         break;
+      case 'pick':
+        if (joined) joined.room.setFighter(joined.client, msg.fighter);
+        break;
       case 'bots':
         // host (first human in the room) adjusts the bot count
         if (joined && joined.room.clients.keys().next().value === joined.client.id) {
@@ -94,6 +97,7 @@ function onConnection(ws: WebSocket): void {
         if (msg.op === 'tp') joined.room.world.debugTeleport(joined.client.id, Number(msg.x), Number(msg.y));
         else if (msg.op === 'bots') { joined.room.wantBots = Math.max(0, Math.min(7, Math.floor(Number(msg.n) || 0))); joined.room.syncBots(); }
         else if (msg.op === 'hp') joined.room.world.debugHp(joined.client.id, Number(msg.v));
+        else if (msg.op === 'kill') joined.room.world.debugKill(joined.client.id);
         break;
     }
   });

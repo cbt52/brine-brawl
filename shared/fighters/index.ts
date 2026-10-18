@@ -17,8 +17,11 @@ export { VOLTBUN } from './voltbun.ts';
 
 export const DEFAULT_FIGHTER_ID = DEFAULT_FIGHTER.id;
 
-/** Every registered fighter (character select in T12 iterates this). */
+/** Every registered fighter (bots, balance harness, gallery). */
 export const FIGHTERS: readonly FighterDef[] = DEFS;
+
+/** The real kits, in roster order — the character select grid iterates this (Deckhand is the fallback). */
+export const SELECTABLE: readonly FighterDef[] = DEFS.filter((d) => d.id !== DEFAULT_FIGHTER_ID);
 
 export function getFighter(id: string | undefined | null): FighterDef {
   return (id && BY_ID.get(id)) || DEFAULT_FIGHTER;

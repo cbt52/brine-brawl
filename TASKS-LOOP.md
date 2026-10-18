@@ -188,32 +188,9 @@ Each reaction shows a big popup word ("SHOCK!").
   - Test: `npm run check && npm run smoke`
 
 - [x] **T08b — Art direction: 2.5D "rendered 3D model" look + likeness pass** · CP: yes
-  - Done: `scripts/art-models.mjs` (25 models) → `scripts/art-gen.mjs` writes 50 SVGs + `ref/*.parts.json`;
-    `scripts/blockout.mjs` (three, local, deterministic, Playwright-Chromium SwiftShader) renders 75 PNGs
-    (25 × front/side/q34). Same parts feed both, so sprite and blockout can't drift. `README.md` §Look
-    (top-left light, 3 shading zones, 48 px rule), `LIKENESS.md` 24 rows, `/gallery.html?look=3d` toggle.
-    art tests 154 green (canvas, palette, hurt pair, parts+PNGs, one light, likeness coverage).
-  - Do:
-    - Write `client/public/art/README.md` §Look (binding for T09 and every later fighter):
-      - gameplay stays 2D top-down, but each fighter must read like a **3D model rendered into the scene**:
-        three-quarter view facing right, 8–12 % perspective foreshortening, volume shading in ≥3 zones
-        (base, ambient occlusion, rim light from top-left, one specular dot), soft elliptical contact shadow;
-        no flat single-tone fills except the faction accent.
-      - 5–6 colors + AO + rim per fighter, derived from the faction color in §4; one light direction for the whole roster.
-      - silhouette readable at 48 px; head/body ratio, limb thickness and prop scale matched to the reference archetype.
-    - Likeness pass: for each of the 24 fighters in §4, match the source archetype's visual cues as closely as the IP
-      rules allow — proportions, silhouette, costume/gear shapes, signature prop, color blocking. No franchise/character
-      names, logos or catchphrases (`scripts/ip-check.mjs` must stay green). Record per fighter in
-      `client/public/art/LIKENESS.md`: `id | 3 matched cues | what changed to stay legal`.
-    - 3D blockouts as shading reference: `scripts/blockout.mjs` renders every fighter from three angles
-      (front, 3/4, side) with `three` (devDependency, local, no CDN) into `client/public/art/ref/<id>-{front,side,q34}.png`
-      (128 px, transparent, deterministic seed, no network). Runtime sprites stay SVG — the blockouts are the lighting/shape guide.
-    - `client/gallery.html?look=3d`: each fighter shown as sprite next to its 3/4 blockout, toggleable.
-  - Accept: `npm run check` green; one gallery screenshot shows a consistent light direction, sprites readable at 48 px
-    and visibly matching their blockouts; `LIKENESS.md` covers all 24 fighters.
-  - Note: `/gallery.html` + `client/src/art/{manifest,rig}.ts` exist since T09 (T09 ran first because this task landed
-    mid-iteration, 02:29) — build the `?look=3d` mode and the 24 likeness passes on top of them.
-  - Test: `npm run check && npm run shot -- --name T08b --path "/gallery.html?look=3d"`
+  - Done: one source model per fighter (`scripts/art-models.mjs`) → 50 SVGs + `ref/*.parts.json` via `scripts/art-gen.mjs`,
+    75 deterministic three-blockout PNGs via `scripts/blockout.mjs`; light/shading spec in
+    `client/public/art/README.md` §Look, likeness rows in `client/public/art/LIKENESS.md`, `/gallery.html?look=3d`.
 
 - [x] **T09 — SVG art pipeline, animation rig, gallery**
   - Done: `client/public/art/README.md` (spec) + `default`, `voltbun`, `mira` each with a `-hurt` face (enforced by
@@ -259,7 +236,12 @@ Each reaction shows a big popup word ("SHOCK!").
     - Gallery shot shows all 4.
   - Test: `npm run check && npm run smoke && npm run shot -- --name T11 --path /gallery.html`
 
-- [ ] **T12 — Character select** · CP: yes
+- [x] **T12 — Character select** · CP: yes
+  - Done: `shared/fighters/stats.ts` (HP/SPEED/DMG bars from the kit data + generated move one-liners), `moves{}` names
+    in all 5 kits, `SELECTABLE` registry view, `PickMsg` + `Room.setFighter` → `World.setFighter` parks the new kit in
+    `pendingFighter` and swaps def/radius/HP/speed on the next respawn (rig rebuilt in GameScene), `ui/select.ts`
+    card grid (portrait, faction/element/role badges, blurb lines) inline in the lobby + ☰ fighter row, choice in
+    localStorage `brawl.fighter` and sent as `join.fighter`; `dbg op kill` test hook; 7 unit + 3 e2e tests.
   - Do:
     - Lobby "Choose Fighter" grid: card = SVG portrait + name + faction badge + element icon + role + 3 stat bars (HP/Speed/Damage derived from data) + one-line attack/special/ult blurbs.
     - Choice is saved to localStorage and sent in join. An in-game menu button changes the fighter on the next respawn (`dbg`-free normal message `pick{fighter}`).
@@ -539,3 +521,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T08b ✅ 2026-10-18 — Kunst-Pipeline: 24 Kämpfer + Deckhand aus EINEM Modell → SVG-Sprites + three-Blockouts, Galerie ?look=3d
 - T10 ✅ 2026-10-18 — Voltbun+Mira-Kits (Burrow-/Trail-/Cone-/TickPull-Primitive), Bots mit Zufalls-Kits; check+smoke grün
 - T11 ✅ 2026-10-18 — Noodle+Sudsy-Kits (Projektil-Status, Trap-Status, Stop-Dash), Taffy-Arm+Bubble-FX, Galerie grün; check+smoke+shot grün
+- T12 ✅ 2026-10-18 — Charakterauswahl (Karten mit Stats/Moves im Lobby-Menü, localStorage, ☰-Wechsel ab Respawn); CP3, e2e+healthz grün

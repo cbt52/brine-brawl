@@ -130,10 +130,17 @@ export class GameScene extends Phaser.Scene {
     for (const p of view) {
       seen.add(p.id);
       this.names.set(p.id, p.n);
+      const prevKind = this.kinds.get(p.id);
+      let rig = this.rigs.get(p.id);
+      // a fighter change (menu `pick`) lands on respawn — rebuild the rig for the new body/art
+      if (rig && prevKind !== undefined && prevKind !== p.f) {
+        rig.destroy();
+        this.rigs.delete(p.id);
+        rig = undefined;
+      }
       this.kinds.set(p.id, p.f);
       const def = getFighter(p.f);
       const art = getArt(p.f);
-      let rig = this.rigs.get(p.id);
       if (!rig) {
         rig = new FighterSprite(this, p.x, p.y, { artId: p.f, height: def.radius * 2.6, hud: true });
         rig.setDepth(20);

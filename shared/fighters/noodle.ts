@@ -8,6 +8,7 @@ export const NOODLE: FighterDef = {
   element: 'neutral',
   role: 'bruiser',
   blurb: 'A lanky rubber-armed captain who reaches across the pier and yanks himself into the fight.',
+  moves: { attack: 'Taffy Jab', special: 'Sling Grab', ult: 'Taffy Typhoon' },
   radius: 34,
   maxHp: 145,
   speedMul: 0.97,
