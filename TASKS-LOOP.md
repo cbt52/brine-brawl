@@ -455,7 +455,6 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 
 ---
 ## 5. IMPROVEMENT BACKLOG (ordered; T99 takes from the top; user feedback goes first)
-5. Kill-cam: 2 s replay of the last KO from the snapshot buffer.
 6. Showdown battle-royale mode where the tide permanently rises and shrinks the island.
 7. Tutorial overlay for first-time players (3 tips, dismissible).
 8. Colorblind-friendly team outlines and status shapes.
@@ -468,6 +467,7 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 15. Rematch countdown: after the results screen, the match restarts on its own 10 s after the last human taps Ready (today every human must tap Rematch).
 16. Skins everywhere: the in-game ☰ menu, the character cards and the results poster still draw the drawn look; they should show the picked skin too (`sk` is already in the snapshot, the results rows need it as well).
 17. Weird Weather part 2 (slice 1 = `shared/sim/weather.ts` + Double Tide, rolled per round by the room, `wx` in MatchInfo, HUD tag, unit-tested): jellyfish rain (drifting stinging jellies that dash through the open sand) and bubble storm (floating bubbles that carry a body up and slow it), both as `Weather` entries with their own sim hooks and a shot check.
+18. Kill-cam part 2 (slice 1 = `client/src/net/killcam.ts`, our own KO replays the 2 s before it from `Net.buffer`, camera follows the killer, "KO CAM · name" tag): slow motion (0.5x) for the last 0.5 s before the hit, a tap-to-skip on touch, and a short replay for the killer's own best KO too.
 
 ---
 ## 6. LOG (one line per task/hotfix; archive older lines to `.loop/log-archive.md` if >40 lines)
@@ -512,3 +512,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T99 ✅ 2026-10-18 — Taffy Galleon slice 1: `shared/sim/cannon.ts` (Kanone: 1 s Telegraph, wandernde Leiste, Zeit-pure Treffer, Aim-Winkel); 8 Unit-Tests, check 505 grün; Arena-Rest → §5 #13
 - T99 ✅ 2026-10-18 — Skins slice 2: `join.skin` → room → `world.setSkin` → snapshot `sk`; lobby Skin button (localStorage); rig `setSkin` with async `addtexture` fallback, skin copies from recoloured SVG text; gallery shows both swaps; 4 unit tests, check 574 + e2e 19/19 + shot ok
 - T99 ✅ 2026-10-18 — Weird Weather slice 1: `shared/sim/weather.ts` (Double Tide = tide clock ×2, 50 % roll per round in `server/rooms.ts`), `wx` in MatchInfo, HUD tag; 8 unit tests, check 581 grün; Jelly/Bubble → §5 #17
+- T99 ✅ 2026-10-18 — Kill-cam (backlog #5): own KO replays the 2 s before it (`net/killcam.ts`, `Net.buffer` kept 3 s by age), camera on the killer, "KO CAM · name" tag, events muted during replay; 7 unit + 1 e2e, check 588 + e2e desktop 20/20 grün; banner not screenshot-checked → §5 #18

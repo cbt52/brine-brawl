@@ -76,6 +76,8 @@ window.__brawl = {
   get lag() { return net.lag; },
   /** predicted (drawn) position of the local body — see client/src/net/predict.ts */
   get self() { return (game.scene.getScene('game') as GameScene | null)?.self ?? null; },
+  /** kill-cam replay of our last KO is playing (backlog #5) */
+  get replaying() { return (game.scene.getScene('game') as GameScene | null)?.replaying ?? false; },
   build: BUILD_ID,
   state: () => net.last,
   send: (m: C2S) => net.send(m),

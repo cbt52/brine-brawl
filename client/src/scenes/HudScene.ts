@@ -49,6 +49,9 @@ export class HudScene extends Phaser.Scene {
   private escapeText!: Phaser.GameObjects.Text;
   /** Crew Combo banner (T28): the combo name across the middle of the screen */
   private comboText!: Phaser.GameObjects.Text;
+  /** Kill-cam tag (backlog #5): who the replayed KO was by; `null` = no replay running */
+  private killCamText!: Phaser.GameObjects.Text;
+  private killCamFor: string | null = null;
 
   constructor() {
     super({ key: 'hud' });
@@ -70,6 +73,7 @@ export class HudScene extends Phaser.Scene {
     this.trText = this.txt(16).setOrigin(0.5, 0).setVisible(false);
     this.escapeText = this.txt(26).setOrigin(0.5, 0).setAlpha(0);
     this.comboText = this.txt(46).setOrigin(0.5).setAlpha(0);
+    this.killCamText = this.txt(24).setOrigin(0.5).setColor('#ff8f7a').setVisible(false);
     this.layout();
     this.ensureVignette();
     this.scale.on('resize', this.layout);
@@ -118,6 +122,7 @@ export class HudScene extends Phaser.Scene {
     this.cdText.setPosition(w / 2, h / 2 - 30);
     this.escapeText.setPosition(w / 2, 48);
     this.comboText.setPosition(w / 2, h * 0.32);
+    this.killCamText.setPosition(w / 2, h * 0.2);
     this.waitText.setPosition(w / 2, h / 2 + 60);
     this.sbText.setPosition(w / 2, h / 2);
     this.vignette?.setDisplaySize(w, h);
@@ -146,6 +151,13 @@ export class HudScene extends Phaser.Scene {
   private onToggle = (e: CustomEvent<boolean>): void => {
     this.sbPinned = !!e.detail;
   };
+
+  /** Kill-cam (backlog #5): a red "KO CAM · killer" tag while the replay of our KO plays. */
+  setKillCam(killer: string | null): void {
+    if (!this.killCamText || killer === this.killCamFor) return;
+    this.killCamFor = killer;
+    this.killCamText.setText(killer === null ? '' : `KO CAM · ${killer}`).setVisible(killer !== null);
+  }
 
   /** Crew Combo (T28): big centred banner for the pair name, then fade. */
   showCombo(name: string): void {

@@ -1,4 +1,5 @@
 import type { C2S, S2C, SimEvent, SnapMsg } from '../../shared/protocol.ts';
+import { trimHistory } from './net/killcam.ts';
 
 declare const __BUILD_ID__: string;
 export const BUILD_ID = typeof __BUILD_ID__ === 'undefined' ? 'dev' : __BUILD_ID__;
@@ -98,8 +99,10 @@ export class Net {
       this.last = msg;
       if (msg.ev.length) this.events.push(...msg.ev);
       if (this.events.length > 200) this.events.splice(0, this.events.length - 200);
-      this.buffer.push({ at: performance.now(), snap: msg });
-      if (this.buffer.length > 30) this.buffer.shift();
+      const now = performance.now();
+      this.buffer.push({ at: now, snap: msg });
+      // kept by age, not count: the kill-cam replays up to KILLCAM_MS of lead-up (backlog #5)
+      trimHistory(this.buffer, now);
     } else if (msg.t === 'err') {
       this.showOverlay(msg.msg);
     }

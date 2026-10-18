@@ -6,6 +6,7 @@ import type { SnapPlayer } from '../../../shared/protocol.ts';
 import { Controls } from '../input/controls.ts';
 import { interpolate, interpolateProjs, type Pos } from '../net/interp.ts';
 import { Predictor } from '../net/predict.ts';
+import { KillCam } from '../net/killcam.ts';
 import { CombatFx } from '../fx/combatFx.ts';
 import { ELEMENT_COLOR, elementColor } from '../fx/style.ts';
 import {
@@ -57,6 +58,8 @@ export class GameScene extends Phaser.Scene {
   private pred = new Predictor();
   /** killer to follow while KO'd (T28); `null` = stay on the corpse */
   private spectateId: number | null = null;
+  /** replays the lead-up to our own KO (backlog #5) */
+  private killCam = new KillCam();
   private predReady = false;
   private camInit = false;
   private fx!: CombatFx;
@@ -77,6 +80,11 @@ export class GameScene extends Phaser.Scene {
 
   preload(): void {
     preloadArt(this);
+  }
+
+  /** The kill-cam replay of our last KO is on screen (debug hook / e2e). */
+  get replaying(): boolean {
+    return this.killCam.running;
   }
 
   create(): void {
@@ -547,8 +555,10 @@ export class GameScene extends Phaser.Scene {
     this.arena.updateWaves(time);
 
     const nowMs = performance.now();
-    const view = interpolate(this.net.buffer, nowMs - INTERP_DELAY_MS);
-    this.applyPrediction(view);
+    const replay = this.killCam.frame(nowMs);
+    const view = interpolate(this.net.buffer, replay?.at ?? nowMs - INTERP_DELAY_MS);
+    // the replay shows the past, so the live predicted body stays out of it
+    if (!replay) this.applyPrediction(view);
     const myTeam = view.find((p) => p.id === this.net.id)?.tm;
     const seen = new Set<number>();
     for (const p of view) {
@@ -599,13 +609,14 @@ export class GameScene extends Phaser.Scene {
     }
     const pg = this.projGfx;
     pg.clear();
-    for (const pr of interpolateProjs(this.net.buffer, nowMs - INTERP_DELAY_MS)) {
+    for (const pr of interpolateProjs(this.net.buffer, replay?.at ?? nowMs - INTERP_DELAY_MS)) {
       pg.fillStyle(0xfff3b0, 1).fillCircle(pr.x, pr.y, 9);
       pg.lineStyle(3, 0x1b1b2f, 1).strokeCircle(pr.x, pr.y, 9);
     }
     const evs = this.net.events.splice(0);
     const elementOf = (id: number): Element => getArt(this.kinds.get(id)).element;
-    for (const e of evs) {
+    // during a replay the events were already played once: no second round of sounds or FX
+    for (const e of replay ? [] : evs) {
       const cue = cueForEvent(e, elementOf);
       if (cue) {
         // `ko` carries no position: use the victim rig so the sound still comes from the right spot
@@ -658,8 +669,12 @@ export class GameScene extends Phaser.Scene {
           navigator.vibrate?.(30);
         }
       } else if (e.k === 'ko') {
-        // the camera rides with the killer while we wait for the respawn (T28)
-        if (e.v === this.net.id) this.spectateId = e.a > 0 ? e.a : null;
+        if (e.v === this.net.id) {
+          // the camera rides with the killer while we wait for the respawn (T28)
+          this.spectateId = e.a > 0 ? e.a : null;
+          // kill-cam (backlog #5): replay the lead-up to this KO
+          this.killCam.start(this.net.buffer, nowMs, e.a > 0 ? e.a : e.v);
+        }
         const victim = this.rigs.get(e.v);
         if (victim) this.fx.ko(victim.x, victim.groundY, getArt(this.kinds.get(e.v)).color);
         if (e.v === this.net.id || e.a === this.net.id) this.fx.shake('ko');
@@ -682,6 +697,7 @@ export class GameScene extends Phaser.Scene {
     this.fx.sample(this.game.loop.actualFps, this.game.loop.delta);
     this.hud.addEvents(evs, (id) => this.names.get(id) ?? '?');
     this.updateHud(view);
+    this.hud.setKillCam(replay ? this.names.get(replay.killer) ?? '?' : null);
     for (const [id, rig] of this.rigs) {
       if (!seen.has(id)) {
         rig.destroy();
@@ -695,8 +711,10 @@ export class GameScene extends Phaser.Scene {
     if (this.self && seen.has(this.net.id)) {
       const cam = this.cameras.main;
       const me = view.find((p) => p.id === this.net.id);
-      // KO'd: follow the killer (falls back to the corpse when the killer left/sits in kelp)
-      const spec = me?.dn ? this.rigs.get(this.spectateId ?? -1) : undefined;
+      // KO'd: follow the killer (falls back to the corpse when the killer left/sits in kelp);
+      // the kill-cam replay follows its killer too
+      const followId = replay?.killer ?? (me?.dn ? this.spectateId : null);
+      const spec = followId === null ? undefined : this.rigs.get(followId);
       const tx = spec ? spec.x : this.self.x;
       const ty = spec ? spec.y : this.self.y;
       if (!this.camInit) { cam.centerOn(tx, ty); this.camInit = true; }
