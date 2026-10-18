@@ -355,7 +355,9 @@ Each reaction shows a big popup word ("SHOCK!").
   - Done: Sable (`shared/fighters/sable.ts`) — Twin Slash (150° arc, 15 dmg) / Claw Dash Cut (290 u, 20 contact) / Three-Tide Tempest (self AoE r 185, 12 + 8 per ½ s, 1 s). Bisque (`shared/fighters/bisque.ts`) — Ladle Kick (85° arc, 19 dmg) / Skillet Rocket Kick (320 u fire dash + burning pan-track) / Five-Course Combo (self cone 110°, r 205, 8 + 5 per ½ s, 2 s, burn). Data-only: existing primitives cover all six moves, no hooks needed. Art already on disk from T08b (`sable.svg` / `bisque.svg` + hurt faces).
   - Tests: `tests/unit/saltwind.test.ts` (8) + selectable list in `tests/unit/fighter-stats.test.ts`; `npm run check` green (386 tests).
   - Test: same pattern
-- [ ] **T24 — Bubblebottom: Boss Pinchpenny + Hammy Divedome**
+- [x] **T24 — Bubblebottom: Boss Pinchpenny + Hammy Divedome**
+  - Done: Pinchpenny (`shared/fighters/pinchpenny.ts`) — Coin Flick (2 piercing coins, 5° apart) / Claw Clamp (self AoE r 235, 9 dmg + pull 145 + heavy) / Register Crush (self AoE r 230, 18 dmg, drops 3 doubloons). Hammy (`shared/fighters/hammy.ts`) — Karate Chop (70° arc, 13 dmg, 4 ammo) / Tank Rocket (310 u dash, 17 contact) / Helmet Pop (r 255 field, 7 + 2 per ½ s, heavy 3 s). New data-only bit: `AoeAbility.dropGold` + `Zone.dropGold` → `World.dropGold(x,y,n)` (KO purse reuses it); art already on disk from T08b.
+  - Tests: `tests/unit/bubblebottom.test.ts` (8) + SELECTABLE list in `tests/unit/fighter-stats.test.ts`; `npm run check` green (394 tests), gallery shot T24-0.
   - Test: same pattern
 - [ ] **T25 — Balance harness + pass** · CP: yes
   - Do:
@@ -516,6 +518,7 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 
 ---
 ## 6. LOG (one line per task/hotfix; archive older lines to `.loop/log-archive.md` if >40 lines)
+- T24 ✅ 2026-10-18 — Pinchpenny (piercing coins, claw pull, coin slam) + Hammy (chop, tank dash, slow field); dropGold bit; 394 green
 - T16 ✅ 2026-10-18 — client prediction (ack-rollback, 100 ms blend, 120 u snap), ping HUD, ?lag=ms; e2e green; CP4 checkpoint
 - T00 ✅ 2026-10-18 — scaffold+MCP done; .claude/settings.json write was denied by harness (add manually, MCP works anyway)
 - T01-partial 🟡 2026-10-18 — server/client/smoke/shot done+green; PARTIAL: serve.sh not runnable (needs approval) → T01a

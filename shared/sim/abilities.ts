@@ -37,6 +37,8 @@ export interface Zone {
   selfHeal: number;
   /** root seconds applied to everything the zone touches (Overgrowth) */
   rootSec: number;
+  /** doubloons the zone scatters when it triggers (Register Crush) */
+  dropGold: number;
   /** element of the hit; defaults to the status element */
   element?: Element;
   tickT: number;
@@ -85,6 +87,8 @@ export interface CastHost {
   damageChest?(attacker: number, chest: Chest, dmg: number): void;
   /** temporary stone walls (optional: tests may cast without them) */
   walls?: Wall[];
+  /** scatter doubloon pickups (optional: tests may cast without them) */
+  dropGold?: (x: number, y: number, n: number) => void;
 }
 
 function enemies(h: CastHost, owner: number): SimPlayer[] {
@@ -263,7 +267,7 @@ export function castAbility(
         dmg: def.dmg, tickDmg: def.tickDmg ?? 0, push: def.push ?? 0, pull: def.pull ?? 0,
         tickPull: def.tickPull ?? 0, coneDeg: def.coneDeg ?? 0, aim: p.aim,
         status: def.status ?? null, statusSec: def.statusSec ?? 0,
-        selfHeal: def.selfHeal ?? 0, rootSec: def.rootSec ?? 0,
+        selfHeal: def.selfHeal ?? 0, rootSec: def.rootSec ?? 0, dropGold: def.dropGold ?? 0,
         element: hitElement(defEl, def.status),
         tickT: 0, fired: false,
       });
@@ -341,6 +345,7 @@ export function stepZones(h: CastHost, dt: number): void {
       if (z.delay > 0) { keep.push(z); continue; }
       z.fired = true;
       hitAll(h, z.owner, z.x, z.y, z.r, z.dmg, z.push, z.pull, opts);
+      if (z.dropGold > 0) h.dropGold?.(z.x, z.y, z.dropGold);
     }
     if (z.dur > 0) {
       z.tickT += dt;
@@ -388,7 +393,7 @@ export function stepDash(h: CastHost, p: SimPlayer, dt: number): boolean {
         id: h.newProjId(), owner: p.id, x: p.x, y: p.y, r: d.trail.radius,
         delay: 0, dur: 0, dmg: d.trail.dmg, tickDmg: 0, push: 0, pull: 0, tickPull: 0,
         coneDeg: 0, aim: 0, status: d.trail.status, statusSec: d.trail.statusSec,
-        selfHeal: 0, rootSec: 0, element: d.trail.element, tickT: 0, fired: false,
+        selfHeal: 0, rootSec: 0, dropGold: 0, element: d.trail.element, tickT: 0, fired: false,
       });
     }
   }

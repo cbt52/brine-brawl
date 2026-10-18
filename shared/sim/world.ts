@@ -497,7 +497,8 @@ export class World {
         this.zones.push({
           id: this.newProjId(), owner: pr.owner, x: pr.x, y: pr.y, r: pr.aoeOnEnd.radius,
           delay: 0, dur: 0, dmg: pr.aoeOnEnd.dmg, tickDmg: 0, push: 0, pull: 0, tickPull: 0,
-          coneDeg: 0, aim: 0, status: null, statusSec: 0, selfHeal: 0, rootSec: 0, tickT: 0, fired: false,
+          coneDeg: 0, aim: 0, status: null, statusSec: 0, selfHeal: 0, rootSec: 0, dropGold: 0,
+          tickT: 0, fired: false,
         });
       }
       if (!dead && pr.left > 0) keep.push(pr);
@@ -552,12 +553,16 @@ export class World {
 
   /** Scatter doubloon pickups around a KO'd body (the corpse pays out three coins). */
   private dropCoins(p: SimPlayer, n: number): void {
-    const r = Math.max(24, p.r + 18);
+    this.dropGold(p.x, p.y, n, Math.max(24, p.r + 18));
+  }
+
+  /** Scatter `n` gold pickups in a ring around a spot (KO purse, Register Crush). */
+  dropGold(x: number, y: number, n: number, ring = 30): void {
     for (let i = 0; i < n; i++) {
       const a = (i / n) * Math.PI * 2 + 0.5;
-      const x = Math.max(24, Math.min(WORLD_W - 24, p.x + Math.cos(a) * r));
-      const y = Math.max(24, Math.min(WORLD_H - 24, p.y + Math.sin(a) * r));
-      this.picks.push({ id: this.newProjId(), x, y, kind: 'gold', left: PICKUP_SEC });
+      const px = Math.max(24, Math.min(WORLD_W - 24, x + Math.cos(a) * ring));
+      const py = Math.max(24, Math.min(WORLD_H - 24, y + Math.sin(a) * ring));
+      this.picks.push({ id: this.newProjId(), x: px, y: py, kind: 'gold', left: PICKUP_SEC });
     }
   }
 

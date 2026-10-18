@@ -119,6 +119,8 @@ export interface AoeAbility extends AbilityBase {
   /** status applied to everything the zone touches */
   status?: StatusKind;
   statusSec?: number;
+  /** doubloons scattered at the zone centre when it triggers (Register Crush) */
+  dropGold?: number;
 }
 
 export interface BuffAbility extends AbilityBase {
