@@ -124,7 +124,8 @@ export interface FighterDef {
   ammo: number;
   reload: number;
   attack: AbilityDef;
-  special: AbilityDef;
+  /** `cd` is mandatory: a special without a cooldown would re-cast every tick */
+  special: AbilityDef & { cd: number };
   ult: AbilityDef;
   /** damage dealt needed to charge the ult */
   ultCharge: number;

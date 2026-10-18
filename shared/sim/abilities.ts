@@ -179,7 +179,7 @@ export function abilityReach(def: AbilityDef): number {
     case 'dash': return def.dist;
     case 'aoe': return (def.at === 'self' ? 0 : def.range ?? 0) + def.radius;
     case 'status': return (def.at === 'self' ? 0 : def.range ?? 0) + def.radius;
-    case 'buff': return 0;
+    case 'buff': return Infinity; // self-targeted: always usable
   }
 }
 

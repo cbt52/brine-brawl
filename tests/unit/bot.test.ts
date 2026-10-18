@@ -40,4 +40,16 @@ describe('BotBrain', () => {
     expect(brain.state).toBe('flee');
     expect(Math.hypot(a.x - b.x, a.y - b.y)).toBeGreaterThan(d0);
   });
+
+  it('casts a self-targeted special even with the enemy out of reach', () => {
+    const { w, a, brain } = setup();
+    a.def = { ...a.def, special: { kind: 'buff', heal: 30, sec: 1, cd: 5 } };
+    a.hp = 40;
+    for (let i = 0; i < TICK_HZ; i++) {
+      w.setInput(1, brain.think(w, 1 / TICK_HZ));
+      w.step();
+    }
+    expect(a.hp).toBeGreaterThan(40);
+    expect(a.spcCd).toBeGreaterThan(0);
+  });
 });

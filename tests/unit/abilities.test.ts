@@ -3,7 +3,7 @@ import { World, type SimInput } from '../../shared/sim/world.ts';
 import { castAbility, abilityReach } from '../../shared/sim/abilities.ts';
 import { BotBrain } from '../../shared/sim/bot.ts';
 import { TICK_HZ } from '../../shared/constants.ts';
-import { getFighter, resolveFighterId } from '../../shared/fighters/index.ts';
+import { getFighter, resolveFighterId, FIGHTERS } from '../../shared/fighters/index.ts';
 import type { AbilityDef } from '../../shared/fighters/types.ts';
 
 const inp = (o: Partial<SimInput> = {}): SimInput => ({ seq: 1, mx: 0, my: 0, ax: 1, ay: 0, atk: false, spc: false, ult: false, ...o });
@@ -253,6 +253,24 @@ describe('bots press their buttons', () => {
     expect(abilityReach({ kind: 'dash', dist: 220, dur: 0.2 })).toBe(220);
     expect(abilityReach({ kind: 'aoe', at: 'aim', range: 100, radius: 40, delay: 0, dmg: 1 })).toBe(140);
     expect(abilityReach({ kind: 'aoe', at: 'self', radius: 40, delay: 0, dmg: 1 })).toBe(40);
-    expect(abilityReach({ kind: 'buff', sec: 1 })).toBe(0);
+    expect(abilityReach({ kind: 'buff', sec: 1 })).toBe(Infinity);
+  });
+
+  it('every registered special has a positive cooldown', () => {
+    for (const f of FIGHTERS) expect(f.special.cd, `${f.id} special cd`).toBeGreaterThan(0);
+  });
+
+  it('a special with cd 0 cannot re-cast every tick', () => {
+    const { w, a } = setup();
+    a.def = { ...a.def, special: { kind: 'buff', sec: 1, cd: 0 } };
+    let casts = 0;
+    for (let i = 0; i < TICK_HZ; i++) {
+      w.setInput(1, inp({ spc: true }));
+      w.step();
+      casts += w.events.filter((e) => e.k === 'cast' && e.id === 1 && e.ab === 'buff').length;
+      w.clearEvents();
+    }
+    expect(casts).toBeGreaterThan(0);
+    expect(casts).toBeLessThanOrEqual(2);
   });
 });

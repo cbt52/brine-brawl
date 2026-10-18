@@ -149,7 +149,7 @@ export class World {
       if ((p.fireLatch || i?.atk) && p.ammo > 0 && p.fireCd <= 0) this.fire(p);
       p.fireLatch = false;
       // specials/ults are hold-to-cast, gated by cooldown / charge (works the same for bots)
-      if (i?.spc && p.spcCd <= 0 && castAbility(this, p, p.def.special)) p.spcCd = p.def.special.cd ?? 0;
+      if (i?.spc && p.spcCd <= 0 && castAbility(this, p, p.def.special)) p.spcCd = p.def.special.cd > 0 ? p.def.special.cd : 1;
       if (i?.ult && p.uc >= p.def.ultCharge && castAbility(this, p, p.def.ult)) p.uc = 0;
     }
     stepZones(this, dt);
