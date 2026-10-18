@@ -2,7 +2,7 @@
  * Lane cannons (backlog #1 "Taffy Galleon", slice 1): a cannon bolted to the deck fires a long
  * bar down its lane on a steady clock. Each volley telegraphs for CANNON_WARN_SEC, then the bar
  * travels out of the muzzle. Pure functions of time, so the server, bots, tests and the client
- * telegraph share one source of truth. Arena wiring comes in a later slice.
+ * telegraph share one source of truth. `World.stepCannons` applies the bar's damage (slice 3a).
  */
 
 /** A cannon bolted to the deck: muzzle position, aim, and its own clock. */
@@ -27,6 +27,8 @@ export const SHOT_SPEED = 620;
 export const SHOT_LEN = 90;
 /** width of the moving bar */
 export const SHOT_WIDTH = 46;
+/** damage one body takes from a volley it is standing in (once per volley, see World.stepCannons) */
+export const CANNON_DMG = 30;
 
 export interface Volley {
   /** index of this volley on its cannon (0, 1, 2…), so callers can count one hit per volley */

@@ -4,7 +4,7 @@ import { type Point, type Rect, mirrorOf } from './docks.ts';
 
 /**
  * Taffy Galleon deck (backlog #1 "Taffy Galleon", slice 2): the second arena's layout data.
- * Not wired yet; the World still reads the docks constants. Masts and crates are mirrored on
+ * `arena.ts` bundles it as GALLEON_ARENA; no room picks it yet. Masts and crates are mirrored on
  * both axes like the docks coral, and the cannon lanes (y 420 and y 1180) are kept clear of them.
  */
 

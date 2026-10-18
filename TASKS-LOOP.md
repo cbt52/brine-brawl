@@ -457,7 +457,7 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 ## 5. IMPROVEMENT BACKLOG (ordered; T99 takes from the top; user feedback goes first)
 11. Optional ONLY if the user asks: ComfyUI portraits (127.0.0.1:8188, 2–7 min/img, 16 GB RAM, never while the user is using it).
 
-26. Taffy Galleon, part 3 (slice 2 = `shared/arena/galleon.ts`: deck obstacles, spawns and four rail cannons, unit-tested, not wired): `World`, bots and prediction take an arena instead of the docks constants, the cannons come from `GALLEON_CANNONS` and damage bodies once per volley (`volleyHits` + `k`), rocking deck art in `client/src/art/arena.ts`.
+26. Taffy Galleon, part 3b (slice 3a done: `shared/arena/arena.ts` `Arena` + `World(arena)` takes spawns, obstacles and cannons, cannon volleys damage each body once via `volleyHits` + `k`, `tests/unit/galleon-world.test.ts`). Left: bots (`bot.ts` SPAWNS/OBSTACLES), prediction (`predict.ts` stepMove base), ability dashes/burrow/shove (`OBSTACLES` in `abilities.ts`), tide/purrl/visibility (docks SHALLOWS and BUSHES), a room pick that selects `GALLEON_ARENA`, a cannon telegraph and rocking deck art in `client/src/art/arena.ts`.
 27. Host-only bot controls: non-hosts see the ☰ bot count and level buttons but tapping them does nothing (the server ignores them). Send an `host` flag in the match info and grey out the bot and level rows for non-hosts, with a 'host only' hint.
 28. Ready count on the results screen: the poster shows "2/3 ready" (a `rd` count in MatchInfo, from `Room.rematch`'s ready set) so players see who the round is waiting for, and the footer shows "Next round in Ns" only once the round is ready.
 29. Portraits in the ☰ fighter row: the row is text-only, so a skin change shows on the body and nowhere else in the menu. Give each button a small portrait via `skinnedPortrait` (`client/src/art/skinPortrait.ts`) at the picked skin, and keep the `on` state from `markFighterRow`.
@@ -470,6 +470,7 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 36. Pirate log part 3: the best KO run of one round (most KOs without dying) is saved next to `bestKey` and shown as "Best run: N KOs" in `client/src/ui/statsPage.ts`, so streaks are kept between sessions too.
 37. Streak sticker that cannot be blocked: the streak greeting shares the emote cooldown, so a human who sent a sticker up to 1.2 s before their third KO loses it silently. Let streak stickers skip the wheel cooldown (own 1.2 s clock) so a third KO always speaks.
 38. Purrl chime: the snail's patch-up has no sound, so add a soft bubble chime for the `purrl` event in `client/src/audio/map.ts` (the heal ring and pop are visual only), kept quiet so it does not drown out hits.
+39. Cannon hit cause: a volley's `hit` event carries attacker -1, the same as burn and edge damage, so the client cannot tell a cannon hit from a burn tick. Give cannon damage its own slot or cause in the event and a short thud in `client/src/audio/map.ts`, so the bar's hit reads as a cannon hit.
 
 ---
 
@@ -515,3 +516,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T99 ✅ 2026-10-18 — Stats part 2 (backlog #23): Siegquote pro Kämpfer im Piratenbuch (`wonBy`), „New best bounty“-Tag auf dem Results-Poster (`bestKey`, nur bei echtem Rekord); 4 neue Unit-Tests, check 691 grün, e2e match 4/4 grün, kein Screenshot → §5 #36
 - T99 ✅ 2026-10-18 — Streak sticker (backlog #24): third KO of a round sends one room sticker for that fighter (human or bot, once per round, shared emote cooldown, `STREAK_KOS`/`streakSticker` in shared/emotes.ts, `answerStreak` in server/rooms.ts); 3 unit tests, check 694 grün → §5 #37 (cooldown jump)
 - T99 ✅ 2026-10-18 — Purrl heal feedback (backlog #25): snail heal is a `purrl` event at the fighter, bubble ring + "+N" pop on them; 1 new unit test, check 695 grün → §5 #38 (Purrl chime)
+- T99 ✅ 2026-10-18 — Galleon part 3a (#26): `shared/arena/arena.ts` Arena, `World(arena)` spawns/obstacles, cannon volleys hit once each (`CANNON_DMG` 30); 7 tests, check 702 grün → §5 #26 (3b rest), #39 (cannon hit cause)

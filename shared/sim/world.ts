@@ -1,6 +1,7 @@
 import { TICK_HZ, WORLD_W, WORLD_H } from '../constants.ts';
-import { OBSTACLES, SPAWNS } from '../arena/docks.ts';
+import { OBSTACLES } from '../arena/docks.ts';
 import type { Rect } from '../arena/docks.ts';
+import { DOCKS_ARENA, type Arena } from '../arena/arena.ts';
 import type { AbilitySlot, PickupKind, RoomMode, SimEvent, SnapMsg, SnapPlayer, Weather } from '../protocol.ts';
 import { getFighter } from '../fighters/index.ts';
 import { statusMask, TRAP_BREAK_DMG, type FighterDef, type StatusKind } from '../fighters/types.ts';
@@ -17,6 +18,7 @@ import {
   bountyMulFor, noteAttackHit, onKO, resetOnDeath, resetOnSpawn, stepPassives, takeFlow, toonSave, ultGainMul,
 } from './passives.ts';
 import { canSee, REVEAL_SEC } from './visibility.ts';
+import { CANNON_DMG, volleyAt, volleyHits } from './cannon.ts';
 import { sameTeam, type Team } from './teams.ts';
 import {
   CHEST_HP, CHEST_RADIUS, CHEST_SPOTS, PICKUP_HEAL, PICKUP_RADIUS, PICKUP_SEC, PICKUP_ULT_FRAC,
@@ -166,7 +168,8 @@ const clamp1 = (n: number) => (Number.isFinite(n) ? Math.max(-1, Math.min(1, n))
 
 /** Apply one movement step to a body; shared with client prediction.
  * `extra` holds dynamic obstacles (stone walls), so prediction can replay the same step.
- * `bubbles` holds the bubble storm (backlog #17): inside one the body walks slower and is carried up. */
+ * `bubbles` holds the bubble storm (backlog #17): inside one the body walks slower and is carried up.
+ * `base` is the arena's static scenery (the docks coral unless a World plays another layout). */
 export function stepMove(
   p: { x: number; y: number; r: number },
   mx: number,
@@ -175,6 +178,7 @@ export function stepMove(
   dt: number,
   extra?: readonly Rect[],
   bubbles?: readonly Bubble[],
+  base: Rect[] = OBSTACLES,
 ): void {
   mx = clamp1(mx);
   my = clamp1(my);
@@ -185,10 +189,12 @@ export function stepMove(
   p.x += mx * speed * dt * k;
   p.y += my * speed * dt * k;
   if (carried) p.y -= BUBBLE_LIFT * dt;
-  resolveWalls(p, extra && extra.length ? OBSTACLES.concat(extra) : OBSTACLES);
+  resolveWalls(p, extra && extra.length ? base.concat(extra) : base);
 }
 
 export class World {
+  /** the layout this round is played on (docks by default; the galleon is GALLEON_ARENA) */
+  arena: Arena;
   players = new Map<number, SimPlayer>();
   tick = 0;
   projs: Projectile[] = [];
@@ -223,9 +229,16 @@ export class World {
   private pickupRotor = 0;
   /** recent ult landings, kept for the 1.5 s Crew Combo window (T28) */
   private ultHits: UltHit[] = [];
+  /** per body: the `cannon:volley` keys it has already been hit by (slice 3a, cleared on respawn) */
+  private cannonHits = new Map<number, Set<string>>();
+
+  constructor(arena: Arena = DOCKS_ARENA) {
+    this.arena = arena;
+  }
 
   addPlayer(id: number, name: string, fighter = 'default', bot = false, team: Team | null = null): SimPlayer {
-    const s = SPAWNS[(id - 1) % SPAWNS.length];
+    const spawns = this.arena.spawns;
+    const s = spawns[(id - 1) % spawns.length];
     const def = getFighter(fighter);
     const p: SimPlayer = {
       id, name, fighter: def.id, skin: 0, def, x: s.x, y: s.y, r: def.radius,
@@ -243,6 +256,7 @@ export class World {
 
   removePlayer(id: number): void {
     this.players.delete(id);
+    this.cannonHits.delete(id);
   }
 
   /** Round clock for the Showdown ring (backlog #6); the room feeds it once per sim step. */
@@ -448,7 +462,8 @@ export class World {
     this.stepTreasure(dt);
     stepBubbles(this.bubbles, dt);
     // static coral plus whatever stone a fighter built: one list for bodies, one for aging
-    const block = this.walls.length ? OBSTACLES.concat(wallRects(this.walls)) : OBSTACLES;
+    const stone = this.walls.length ? wallRects(this.walls) : undefined;
+    const block = stone ? this.arena.obstacles.concat(stone) : this.arena.obstacles;
     const list = [...this.players.values()];
     for (const p of list) {
       const i = p.input;
@@ -503,7 +518,7 @@ export class World {
           const spd = BASE_SPEED * p.speedMul * (p.buffLeft > 0 ? p.buffMul : 1) * statusSpeedMul(p.status)
             * (flooding ? WATER_SLOW : 1);
           const rooted = p.rootLeft > 0;
-          if (!rooted) stepMove(p, i.mx, i.my, spd, dt, block === OBSTACLES ? undefined : block, this.bubbles);
+          if (!rooted) stepMove(p, i.mx, i.my, spd, dt, stone, this.bubbles, this.arena.obstacles);
         }
         if (!disabled && Number.isFinite(i.ax) && Number.isFinite(i.ay) && (i.ax !== 0 || i.ay !== 0)) p.aim = Math.atan2(i.ay, i.ax);
         p.ack = i.seq;
@@ -538,6 +553,26 @@ export class World {
     separate(alive);
     for (const p of alive) resolveWalls(p, block);
     this.stepProjectiles(dt);
+    this.stepCannons();
+  }
+
+  /** Deck cannons (slice 3a): a volley's moving bar damages each body it crosses, once per volley. */
+  private stepCannons(): void {
+    if (!this.arena.cannons.length) return;
+    const t = this.tick / TICK_HZ;
+    this.arena.cannons.forEach((c, ci) => {
+      const v = volleyAt(c, t);
+      if (!v || v.stage !== 'fire') return;
+      for (const p of this.players.values()) {
+        if (p.down || !volleyHits(c, v, p.x, p.y, p.r)) continue;
+        let seen = this.cannonHits.get(p.id);
+        if (!seen) this.cannonHits.set(p.id, seen = new Set());
+        const key = `${ci}:${v.k}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        this.damage(-1, p, CANNON_DMG, p.x, p.y);
+      }
+    });
   }
 
   private reloadStep(p: SimPlayer, dt: number): void {
@@ -609,7 +644,7 @@ export class World {
         if (pr.x < 0 || pr.y < 0 || pr.x > WORLD_W || pr.y > WORLD_H) { dead = true; break; }
         if (!pr.lob) {
           const b = { x: pr.x, y: pr.y, r: pr.r };
-          for (const w of OBSTACLES) {
+          for (const w of this.arena.obstacles) {
             const bx = b.x;
             const by = b.y;
             if (!pushOutRect(b, w)) continue;
@@ -824,9 +859,10 @@ export class World {
   /** Spawn point maximizing the distance to the nearest living enemy. */
   private spawnFor(p: SimPlayer): { x: number; y: number } {
     const others = [...this.players.values()].filter((o) => o !== p && !o.down);
-    let best = SPAWNS[0];
+    const spawns = this.arena.spawns;
+    let best = spawns[0];
     let bestD = -1;
-    for (const s of SPAWNS) {
+    for (const s of spawns) {
       const d = others.length ? Math.min(...others.map((o) => Math.hypot(o.x - s.x, o.y - s.y))) : 0;
       if (d > bestD) { bestD = d; best = s; }
     }
@@ -883,6 +919,7 @@ export class World {
     p.statusLeft = 0;
     p.trapTook = 0;
     p.shield = C.SHIELD_SEC;
+    this.cannonHits.delete(p.id);
     resetOnSpawn(p);
     this.events.push({ k: 'spawn', id: p.id });
   }
@@ -890,7 +927,7 @@ export class World {
   /** Debug ops (server gates these behind ALLOW_DEBUG). */
   debugTeleport(id: number, x: number, y: number): void {
     const p = this.players.get(id);
-    if (p && Number.isFinite(x) && Number.isFinite(y)) { p.x = x; p.y = y; resolveWalls(p, OBSTACLES); }
+    if (p && Number.isFinite(x) && Number.isFinite(y)) { p.x = x; p.y = y; resolveWalls(p, this.arena.obstacles); }
   }
 
   /** Debug: KO a player without an attacker (tests the respawn path). */
