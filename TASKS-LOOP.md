@@ -249,6 +249,27 @@ Each reaction shows a big popup word ("SHOCK!").
     - Unit tests per primitive (table-driven).
   - Test: `npm run check && npm run smoke`
 
+- [ ] **T08b — Art direction: 2.5D "rendered 3D model" look + likeness pass** · CP: yes
+  - Do:
+    - Write `client/public/art/README.md` §Look (binding for T09 and every later fighter):
+      - gameplay stays 2D top-down, but each fighter must read like a **3D model rendered into the scene**:
+        three-quarter view facing right, 8–12 % perspective foreshortening, volume shading in ≥3 zones
+        (base, ambient occlusion, rim light from top-left, one specular dot), soft elliptical contact shadow;
+        no flat single-tone fills except the faction accent.
+      - 5–6 colors + AO + rim per fighter, derived from the faction color in §4; one light direction for the whole roster.
+      - silhouette readable at 48 px; head/body ratio, limb thickness and prop scale matched to the reference archetype.
+    - Likeness pass: for each of the 24 fighters in §4, match the source archetype's visual cues as closely as the IP
+      rules allow — proportions, silhouette, costume/gear shapes, signature prop, color blocking. No franchise/character
+      names, logos or catchphrases (`scripts/ip-check.mjs` must stay green). Record per fighter in
+      `client/public/art/LIKENESS.md`: `id | 3 matched cues | what changed to stay legal`.
+    - 3D blockouts as shading reference: `scripts/blockout.mjs` renders every fighter from three angles
+      (front, 3/4, side) with `three` (devDependency, local, no CDN) into `client/public/art/ref/<id>-{front,side,q34}.png`
+      (128 px, transparent, deterministic seed, no network). Runtime sprites stay SVG — the blockouts are the lighting/shape guide.
+    - `client/gallery.html?look=3d`: each fighter shown as sprite next to its 3/4 blockout, toggleable.
+  - Accept: `npm run check` green; one gallery screenshot shows a consistent light direction, sprites readable at 48 px
+    and visibly matching their blockouts; `LIKENESS.md` covers all 24 fighters.
+  - Test: `npm run check && npm run shot -- --name T08b --path "/gallery.html?look=3d"`
+
 - [ ] **T09 — SVG art pipeline, animation rig, gallery**
   - Do:
     - Art spec in `client/public/art/README.md`:
