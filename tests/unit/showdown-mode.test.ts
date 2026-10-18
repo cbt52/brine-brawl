@@ -112,3 +112,37 @@ describe('room mode parsing', () => {
     expect(sanitizeMode('nope')).toBeNull();
   });
 });
+
+describe('Showdown last-standing finish (backlog #20)', () => {
+  const T = SHOWDOWN_START_SEC + 60;
+
+  it('does nothing while the ring is still holding', () => {
+    const w = new World();
+    w.setMode('showdown');
+    w.addPlayer(1, 'A', 'default', false, 0);
+    w.addPlayer(2, 'B', 'default', false, 1);
+    w.setRoundT(SHOWDOWN_START_SEC);
+    expect(w.lastStanding()).toBe(false);
+  });
+
+  it('ends the round once one crew is left standing inside the ring', () => {
+    const w = new World();
+    w.setMode('showdown');
+    w.addPlayer(1, 'A', 'default', false, 0);
+    w.addPlayer(2, 'B', 'default', false, 0);
+    w.addPlayer(3, 'C', 'default', false, 1);
+    for (const id of [1, 2, 3]) Object.assign(w.players.get(id)!, { x: cx, y: cy });
+    w.setRoundT(T);
+    expect(w.lastStanding()).toBe(false);
+    w.players.get(3)!.down = true;
+    expect(w.lastStanding()).toBe(true);
+  });
+
+  it('never ends a round outside Showdown', () => {
+    const w = new World();
+    w.setMode('bounty');
+    w.addPlayer(1, 'A', 'default', false, 0);
+    w.setRoundT(T);
+    expect(w.lastStanding()).toBe(false);
+  });
+});

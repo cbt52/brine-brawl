@@ -25,7 +25,7 @@ import {
 import { tideRate } from './weather.ts';
 import { BUBBLE_LIFT, BUBBLE_SLOW, inBubble, makeBubbles, stepBubbles, type Bubble } from './bubbles.ts';
 import {
-  SHOWDOWN_EDGE_TICK_SEC, edgeDamage, outsideRing, showdownTideLevel,
+  SHOWDOWN_EDGE_TICK_SEC, edgeDamage, lastSideInRing, outsideRing, showdownTideLevel,
 } from './showdown.ts';
 import { COIN_SEC, DROP_MAX, SPOT, Treasure, teamTotals } from './treasure.ts';
 import {
@@ -248,6 +248,11 @@ export class World {
   /** Round clock for the Showdown ring (backlog #6); the room feeds it once per sim step. */
   setRoundT(t: number): void {
     this.roundT = t;
+  }
+
+  /** Showdown last-standing finish (backlog #20): true once one side is the only one left inside the ring. */
+  lastStanding(): boolean {
+    return this.mode === 'showdown' && lastSideInRing([...this.players.values()], this.roundT);
   }
 
   /** Set the round's Weird Weather modifier (backlog #4). */

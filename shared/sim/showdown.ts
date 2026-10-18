@@ -65,3 +65,28 @@ export function edgeHeading(x: number, y: number, t: number, margin = SHOWDOWN_R
   if (Math.hypot(dx, dy) < safeRadius(t) - margin) return null;
   return Math.atan2(dy, dx);
 }
+
+/** What the last-standing check reads from a fighter (`SimPlayer` already has all of it). */
+export interface RingBody {
+  id: number;
+  x: number;
+  y: number;
+  /** crew 0/1; `null` in a free-for-all, where every fighter is its own side */
+  team: number | null;
+  down: boolean;
+}
+
+/**
+ * Last-standing finish (backlog #20): once the ring is closing, the round ends as soon as exactly one
+ * side still has a fighter standing inside the ring. Downed fighters wait for their respawn and do not
+ * count, and a side that is only outside the ring does not count either.
+ */
+export function lastSideInRing(bodies: RingBody[], t: number): boolean {
+  if (!(t > SHOWDOWN_START_SEC)) return false;
+  const sides = new Set<string>();
+  for (const b of bodies) {
+    if (b.down || outsideRing(b.x, b.y, t)) continue;
+    sides.add(b.team === null ? `p${b.id}` : `c${b.team}`);
+  }
+  return sides.size === 1;
+}

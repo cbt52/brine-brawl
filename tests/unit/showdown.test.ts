@@ -11,6 +11,7 @@ import {
   safeRadius,
   outsideRing,
   edgeDamage,
+  lastSideInRing,
 } from '../../shared/sim/showdown.ts';
 
 const END = SHOWDOWN_START_SEC + SHOWDOWN_SHRINK_SEC;
@@ -86,5 +87,36 @@ describe('showdown edge damage', () => {
   it('a zero or negative step deals nothing', () => {
     expect(edgeDamage(0, 0, END, 0)).toBe(0);
     expect(edgeDamage(0, 0, END, -1)).toBe(0);
+  });
+});
+
+describe('lastSideInRing', () => {
+  const T = SHOWDOWN_START_SEC + 60;
+  const at = { x: SHOWDOWN_CENTER.x, y: SHOWDOWN_CENTER.y };
+  const far = { x: 20, y: 20 };
+  const body = (id: number, team: number | null, pos = at, down = false) => ({ id, team, down, ...pos });
+
+  it('needs the ring to have started closing', () => {
+    expect(lastSideInRing([body(1, null), body(2, null, far)], SHOWDOWN_START_SEC)).toBe(false);
+  });
+
+  it('is true when exactly one free-for-all fighter is inside', () => {
+    expect(lastSideInRing([body(1, null), body(2, null), body(3, null, far)], T)).toBe(false);
+    expect(lastSideInRing([body(1, null), body(2, null, far), body(3, null, far)], T)).toBe(true);
+  });
+
+  it('counts a crew as one side, however many of its fighters are inside', () => {
+    expect(lastSideInRing([body(1, 0), body(2, 0), body(3, 0, far)], T)).toBe(true);
+    expect(lastSideInRing([body(1, 0), body(2, 1)], T)).toBe(false);
+  });
+
+  it('ignores downed fighters and fighters outside the ring', () => {
+    expect(lastSideInRing([body(1, 0), body(2, 1, at, true)], T)).toBe(true);
+    expect(lastSideInRing([body(1, 0, far), body(2, 1, far)], T)).toBe(false);
+  });
+
+  it('nobody inside is not a finish (the edge damage plays it out)', () => {
+    expect(lastSideInRing([body(1, 0, far), body(2, 1, far)], T)).toBe(false);
+    expect(lastSideInRing([], T)).toBe(false);
   });
 });

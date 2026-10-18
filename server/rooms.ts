@@ -120,11 +120,12 @@ export class Room {
     if (ev === 'start') {
       this.world.resetScores();
       // Weird Weather (backlog #4): each round rolls its own modifier
-      this.world.setWeather(pickWeather(Math.random()));
+      this.world.setWeather(pickWeather(Math.random(), this.mode));
     }
     else if (ev === 'end') this.match.ranking = this.roster();
-    // Treasure Tide (T27): a finished escape countdown ends the round right there
-    if (this.match.phase === 'playing' && this.world.treasure?.won != null) {
+    // Treasure Tide (T27) and Showdown (backlog #20) can end a round before its clock runs out
+    const early = this.world.treasure?.won != null || this.world.lastStanding();
+    if (this.match.phase === 'playing' && early) {
       if (this.match.finish() === 'end') this.match.ranking = this.roster();
     }
     // Weird Weather lasts one round: calm skies again outside 'playing' (results, lobby, countdown)

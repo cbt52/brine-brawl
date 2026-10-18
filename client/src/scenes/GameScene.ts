@@ -36,6 +36,8 @@ const ARM_MS = 150;
 const HITSTOP_MS = 50;
 /** footstep dust interval (ms) while running */
 const DUST_MS = 150;
+/** width of the Showdown wash outside the ring; wider than the world's corners (backlog #20) */
+const WASH_W = 2400;
 
 export interface GameFxOptions {
   lowfx?: boolean;
@@ -207,6 +209,8 @@ export class GameScene extends Phaser.Scene {
     g.clear();
     if (sd === undefined) return;
     const r = safeRadius(sd);
+    // wash (backlog #20): a stroke wider than the world, starting at the edge, tints everything outside it
+    g.lineStyle(WASH_W, 0x5a1426, 0.28).strokeCircle(SHOWDOWN_CENTER.x, SHOWDOWN_CENTER.y, r + WASH_W / 2);
     g.lineStyle(16, 0xff5b4d, 0.3).strokeCircle(SHOWDOWN_CENTER.x, SHOWDOWN_CENTER.y, r);
     g.lineStyle(4, 0xffd0c8, 0.95).strokeCircle(SHOWDOWN_CENTER.x, SHOWDOWN_CENTER.y, r);
   }

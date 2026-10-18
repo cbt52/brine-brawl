@@ -22,6 +22,14 @@ describe('weird weather roll', () => {
     expect(pickWeather(1)).toBe('clear');
   });
 
+  it('Showdown never rolls Double Tide, its flood follows the ring (backlog #20)', () => {
+    expect(pickWeather(0, 'showdown')).toBe('bubble-storm');
+    expect(pickWeather(WEATHER_CHANCE / 2 - 0.001, 'showdown')).toBe('bubble-storm');
+    expect(pickWeather(WEATHER_CHANCE / 2, 'showdown')).toBe('bubble-storm');
+    expect(pickWeather(WEATHER_CHANCE, 'showdown')).toBe('clear');
+    expect(pickWeather(0, 'treasure')).toBe('double-tide');
+  });
+
   it('only Double Tide speeds the tide clock up', () => {
     expect(tideRate('clear')).toBe(1);
     expect(tideRate('double-tide')).toBe(DOUBLE_TIDE_RATE);
