@@ -24,6 +24,8 @@ export interface JoinMsg {
   mode?: string;
   /** bot level picked in the lobby (T99): easy / normal / sharky; defaults to normal */
   level?: string;
+  /** arena the room is created with (backlog #26): docks / galleon; only read when the room is new */
+  arena?: string;
   /** match length override in seconds — ALLOW_DEBUG servers only */
   matchsec?: number;
   /** jump the tide to a phase (`?tide=high` screenshots) — ALLOW_DEBUG servers only */

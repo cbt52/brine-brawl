@@ -457,7 +457,7 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 ## 5. IMPROVEMENT BACKLOG (ordered; T99 takes from the top; user feedback goes first)
 11. Optional ONLY if the user asks: ComfyUI portraits (127.0.0.1:8188, 2–7 min/img, 16 GB RAM, never while the user is using it).
 
-26. Taffy Galleon, part 3d (slices 3a–3c-1 done: `World` plays on `arena`, bots and abilities use it, the match's arena id travels as `MatchInfo.ar`, and `Arena` carries `shallows`/`bushes` that the tide, kelp, snail and `Predictor` read; `tests/unit/galleon-world.test.ts`). Left: a room pick that sets the room's arena (`Room` → `new World(arenaById(…))`, a lobby choice), a cannon telegraph in `GameScene` (the bars are invisible until drawn), and deck art: `client/src/art/arena.ts` still draws the docks scenery, so it must draw from `ar` before the Galleon can be picked.
+26. Taffy Galleon, part 3d-2 (slices 3a–3c-1 done; the room pick is in: `join.arena` creates the room on that layout, `tests/unit/galleon-room.test.ts`, but no client sends it yet). Left: a lobby choice that sends `arena` (a room keeps its layout once created), a cannon telegraph in `GameScene` (the bars are invisible until drawn), and deck art: `client/src/art/arena.ts` still draws the docks scenery, so it must draw from `ar` before the Galleon can be picked.
 27. Host-only bot controls: non-hosts see the ☰ bot count and level buttons but tapping them does nothing (the server ignores them). Send an `host` flag in the match info and grey out the bot and level rows for non-hosts, with a 'host only' hint.
 28. Ready count on the results screen: the poster shows "2/3 ready" (a `rd` count in MatchInfo, from `Room.rematch`'s ready set) so players see who the round is waiting for, and the footer shows "Next round in Ns" only once the round is ready.
 29. Portraits in the ☰ fighter row: the row is text-only, so a skin change shows on the body and nowhere else in the menu. Give each button a small portrait via `skinnedPortrait` (`client/src/art/skinPortrait.ts`) at the picked skin, and keep the `on` state from `markFighterRow`.
@@ -473,6 +473,7 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 39. Cannon hit cause: a volley's `hit` event carries attacker -1, the same as burn and edge damage, so the client cannot tell a cannon hit from a burn tick. Give cannon damage its own slot or cause in the event and a short thud in `client/src/audio/map.ts`, so the bar's hit reads as a cannon hit.
 40. Knockback vs stone walls: `shove()` in `shared/sim/abilities.ts` resolves only the arena scenery, so a melee or AoE knockback can shove a fighter into a Brak slab (dashes and burrows already stop at slabs). Resolve shoves against the stone walls too, plus a walls test "a knockback does not push through the slab".
 41. Arena defaults are a footgun: `waterRects`/`inWater`/`waterSpeedMul`, `inBush`/`canSee`, `stepPurrl` and `stepMove` fall back to the docks lists when no arena is passed. Once the Galleon ships, make the arena argument required at every call site (the compiler then finds a forgotten one) and drop the docks defaults.
+42. Join options are positional: `RoomManager.join` now takes 11 positional arguments (the `arena` pick was the last). Pass one `JoinOpts` object from `server/index.ts` so the next lobby option does not add a 12th, and keep the `rooms.join` call sites in one place.
 
 ---
 
@@ -515,3 +516,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T99 ✅ 2026-10-18 — Galleon part 3a (#26): `shared/arena/arena.ts` Arena, `World(arena)` spawns/obstacles, cannon volleys hit once each (`CANNON_DMG` 30); 7 tests, check 702 grün → §5 #26 (3b rest), #39 (cannon hit cause)
 - T99 ✅ 2026-10-18 — Galleon part 3b (#26): bots steer + spawn on `World.arena`, dash/burrow/shove use its scenery; 2 tests, check 704 grün → §5 #26 (3c), #40
 - T99 ✅ 2026-10-18 — Galleon part 3c-1 (#26): `Arena` gets id/shallows/bushes, tide, kelp, snail + predictor use the match's arena, `MatchInfo.ar`; 5 tests, check 709 grün → §5 #26 (3d), #41
+- T99 ✅ 2026-10-18 — Galleon part 3d-1 (#26): `join.arena` picks the room's layout at creation (`arenaById`, unknown = docks), `Room` builds its `World` on it; 5 tests, check 714 grün → §5 #26 (3d-2), #42

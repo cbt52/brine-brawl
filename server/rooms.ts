@@ -2,6 +2,7 @@ import type { WebSocket } from 'ws';
 import { MAX_HUMANS, MAX_NAME_LEN, TICK_HZ } from '../shared/constants.ts';
 import type { InputMsg, RoomMode, ScoreRow, SimEvent } from '../shared/protocol.ts';
 import { World } from '../shared/sim/world.ts';
+import { arenaById, DOCKS_ARENA, type Arena } from '../shared/arena/arena.ts';
 import { BotBrain, sanitizeBotLevel, type BotDifficulty } from '../shared/sim/bot.ts';
 import { autoTeams, type Team } from '../shared/sim/teams.ts';
 import { randomFighterId, resolveFighterId } from '../shared/fighters/index.ts';
@@ -39,7 +40,7 @@ export interface Client {
 
 export class Room {
   clients = new Map<number, Client>();
-  world = new World();
+  world: World;
   match = new Match();
   /** Bounty Brawl (default) or Treasure Tide (T26/T27) */
   mode: RoomMode = 'bounty';
@@ -57,8 +58,10 @@ export class Room {
   private streakSent = new Set<number>();
   acc = 0;
   last = Date.now();
-  constructor(public id: string, mode: RoomMode = 'bounty') {
+  /** the layout is fixed when the room is created (backlog #26, the Galleon room pick) */
+  constructor(public id: string, mode: RoomMode = 'bounty', arena: Arena = DOCKS_ARENA) {
     this.mode = mode;
+    this.world = new World(arena);
     this.world.setMode(mode);
   }
 
@@ -257,12 +260,13 @@ export class RoomManager {
   join(
     ws: WebSocket, roomRaw: unknown, nameRaw: unknown, fighterRaw: unknown, botsRaw?: unknown,
     matchSecRaw?: unknown, tideRaw?: unknown, modeRaw?: unknown, levelRaw?: unknown, skinRaw?: unknown,
+    arenaRaw?: unknown,
   ): { room: Room; client: Client } | null {
     const id = sanitizeRoom(roomRaw);
     let room = this.rooms.get(id);
     const created = !room;
     if (!room) {
-      room = new Room(id, sanitizeMode(modeRaw) ?? 'bounty');
+      room = new Room(id, sanitizeMode(modeRaw) ?? 'bounty', arenaById(arenaRaw));
       this.rooms.set(id, room);
     }
     if (room.clients.size >= MAX_HUMANS) return null;
