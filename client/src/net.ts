@@ -55,6 +55,8 @@ export class Net {
         matchsec: ms === null ? undefined : Number(ms),
         // room mode from the lobby selector (T26)
         mode: p.get('mode') ?? undefined,
+        // bot level from the lobby (T99)
+        level: p.get('level') ?? undefined,
         // debug-only on the server (ALLOW_DEBUG): `?tide=high` screenshots
         tide: p.get('tide') ?? undefined,
       });

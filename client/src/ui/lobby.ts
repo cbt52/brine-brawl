@@ -2,6 +2,7 @@ import { friendlyRoom, parseRoomCode, quickRoom } from './rooms.ts';
 import { mountFighterGrid, savedFighter } from './select.ts';
 import { escapeHtml } from './util.ts';
 import type { RoomMode } from '../../../shared/protocol.ts';
+import { BOT_LEVELS, type BotDifficulty } from '../../../shared/sim/bot.ts';
 
 export interface JoinChoice {
   room: string;
@@ -13,7 +14,15 @@ export interface JoinChoice {
   fighter: string;
   /** room mode picked in the lobby (T26) */
   mode: RoomMode;
+  /** bot level picked in the lobby (T99) */
+  level: BotDifficulty;
 }
+
+const LEVEL_HINT: Record<BotDifficulty, string> = {
+  easy: 'Easy bots miss a lot and react slowly',
+  normal: 'Normal bots are a fair fight',
+  sharky: 'Sharky bots aim true and react fast',
+};
 
 const NAME_KEY = 'brawl.name';
 
@@ -27,6 +36,7 @@ export function showLobby(prefillRoom: string | null, prefillName: string | null
     const joining = !!prefillRoom;
     let fighter = savedFighter();
     let mode: RoomMode = 'bounty';
+    let level: BotDifficulty = 'normal';
     el.innerHTML = `<div class="lobby-inner">
       <h1 class="title"><span>B</span><span>R</span><span>I</span><span>N</span><span>E</span> <span>B</span><span>R</span><span>A</span><span>W</span><span>L</span></h1>
       <input class="field" data-testid="name-input" maxlength="12" placeholder="Your pirate name" autocomplete="off" />
@@ -39,6 +49,10 @@ export function showLobby(prefillRoom: string | null, prefillName: string | null
         <button class="big sm alt mode" data-mode="treasure" data-testid="mode-treasure">Treasure</button>
       </div>
       <p class="sub small" data-testid="mode-hint">Bounty Brawl: most doubloons wins · Treasure Tide: guard the chest</p>
+      <div class="row mode-row" data-testid="level-select">
+        ${BOT_LEVELS.map((l) => `<button class="big sm mode${l === level ? ' on' : ' alt'}" data-level="${l}" data-testid="level-${l}">${l[0].toUpperCase()}${l.slice(1)}</button>`).join('')}
+      </div>
+      <p class="sub small" data-testid="level-hint">${LEVEL_HINT[level]}</p>
       <div class="row"><input class="field code" data-testid="code-input" placeholder="Room code or link" autocomplete="off" />
       <button class="big sm" data-testid="join-code">Join</button></div>
       <p class="err" data-testid="lobby-err"></p>`}
@@ -52,12 +66,12 @@ export function showLobby(prefillRoom: string | null, prefillName: string | null
     document.body.classList.add('in-lobby');
     const name = el.querySelector<HTMLInputElement>('[data-testid=name-input]')!;
     name.value = prefillName ?? localStorage.getItem(NAME_KEY) ?? '';
-    const done = (c: Omit<JoinChoice, 'name' | 'fighter'>) => {
+    const done = (c: Omit<JoinChoice, 'name' | 'fighter' | 'level'>) => {
       const n = name.value.trim();
       try { localStorage.setItem(NAME_KEY, n); } catch { /* private mode */ }
       el.remove();
       document.body.classList.remove('in-lobby');
-      resolve({ ...c, name: n, fighter });
+      resolve({ ...c, name: n, fighter, level });
     };
     const on = (id: string, fn: () => void) => el.querySelector(`[data-testid=${id}]`)?.addEventListener('click', fn);
     // mode selector: Quick Play throws the dice, Create Room uses the picked one (T26)
@@ -71,6 +85,18 @@ export function showLobby(prefillRoom: string | null, prefillName: string | null
       }
     };
     for (const b of modeBtns) b.addEventListener('click', () => pickMode(b.dataset.mode as RoomMode));
+    // bot level selector (T99): Quick Play and any bots the host adds later use it
+    const levelBtns = [...el.querySelectorAll<HTMLButtonElement>('[data-level]')];
+    const pickLevel = (l: BotDifficulty) => {
+      level = l;
+      for (const b of levelBtns) {
+        const active = b.dataset.level === l;
+        b.classList.toggle('on', active);
+        b.classList.toggle('alt', !active);
+      }
+      el.querySelector('[data-testid=level-hint]')!.textContent = LEVEL_HINT[l];
+    };
+    for (const b of levelBtns) b.addEventListener('click', () => pickLevel(b.dataset.level as BotDifficulty));
     on('join-go', () => done({ room: prefillRoom!, bots: 0, invite: false, mode }));
     on('quick-play', () => done({ room: quickRoom(), bots: 3, invite: false, mode: Math.random() < 0.5 ? 'bounty' : 'treasure' }));
     on('create-room', () => done({ room: friendlyRoom(), bots: 0, invite: true, mode }));

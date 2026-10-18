@@ -455,7 +455,6 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 
 ---
 ## 5. IMPROVEMENT BACKLOG (ordered; T99 takes from the top; user feedback goes first)
-2. Bot difficulty selector (easy / normal / sharky) in the lobby.
 3. Skins: 2 palette swaps per fighter (data-driven SVG color replacement).
 4. "Weird Weather" match modifiers: jellyfish rain, bubble storm, double tide.
 5. Kill-cam: 2 s replay of the last KO from the snapshot buffer.
@@ -467,9 +466,11 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 11. Optional ONLY if the user asks: ComfyUI portraits (127.0.0.1:8188, 2–7 min/img, 16 GB RAM, never while the user is using it).
 12. Bots go for Purrl (the sea snail) when they are hurt and it is within reach; today the snail is scenery for bots.
 13. Taffy Galleon, part 2 (slice 1 = `shared/sim/cannon.ts`, telegraph + moving bar, unit-tested, not wired): second arena data (rocking ship deck, own spawns/coral/sand), `World` + bots + prediction take an arena instead of the docks constants, lane cannons placed in that arena and damaging bodies once per volley, rocking deck art in `client/src/art/arena.ts`.
+14. Bot level in the in-game ☰ menu: the host can switch the level for bots already in the room (today the lobby picks it once, for the first human).
 
 ---
 ## 6. LOG (one line per task/hotfix; archive older lines to `.loop/log-archive.md` if >40 lines)
+- T99 ✅ 2026-10-18 — bot level easy/normal/sharky picked in lobby (Quick Play + Create Room), `join.level` → `room.botLevel` (first human sets it); `BOT_PARAMS`/`sanitizeBotLevel`; 4 tests, check green
 - T29 ✅ 2026-10-18 — Gloomoth (Dust Puff/Phase Flutter/Lantern Swarm), Pebblor (Pebble Lob/Hunker/Avalanche Egg), Dozelump (Belly Bump/Snooze/Body Slam); `homing`+`aoeOnEnd.status`-Primitive, buff 0-Multiplikatoren; 11 Tests, check 440+shot grün
 - T24 ✅ 2026-10-18 — Pinchpenny (piercing coins, claw pull, coin slam) + Hammy (chop, tank dash, slow field); dropGold bit; 394 green
 - T16 ✅ 2026-10-18 — client prediction (ack-rollback, 100 ms blend, 120 u snap), ping HUD, ?lag=ms; e2e green; CP4 checkpoint

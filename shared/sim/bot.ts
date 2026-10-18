@@ -7,11 +7,18 @@ import { sameTeam } from './teams.ts';
 import { SPOT } from './treasure.ts';
 import type { SimInput, SimPlayer, World } from './world.ts';
 
-export type BotDifficulty = 'easy' | 'normal';
+export type BotDifficulty = 'easy' | 'normal' | 'sharky';
+export const BOT_LEVELS: readonly BotDifficulty[] = ['easy', 'normal', 'sharky'];
 
-const PARAMS = {
+/** T99: lobby bot level — anything unknown falls back to normal */
+export function sanitizeBotLevel(raw: unknown): BotDifficulty {
+  return BOT_LEVELS.find((l) => l === raw) ?? 'normal';
+}
+
+export const BOT_PARAMS: Record<BotDifficulty, { errDeg: number; react: number }> = {
   easy: { errDeg: 18, react: 0.25 },
   normal: { errDeg: 9, react: 0.15 },
+  sharky: { errDeg: 3, react: 0.08 },
 };
 const PREF_RANGE = 380;
 /** Melee kits must walk into their own reach; a ranged bot keeps this much of its shot range. */
@@ -74,7 +81,7 @@ export class BotBrain {
   private readonly rng: () => number;
 
   constructor(public id: number, difficulty: BotDifficulty = 'normal', rng: () => number = Math.random) {
-    this.prm = PARAMS[difficulty];
+    this.prm = BOT_PARAMS[difficulty];
     this.rng = rng;
     this.wanderAng = rng() * Math.PI * 2;
     this.strafeDir = rng() < 0.5 ? 1 : -1;

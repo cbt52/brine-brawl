@@ -2,7 +2,7 @@ import type { WebSocket } from 'ws';
 import { MAX_HUMANS, MAX_NAME_LEN, TICK_HZ } from '../shared/constants.ts';
 import type { InputMsg, RoomMode, ScoreRow } from '../shared/protocol.ts';
 import { World } from '../shared/sim/world.ts';
-import { BotBrain } from '../shared/sim/bot.ts';
+import { BotBrain, sanitizeBotLevel, type BotDifficulty } from '../shared/sim/bot.ts';
 import { autoTeams, type Team } from '../shared/sim/teams.ts';
 import { randomFighterId, resolveFighterId } from '../shared/fighters/index.ts';
 import { Match, rankPlayers } from './match.ts';
@@ -41,6 +41,8 @@ export class Room {
   match = new Match();
   /** Bounty Brawl (default) or Treasure Tide (T26/T27) */
   mode: RoomMode = 'bounty';
+  /** bot level for bots this room spawns from now on (T99, set by the first human) */
+  botLevel: BotDifficulty = 'normal';
   emptySince: number | null = Date.now();
   bots = new Map<number, BotBrain>();
   wantBots = 0;
@@ -125,7 +127,7 @@ export class Room {
       const name = BOT_NAMES.find((n) => !used.has(n)) ?? `Bot ${id}`;
       // bots show up with a random real kit (T10) and join the smaller crew (T26)
       this.world.addPlayer(id, name, randomFighterId(), true);
-      this.bots.set(id, new BotBrain(id, 'normal'));
+      this.bots.set(id, new BotBrain(id, this.botLevel));
     }
     this.assignTeams();
   }
@@ -182,7 +184,7 @@ export class RoomManager {
 
   join(
     ws: WebSocket, roomRaw: unknown, nameRaw: unknown, fighterRaw: unknown, botsRaw?: unknown,
-    matchSecRaw?: unknown, tideRaw?: unknown, modeRaw?: unknown,
+    matchSecRaw?: unknown, tideRaw?: unknown, modeRaw?: unknown, levelRaw?: unknown,
   ): { room: Room; client: Client } | null {
     const id = sanitizeRoom(roomRaw);
     let room = this.rooms.get(id);
@@ -206,6 +208,7 @@ export class RoomManager {
     room.clients.set(cid, client);
     room.world.addPlayer(cid, client.name, client.fighter);
     room.emptySince = null;
+    if (room.clients.size === 1) room.botLevel = sanitizeBotLevel(levelRaw);
     if (room.clients.size === 1 && typeof botsRaw === 'number' && Number.isFinite(botsRaw)) {
       room.wantBots = Math.max(0, Math.min(7, Math.floor(botsRaw)));
     }

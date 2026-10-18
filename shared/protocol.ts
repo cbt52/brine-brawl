@@ -20,6 +20,8 @@ export interface JoinMsg {
   bots?: number;
   /** room mode picked in the lobby (T26); defaults to bounty */
   mode?: string;
+  /** bot level picked in the lobby (T99): easy / normal / sharky; defaults to normal */
+  level?: string;
   /** match length override in seconds — ALLOW_DEBUG servers only */
   matchsec?: number;
   /** jump the tide to a phase (`?tide=high` screenshots) — ALLOW_DEBUG servers only */
