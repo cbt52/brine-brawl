@@ -455,7 +455,6 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 
 ---
 ## 5. IMPROVEMENT BACKLOG (ordered; T99 takes from the top; user feedback goes first)
-8. Colorblind-friendly team outlines and status shapes.
 9. Local stats page (matches, favorite fighter, best bounty) in localStorage.
 10. Bots answer: a bot that KOs you sends a sticker back over the T99 emote channel (one in three KOs).
 11. Optional ONLY if the user asks: ComfyUI portraits (127.0.0.1:8188, 2–7 min/img, 16 GB RAM, never while the user is using it).
@@ -470,6 +469,7 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 19. Lint: `tests/e2e/emotes.spec.ts:1` has an unused `eslint-disable` directive, so `npm run check` prints a warning. Drop the directive so the lint output is clean.
 20. Showdown part 3 (slice 2 = ring wiring in `World.step`, room round clock, bot edge-flee, HUD timer, shot-checked): a last-standing finish (the round ends early when one crew or one fighter is left inside the ring), a tinted outside-of-ring wash (only the bright edge line is drawn now), and a Showdown-only weather roll, because Double Tide does nothing there (the flood follows the ring).
 21. Tips card on demand: the first-visit tips (`client/src/ui/tutorial.ts`, shown once via `brawl.tutorial`) can't be reopened today. Add a "How to play" button to the ☰ menu that mounts the same card again, and reuse `tutorialTips(touch)` so the text stays in one place.
+22. Colour-blind palette option in the ☰ menu: a shape-first set (crew rings and status chips already differ by shape; the element colours and the reaction popups still rely on hue alone). `client/src/fx/style.ts` holds the palette, so the option only swaps values there.
 
 ---
 ## 6. LOG (one line per task/hotfix; archive older lines to `.loop/log-archive.md` if >40 lines)
@@ -498,4 +498,5 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T99 ✅ 2026-10-18 — Kill-cam (backlog #5): own KO replays the 2 s before it (`net/killcam.ts`, `Net.buffer` kept 3 s by age), camera on the killer, "KO CAM · name" tag, events muted during replay; 7 unit + 1 e2e, check 588 + e2e desktop 20/20 grün; banner not screenshot-checked → §5 #18
 - T99 ✅ 2026-10-18 — Showdown slice 1: `shared/sim/showdown.ts` ring 1000→260 u (30–150 s), tide tracks shrink, edge dmg; 11 tests, check 599 grün; wiring → §5 #6
 - T99 ✅ 2026-10-18 — Showdown part 2: lobby mode, ring + HUD timer, edge dmg, flood follows ring, bots turn back; 11 tests, check 612 grün, shot ok → §5 #20
+- T99 ✅ 2026-10-18 — Crew marks (backlog #8): crew B ring is a double ring (`client/src/fx/crewMark.ts`, rig `setTeam`), so crews differ by shape; status chips already had distinct glyphs; 3 unit tests, check 619 grün, 1× crop only → §5 #22
 - T99 ✅ 2026-10-18 — Tips card (backlog #7): first visit shows 3 tips (PC/touch text), 'Got it' or 20 s saves brawl.tutorial, click-through; 4 unit + 1 e2e, check 616 + e2e desktop 21/21 + shot ok → §5 #21

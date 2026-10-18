@@ -3,6 +3,7 @@ import { ART, FACTION_COLOR, artKey, artUrl, getArt, hurtUrl } from './manifest.
 import { buildSkinTextures, pickSkinKey, queueSkinSources, skinKey } from './skinArt.ts';
 import type { Faction } from '../../../shared/fighters/types.ts';
 import { TEAM_COLORS } from '../../../shared/sim/teams.ts';
+import { crewMark } from '../fx/crewMark.ts';
 
 /** Phaser wants 0xrrggbb; the name plate wants a CSS colour. */
 const hex = (c: number): string => `#${c.toString(16).padStart(6, '0')}`;
@@ -77,7 +78,7 @@ export class FighterSprite extends Phaser.GameObjects.Container {
   /** crew colour state (T26) */
   private teamKey: number | null | undefined;
   private teamAlly = false;
-  private teamRing?: Phaser.GameObjects.Ellipse;
+  private teamRings: Phaser.GameObjects.Ellipse[] = [];
 
   constructor(scene: Phaser.Scene, x: number, y: number, cfg: RigConfig) {
     super(scene, x, y);
@@ -164,14 +165,18 @@ export class FighterSprite extends Phaser.GameObjects.Container {
     if (key === this.teamKey && ally === this.teamAlly) return;
     this.teamKey = key;
     this.teamAlly = ally;
-    this.teamRing?.destroy();
-    this.teamRing = undefined;
+    for (const ring of this.teamRings) ring.destroy();
+    this.teamRings = [];
     if (key !== null) {
-      const color = TEAM_COLORS[key === 1 ? 1 : 0];
-      this.teamRing = this.scene.add
-        .ellipse(0, this.feetY + this.h * 0.02, this.h * 0.8, this.h * 0.3)
-        .setStrokeStyle(Math.max(2, this.h * 0.05), color, ally ? 0.95 : 0.55);
-      this.addAt(this.teamRing, 0);
+      // crew B also gets a double ring, so the crews differ by shape, not only by colour (backlog #8)
+      const mark = crewMark(key === 1 ? 1 : 0);
+      for (const s of mark.scales) {
+        const ring = this.scene.add
+          .ellipse(0, this.feetY + this.h * 0.02, this.h * 0.8 * s, this.h * 0.3 * s)
+          .setStrokeStyle(Math.max(2, this.h * 0.05), mark.color, ally ? 0.95 : 0.55);
+        this.addAt(ring, 0);
+        this.teamRings.push(ring);
+      }
     }
     this.nameText?.setColor(ally && key !== null ? hex(TEAM_COLORS[key === 1 ? 1 : 0]) : '#ffffff');
   }
