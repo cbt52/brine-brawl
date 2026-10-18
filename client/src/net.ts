@@ -36,12 +36,14 @@ export class Net {
     ws.onopen = () => {
       const p = this.params!;
       const bots = p.get('bots');
+      const ms = p.get('matchsec');
       this.send({
         t: 'join',
         room: p.get('room') ?? undefined,
         name: p.get('name') ?? undefined,
         fighter: p.get('fighter') ?? undefined,
         bots: bots === null ? undefined : Number(bots),
+        matchsec: ms === null ? undefined : Number(ms),
       });
     };
     ws.onmessage = (e) => {

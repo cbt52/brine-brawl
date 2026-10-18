@@ -31,8 +31,10 @@ export class Touch {
     await this.up();
   }
 
+  /** Quick tap: Chrome needs ≥1 frame between down and up or the pointer event is dropped. */
   async tap(p: Pt) {
     await this.down(1, p);
+    await new Promise((r) => setTimeout(r, 60)); // still well under the 150 ms tap threshold
     await this.up();
   }
 }

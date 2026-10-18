@@ -18,6 +18,32 @@ export interface JoinMsg {
   name?: string;
   fighter?: string;
   bots?: number;
+  /** match length override in seconds — ALLOW_DEBUG servers only */
+  matchsec?: number;
+}
+
+/** Match phases: waiting for players → 3 s countdown → playing → results → countdown… */
+export type MatchPhase = 'waiting' | 'countdown' | 'playing' | 'results';
+
+/** One scoreboard row (sent in the results phase). */
+export interface ScoreRow {
+  id: number;
+  n: string;
+  k: number;
+  d: number;
+  /** 1 = bot */
+  bot: number;
+}
+
+export interface MatchInfo {
+  /** phase */
+  st: MatchPhase;
+  /** whole seconds left in the current phase */
+  t: number;
+  /** round counter, increments when a match starts */
+  r: number;
+  /** final ranking — results phase only */
+  res?: ScoreRow[];
 }
 
 export interface DbgMsg {
@@ -77,6 +103,8 @@ export interface SnapMsg {
   players: SnapPlayer[];
   projs: SnapProj[];
   ev: SimEvent[];
+  /** match phase + timer (added by the room) */
+  m?: MatchInfo;
 }
 
 export type S2C =

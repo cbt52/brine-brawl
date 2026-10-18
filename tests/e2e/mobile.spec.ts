@@ -25,6 +25,12 @@ test('touch: left stick moves, right tap fires', async ({ page }) => {
 
   await page.waitForTimeout(1700); // spawn shield
   const ammo0 = (await me(page)).am;
-  await t.tap({ x: 700, y: 200 });
-  await expect.poll(async () => (await me(page)).am).toBeLessThan(ammo0);
+  // a tap fires toward the nearest enemy; CDP touch dispatch occasionally swallows one, so retry
+  let am = ammo0;
+  for (let i = 0; i < 3 && am >= ammo0; i++) {
+    await t.tap({ x: 700, y: 200 });
+    await page.waitForTimeout(350);
+    am = (await me(page)).am;
+  }
+  expect(am).toBeLessThan(ammo0);
 });

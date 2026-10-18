@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 
 const STICK_R = 70;
-const TAP_MS = 150;
 const TAP_PX = 12;
 const FIRE_MS = 150;
 const AIM_MIN = 18;
@@ -100,7 +99,9 @@ export class TouchControls {
     this.aim = null;
     this.aimBase.style.display = this.aimKnob.style.display = 'none';
     const d = Math.hypot(a.dx, a.dy);
-    if (now() - a.t0 < TAP_MS && d < TAP_PX) {
+    // no drag at all = tap: auto-aim at the nearest enemy. A slow, motionless release still counts
+    // (a press without movement is never a deliberate aim), only a real drag aims freely.
+    if (d < TAP_PX) {
       const e = this.nearestEnemy();
       const s = this.getSelf();
       if (e && s) {

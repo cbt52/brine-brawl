@@ -3,9 +3,12 @@ import { WORLD_W, WORLD_H } from '../../../shared/constants.ts';
 import { OBSTACLES } from '../../../shared/arena/docks.ts';
 import { PLAYER_RADIUS } from '../../../shared/sim/world.ts';
 import type { Net } from '../net.ts';
+import type { SnapPlayer } from '../../../shared/protocol.ts';
 import { Controls } from '../input/controls.ts';
 import { interpolate, interpolateProjs, type Pos } from '../net/interp.ts';
 import { CombatFx } from '../fx/combatFx.ts';
+import { HudScene } from './HudScene.ts';
+import { syncResults } from '../ui/results.ts';
 import { MAX_AMMO } from '../../../shared/sim/combat.ts';
 
 const INTERP_DELAY_MS = 100;
@@ -17,7 +20,7 @@ export class GameScene extends Phaser.Scene {
   private self: Pos | null = null;
   private camInit = false;
   private fx!: CombatFx;
-  private koText!: Phaser.GameObjects.Text;
+  private hud!: HudScene;
   private names = new Map<number, string>();
 
   constructor(private net: Net, private viewH: number) {
@@ -31,11 +34,9 @@ export class GameScene extends Phaser.Scene {
     this.applyZoom();
     this.scale.on('resize', () => this.applyZoom());
     this.controls = new Controls(this, this.net, () => this.self);
-    this.fx = new CombatFx(this, (id: number) => this.names.get(id) ?? '?');
-    this.koText = this.add
-      .text(0, 0, 'KOs 0', { fontSize: '26px', color: '#fff', stroke: '#1b1b2f', strokeThickness: 5 })
-      .setScrollFactor(0)
-      .setDepth(1100);
+    this.fx = new CombatFx(this);
+    this.hud = this.scene.get('hud') as HudScene;
+    this.scene.launch('hud'); // Phaser auto-starts only the first scene in the config list
   }
 
   private applyZoom(): void {
@@ -65,18 +66,10 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
-  /** Screen-space HUD: position objects relative to the (zoomed) camera. */
-  private place = (o: Phaser.GameObjects.Text, sx: number, sy: number): void => {
-    const cam = this.cameras.main;
-    const w = cam.getWorldPoint(sx, sy);
-    o.setPosition(w.x, w.y).setScale(1 / cam.zoom);
-  };
-
-  private updateHud(view: { id: number; k: number }[]): void {
-    const me = view.find((p) => p.id === this.net.id);
-    this.koText.setText('KOs ' + (me?.k ?? 0));
-    this.place(this.koText, 14, 10);
-    this.fx.layout(this.place, this.scale.width);
+  /** HUD lives in its own scene (screen space) — just feed it the current view. */
+  private updateHud(view: SnapPlayer[]): void {
+    this.hud.setMatch(this.net.last?.m, view, this.net.id);
+    syncResults(this.net.last?.m);
   }
 
   update(time: number): void {
@@ -120,7 +113,9 @@ export class GameScene extends Phaser.Scene {
       g.fillStyle(0xfff3b0, 1).fillCircle(pr.x, pr.y, 9);
       g.lineStyle(3, 0x1b1b2f, 1).strokeCircle(pr.x, pr.y, 9);
     }
-    this.fx.handle(this.net.events.splice(0), this.net.id, () => navigator.vibrate?.(30));
+    const evs = this.net.events.splice(0);
+    this.fx.handle(evs, this.net.id, () => navigator.vibrate?.(30));
+    this.hud.addEvents(evs, (id) => this.names.get(id) ?? '?');
     this.updateHud(view);
     for (const [id, t] of this.labels) {
       if (!seen.has(id)) { t.destroy(); this.labels.delete(id); }

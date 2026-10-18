@@ -220,6 +220,11 @@ export class World {
     this.events = [];
   }
 
+  /** New round: clear the scoreboard (positions, HP and live projectiles stay as they are). */
+  resetScores(): void {
+    for (const p of this.players.values()) { p.kos = 0; p.deaths = 0; }
+  }
+
   snapshotFor(viewerId: number): SnapMsg {
     const players: SnapPlayer[] = [];
     for (const p of this.players.values()) {

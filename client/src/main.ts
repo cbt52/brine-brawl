@@ -5,6 +5,7 @@ import { VIEW_H } from '../../shared/constants.ts';
 import type { C2S } from '../../shared/protocol.ts';
 import { Net, BUILD_ID } from './net.ts';
 import { GameScene } from './scenes/GameScene.ts';
+import { HudScene } from './scenes/HudScene.ts';
 import { showLobby } from './ui/lobby.ts';
 import { mountMenu, showInvite } from './ui/menu.ts';
 
@@ -38,7 +39,7 @@ const game = new Phaser.Game({
   parent: 'game',
   backgroundColor: '#0e2a3a',
   scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%' },
-  scene: [new GameScene(net, VIEW_H)],
+  scene: [new GameScene(net, VIEW_H), new HudScene()],
 });
 
 declare global {

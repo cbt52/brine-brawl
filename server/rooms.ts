@@ -3,6 +3,7 @@ import { MAX_HUMANS, MAX_NAME_LEN, TICK_HZ } from '../shared/constants.ts';
 import type { InputMsg } from '../shared/protocol.ts';
 import { World } from '../shared/sim/world.ts';
 import { BotBrain } from '../shared/sim/bot.ts';
+import { Match, rankPlayers } from './match.ts';
 
 const ROOM_RE = /^[a-z0-9-]{1,24}$/;
 const ADJ = ['Salty', 'Soggy', 'Crispy', 'Wobbly', 'Grumpy', 'Sneaky', 'Bouncy', 'Dizzy'];
@@ -30,6 +31,7 @@ export interface Client {
 export class Room {
   clients = new Map<number, Client>();
   world = new World();
+  match = new Match();
   emptySince: number | null = Date.now();
   bots = new Map<number, BotBrain>();
   wantBots = 0;
@@ -44,8 +46,20 @@ export class Room {
     this.last = now;
     const dt = 1 / TICK_HZ;
     let n = 0;
-    while (this.acc >= dt) { for (const b of this.bots.values()) this.world.setInput(b.id, b.think(this.world, dt)); this.world.step(dt); this.acc -= dt; n++; }
+    while (this.acc >= dt) {
+      for (const b of this.bots.values()) this.world.setInput(b.id, b.think(this.world, dt));
+      this.world.step(dt);
+      this.stepMatch(dt);
+      this.acc -= dt;
+      n++;
+    }
     return n;
+  }
+
+  private stepMatch(dt: number): void {
+    const ev = this.match.update(dt, this.world.players.size);
+    if (ev === 'start') this.world.resetScores();
+    else if (ev === 'end') this.match.ranking = rankPlayers([...this.world.players.values()]);
   }
 
   /** Bots fill free slots up to the requested count; humans take priority. */
@@ -84,14 +98,17 @@ export class RoomManager {
     this.timer.unref();
   }
 
-  join(ws: WebSocket, roomRaw: unknown, nameRaw: unknown, fighterRaw: unknown, botsRaw?: unknown): { room: Room; client: Client } | null {
+  join(ws: WebSocket, roomRaw: unknown, nameRaw: unknown, fighterRaw: unknown, botsRaw?: unknown, matchSecRaw?: unknown): { room: Room; client: Client } | null {
     const id = sanitizeRoom(roomRaw);
     let room = this.rooms.get(id);
+    const created = !room;
     if (!room) {
       room = new Room(id);
       this.rooms.set(id, room);
     }
     if (room.clients.size >= MAX_HUMANS) return null;
+    // match length override (debug builds only — index.ts gates it behind ALLOW_DEBUG)
+    if (created && matchSecRaw !== undefined) room.match.setMatchSec(matchSecRaw);
     const cid = this.nextId++;
     const client: Client = {
       id: cid,
@@ -129,8 +146,12 @@ export class RoomManager {
     for (const r of this.rooms.values()) {
       if (r.clients.size === 0) continue;
       r.advance(Date.now());
+      const info = r.match.info();
       for (const c of r.clients.values()) {
-        if (c.ws.readyState === 1) c.ws.send(JSON.stringify(r.world.snapshotFor(c.id)));
+        if (c.ws.readyState !== 1) continue;
+        const snap = r.world.snapshotFor(c.id);
+        snap.m = info;
+        c.ws.send(JSON.stringify(snap));
       }
       r.world.clearEvents();
     }

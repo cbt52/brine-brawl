@@ -43,6 +43,18 @@ export function mountMenu(net: Net): void {
     <small>Bots: host only</small>
     <button class="big sm alt" data-testid="menu-leave">Leave</button>`;
   document.body.append(btn, panel);
+  const sbBtn = document.createElement('button');
+  sbBtn.id = 'sb-btn';
+  sbBtn.setAttribute('data-testid', 'scoreboard-btn');
+  sbBtn.setAttribute('aria-label', 'Scoreboard');
+  sbBtn.textContent = '🏆';
+  document.body.appendChild(sbBtn);
+  let sbOn = false;
+  sbBtn.addEventListener('click', () => {
+    sbOn = !sbOn;
+    sbBtn.classList.toggle('on', sbOn);
+    window.dispatchEvent(new CustomEvent('brawl:scoreboard', { detail: sbOn }));
+  });
   const q = (id: string) => panel.querySelector(`[data-testid=${id}]`)!;
   const bots = () => (net.last?.players ?? []).filter((p) => p.id >= 1000).length;
   const refresh = () => { q('menu-bots').textContent = `${bots()} bots`; };
