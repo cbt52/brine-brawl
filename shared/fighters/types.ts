@@ -112,6 +112,10 @@ export interface AoeAbility extends AbilityBase {
   tickPull?: number;
   /** cone centred on the aim (degrees); victims outside it are ignored */
   coneDeg?: number;
+  /** HP per ½ s tick healed to the caster while the zone lives (Bonfire) */
+  selfHeal?: number;
+  /** seconds of "cannot walk" (root) left on victims the zone touches (Overgrowth) */
+  rootSec?: number;
   /** status applied to everything the zone touches */
   status?: StatusKind;
   statusSec?: number;
@@ -125,6 +129,8 @@ export interface BuffAbility extends AbilityBase {
   heal?: number;
   /** temporary movement multiplier */
   speedMul?: number;
+  /** damage-taken multiplier while the buff runs (0.5 = half damage, Shell Spin) */
+  dmgMul?: number;
   /** duration of the buff in seconds */
   sec: number;
 }

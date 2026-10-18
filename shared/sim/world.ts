@@ -85,6 +85,9 @@ export interface SimPlayer {
   /** temporary speed multiplier from a buff */
   buffMul: number;
   buffLeft: number;
+  /** damage-taken multiplier while `dmgMulLeft` runs (Shell Spin) */
+  dmgMul: number;
+  dmgMulLeft: number;
   status: StatusKind | null;
   statusLeft: number;
   /** seconds of "cannot walk" left (MUD root): attacks still work */
@@ -159,7 +162,7 @@ export class World {
       id, name, fighter: def.id, def, x: s.x, y: s.y, r: def.radius,
       hp: def.maxHp, mhp: def.maxHp, speedMul: def.speedMul, aim: 0, ack: 0, input: null,
       ammo: def.ammo, reload: 0, fireCd: 0, fireLatch: false, spcCd: 0, uc: 0, dash: null, burrow: null,
-      buffMul: 1, buffLeft: 0, status: null, statusLeft: 0, rootLeft: 0, burnT: 0, trapTook: 0,
+      buffMul: 1, buffLeft: 0, dmgMul: 1, dmgMulLeft: 0, status: null, statusLeft: 0, rootLeft: 0, burnT: 0, trapTook: 0,
       revealT: 0, down: false, respawn: 0, shield: C.SHIELD_SEC, kos: 0, deaths: 0, pendingFighter: null,
       gold: 0, bounty: BOUNTY_START, waterT: 0, bot,
       evolveKos: 0, evolved: false, flowHits: 0, flowT: 0, flowReady: false, toonUsed: false, toonLeft: 0,
@@ -284,6 +287,10 @@ export class World {
       if (p.buffLeft > 0) {
         p.buffLeft -= dt;
         if (p.buffLeft <= 0) { p.buffLeft = 0; p.buffMul = 1; }
+      }
+      if (p.dmgMulLeft > 0) {
+        p.dmgMulLeft -= dt;
+        if (p.dmgMulLeft <= 0) { p.dmgMulLeft = 0; p.dmgMul = 1; }
       }
       if (p.statusLeft > 0) {
         p.statusLeft -= dt;
@@ -447,7 +454,7 @@ export class World {
         this.zones.push({
           id: this.newProjId(), owner: pr.owner, x: pr.x, y: pr.y, r: pr.aoeOnEnd.radius,
           delay: 0, dur: 0, dmg: pr.aoeOnEnd.dmg, tickDmg: 0, push: 0, pull: 0, tickPull: 0,
-          coneDeg: 0, aim: 0, status: null, statusSec: 0, tickT: 0, fired: false,
+          coneDeg: 0, aim: 0, status: null, statusSec: 0, selfHeal: 0, rootSec: 0, tickT: 0, fired: false,
         });
       }
       if (!dead && pr.left > 0) keep.push(pr);
@@ -458,6 +465,8 @@ export class World {
   /** Single damage entry point: also feeds the attacker's ult charge. */
   damage(attacker: number, v: SimPlayer, dmg: number, x: number, y: number): void {
     if (v.shield > 0 || v.down || v.burrow) return;
+    // Shell Spin and friends take less damage while their buff runs
+    if (v.dmgMulLeft > 0) dmg *= v.dmgMul;
     const dealt = Math.max(0, Math.min(v.hp, dmg));
     v.hp = Math.max(0, v.hp - dmg);
     this.events.push({ k: 'hit', a: attacker, v: v.id, dmg, x: Math.round(x), y: Math.round(y) });
@@ -549,6 +558,8 @@ export class World {
     p.burrow = null;
     p.buffMul = 1;
     p.buffLeft = 0;
+    p.dmgMul = 1;
+    p.dmgMulLeft = 0;
     p.status = null;
     p.statusLeft = 0;
     p.trapTook = 0;

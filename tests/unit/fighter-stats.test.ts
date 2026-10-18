@@ -3,8 +3,8 @@ import { FIGHTERS, SELECTABLE, getFighter } from '../../shared/fighters/index.ts
 import { abilitySummary, attackDamage, fighterStats } from '../../shared/fighters/stats.ts';
 
 describe('fighter select data', () => {
-  it('offers the four real kits, without the Deckhand fallback', () => {
-    expect(SELECTABLE.map((f) => f.id)).toEqual(['voltbun', 'mira', 'noodle', 'sudsy']);
+  it('offers the registered kits, without the Deckhand fallback', () => {
+    expect(SELECTABLE.map((f) => f.id)).toEqual(['voltbun', 'embercub', 'mossback', 'mira', 'noodle', 'sudsy']);
     expect(SELECTABLE.some((f) => f.id === 'default')).toBe(false);
   });
 

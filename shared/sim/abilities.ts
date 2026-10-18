@@ -32,6 +32,10 @@ export interface Zone {
   aim: number;
   status: StatusKind | null;
   statusSec: number;
+  /** HP per ½ s tick healed to the owner while the zone lives (Bonfire) */
+  selfHeal: number;
+  /** root seconds applied to everything the zone touches (Overgrowth) */
+  rootSec: number;
   /** element of the hit; defaults to the status element */
   element?: Element;
   tickT: number;
@@ -100,6 +104,8 @@ interface HitOpts {
   statusSec?: number;
   /** element of the hit; defaults to the status element (neutral for pure knockback) */
   element?: Element;
+  /** root seconds applied to every victim hit (Overgrowth) */
+  rootSec?: number;
 }
 
 /** Element of a hit: explicit override, else the status element, else neutral. */
@@ -124,6 +130,7 @@ function hitAll(
     const uy = d > 1e-6 ? dy / d : 0;
     if (push) shove(v, ux, uy, push);
     if (pull) shove(v, -ux, -uy, Math.min(pull, Math.max(0, d)));
+    if (o.rootSec && !v.down) v.rootLeft = Math.max(v.rootLeft, o.rootSec);
     if (!v.down && v.shield <= 0) {
       const react = applyElementHit(h, owner, v, o.status ?? null, o.statusSec ?? 0, hitElement(o.element, o.status));
       if (react === null && o.status) h.events.push({ k: 'status', v: v.id, s: o.status, sec: o.statusSec ?? 1 });
@@ -253,6 +260,7 @@ export function castAbility(
         dmg: def.dmg, tickDmg: def.tickDmg ?? 0, push: def.push ?? 0, pull: def.pull ?? 0,
         tickPull: def.tickPull ?? 0, coneDeg: def.coneDeg ?? 0, aim: p.aim,
         status: def.status ?? null, statusSec: def.statusSec ?? 0,
+        selfHeal: def.selfHeal ?? 0, rootSec: def.rootSec ?? 0,
         element: hitElement(defEl, def.status),
         tickT: 0, fired: false,
       });
@@ -264,6 +272,10 @@ export function castAbility(
       if (def.speedMul) {
         p.buffMul = def.speedMul;
         p.buffLeft = def.sec;
+      }
+      if (def.dmgMul) {
+        p.dmgMul = def.dmgMul;
+        p.dmgMulLeft = def.sec;
       }
       break;
     }
@@ -307,7 +319,10 @@ export function abilityReach(def: AbilityDef): number {
 export function stepZones(h: CastHost, dt: number): void {
   const keep: Zone[] = [];
   for (const z of h.zones) {
-    const opts: HitOpts = { coneDeg: z.coneDeg, aim: z.aim, status: z.status, statusSec: z.statusSec, element: z.element };
+    const opts: HitOpts = {
+      coneDeg: z.coneDeg, aim: z.aim, status: z.status, statusSec: z.statusSec,
+      element: z.element, rootSec: z.rootSec,
+    };
     if (!z.fired) {
       z.delay -= dt;
       if (z.delay > 0) { keep.push(z); continue; }
@@ -320,6 +335,11 @@ export function stepZones(h: CastHost, dt: number): void {
         z.tickT -= ZONE_TICK_SEC;
         if (z.tickDmg > 0 || z.tickPull > 0) hitAll(h, z.owner, z.x, z.y, z.r, z.tickDmg, 0, z.tickPull, opts);
         else if (z.status && opts.statusSec) hitAll(h, z.owner, z.x, z.y, z.r, 0, 0, 0, opts);
+        // Bonfire heals its own caster while it burns
+        if (z.selfHeal > 0) {
+          const owner = h.players.get(z.owner);
+          if (owner && !owner.down && owner.hp > 0) owner.hp = Math.min(owner.mhp, owner.hp + z.selfHeal);
+        }
       }
       z.dur -= dt;
       if (z.dur > 0) keep.push(z);
@@ -355,7 +375,7 @@ export function stepDash(h: CastHost, p: SimPlayer, dt: number): boolean {
         id: h.newProjId(), owner: p.id, x: p.x, y: p.y, r: d.trail.radius,
         delay: 0, dur: 0, dmg: d.trail.dmg, tickDmg: 0, push: 0, pull: 0, tickPull: 0,
         coneDeg: 0, aim: 0, status: d.trail.status, statusSec: d.trail.statusSec,
-        element: d.trail.element, tickT: 0, fired: false,
+        selfHeal: 0, rootSec: 0, element: d.trail.element, tickT: 0, fired: false,
       });
     }
   }

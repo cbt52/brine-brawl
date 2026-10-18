@@ -536,3 +536,90 @@ describe('element + death edge cases (review fixes)', () => {
     expect(died).toBe(true);
   });
 });
+
+describe('T21 kits: Embercub + Mossback', () => {
+  it('registers both kits', () => {
+    expect(getFighter('embercub').id).toBe('embercub');
+    expect(getFighter('mossback').id).toBe('mossback');
+    expect(FIGHTERS.map((f) => f.id)).toEqual(expect.arrayContaining(['embercub', 'mossback']));
+  });
+
+  it('Flame Swipe is a wide melee cone that sets the target burning', () => {
+    const { w, a, b } = setup('embercub', 190);
+    const behind = w.addPlayer(3, 'C');
+    behind.x = 800; behind.y = 1000; behind.shield = 0;
+    castAbility(w, a, getFighter('embercub').attack);
+    expect(b.hp).toBe(b.mhp - 21);
+    expect(b.status).toBe('burn');
+    expect(behind.hp).toBe(behind.mhp);
+  });
+
+  it('Ember Roll rolls forward and leaves a burning trail behind the cub', () => {
+    const { w, a, b } = setup('embercub', 500);
+    b.x = 1000; b.y = 1080; // beside the roll lane, inside the trail radius
+    const x0 = a.x;
+    castAbility(w, a, getFighter('embercub').special);
+    run(w, 0.4);
+    expect(a.x - x0).toBeGreaterThan(250);
+    expect(b.status).toBe('burn');
+  });
+
+  it('Bonfire burns enemies inside the zone and heals Embercub while it burns', () => {
+    const { w, a, b } = setup('embercub', 200);
+    a.hp = 60;
+    const bHp0 = b.hp;
+    castAbility(w, a, getFighter('embercub').ult);
+    run(w, 1.3);
+    expect(b.status).toBe('burn');
+    expect(bHp0 - b.hp).toBeGreaterThan(12); // trigger hit plus at least one tick
+    expect(a.hp).toBeGreaterThan(60); // the fire patches its own caster up
+  });
+
+  it('Bonfire stops healing when it expires', () => {
+    const { w, a } = setup('embercub', 900);
+    a.hp = 60;
+    castAbility(w, a, getFighter('embercub').ult);
+    run(w, 3.6);
+    const healed = a.hp;
+    expect(healed).toBeGreaterThan(60);
+    run(w, 1.5);
+    expect(a.hp).toBe(healed);
+  });
+
+  it('Seed Spit fires three tangling seeds', () => {
+    const { w, a, b } = setup('mossback', 260);
+    castAbility(w, a, getFighter('mossback').attack);
+    expect(w.projs).toHaveLength(3);
+    run(w, 0.6);
+    expect(b.hp).toBe(b.mhp - 9);
+    expect(b.status).toBe('tangled');
+  });
+
+  it('Shell Spin halves the damage Mossback takes for its duration', () => {
+    const { w, a } = setup('mossback', 300);
+    castAbility(w, a, getFighter('mossback').special);
+    expect(a.dmgMul).toBe(0.5);
+    w.damage(2, a, 40, a.x, a.y);
+    expect(a.mhp - a.hp).toBe(20);
+    run(w, 2.1);
+    expect(a.dmgMul).toBe(1);
+    w.damage(2, a, 40, a.x, a.y);
+    expect(a.mhp - a.hp).toBe(60);
+  });
+
+  it('Overgrowth roots and tangles everything around the aim point', () => {
+    const { w, a, b } = setup('mossback', 260);
+    b.x = 1260;
+    castAbility(w, a, getFighter('mossback').ult);
+    run(w, 0.4);
+    expect(b.hp).toBe(b.mhp - 20);
+    expect(b.status).toBe('tangled');
+    expect(b.rootLeft).toBeGreaterThan(0);
+    const x0 = b.x;
+    for (let i = 0; i < Math.round(TICK_HZ * 0.5); i++) {
+      w.setInput(2, inp({ seq: 10 + i, mx: -1 }));
+      w.step();
+    }
+    expect(b.x).toBe(x0); // rooted: cannot walk
+  });
+});

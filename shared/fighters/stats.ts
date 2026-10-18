@@ -73,6 +73,7 @@ export function abilitySummary(a: AbilityDef): string {
       if (a.heal) parts.push(`+${a.heal} hp`);
       if (a.shield) parts.push('shield');
       if (a.speedMul) parts.push(`speed ×${a.speedMul}`);
+      if (a.dmgMul) parts.push(`takes ×${a.dmgMul} dmg`);
       return [...parts, `${sec(a.sec)} s`].join(' · ');
     }
     case 'status':

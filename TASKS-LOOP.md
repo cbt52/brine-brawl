@@ -342,7 +342,8 @@ Each reaction shows a big popup word ("SHOCK!").
 ### CP6 — "Die Crew wächst: 12 Kämpfer + Balance"
 (Each fighter task: SVG + hurt SVG, data kit, hooks if needed, unit test per ability, gallery shot ≤1 PNG viewed.)
 
-- [ ] **T21 — Critterkin: Embercub + Mossback**
+- [x] **T21 — Critterkin: Embercub + Mossback**
+  - Note: kits registered — Embercub (Flame Swipe melee cone burn / Ember Roll burn-trail dash / Bonfire aim zone that ticks burn and heals the caster), Mossback (Seed Spit 3-seed tangled spread / Shell Spin buff dmgMul 0.5 for 2 s / Overgrowth root AoE). New primitive bits: `AoeAbility.selfHeal` (zone heals its owner per ½ s tick), `AoeAbility.rootSec` (rootLeft on victims), `BuffAbility.dmgMul` + `SimPlayer.dmgMul/dmgMulLeft` applied in `World.damage`; buff summary shows the multiplier. 8 new tests, 364 green, gallery shot T21-0 shows both new cards.
   - Test: `npm run check && npm run shot -- --name T21 --path /gallery.html`
 - [ ] **T22 — Weavers: Pip Windwhistle + Brak Stonefist**
   - Brak's Stone Wall adds a new primitive `wall` (temporary dynamic obstacle, 4 s, HP 60, in collision + projectile blocking).
@@ -536,3 +537,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T18 ✅ 2026-10-18 — Rising Tide: 35/5/15/5-Zyklus, Flut-Rects + Wading-Slow/Wet, Schock-Kette, Low-Tide-Chests+Pickups, Tide-Meter+Hupe; 13 Tests grün
 - RF ✅ 2026-10-18 — Review 042545: Edge-Cadence (quantized dir, EDGE_MS=TICK_MS), Burn-KO, Ability-Element-Fallback, Chest-Seeding, T20-Spec+Logs; 356 Tests+e2e 15/15 grün
 - T20 ✅ 2026-10-18 — Fraktions-Passives (EVOLVE/FLOW/PLUNDER/TOON LOGIC) im Sim + Aura/Krone/Ribbon/Münzen/Pancake-FX, Passiv-Zeile auf den Karten; CP5, check+347 Tests+smoke+e2e grün
+- T21 ✅ 2026-10-18 — Embercub+Mossback-Kits (Zone-SelfHeal/Tick-Burn, Root-AoE, Buff-DmgMul), 8 neue Tests, check+364 Tests+shot grün
