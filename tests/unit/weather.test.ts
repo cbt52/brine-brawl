@@ -8,10 +8,13 @@ const run = (w: World, sec: number) => { for (let i = 0; i < Math.round(sec * TI
 
 describe('weird weather roll', () => {
   it('a roll under the chance gets a modifier, the rest calm skies', () => {
+    // the chance splits into three equal slices: Double Tide, bubble storm, jelly rain
     expect(pickWeather(0)).toBe('double-tide');
-    expect(pickWeather(WEATHER_CHANCE / 2 - 0.001)).toBe('double-tide');
-    expect(pickWeather(WEATHER_CHANCE / 2)).toBe('bubble-storm');
-    expect(pickWeather(WEATHER_CHANCE - 0.001)).toBe('bubble-storm');
+    expect(pickWeather(0.1)).toBe('double-tide');
+    expect(pickWeather(0.2)).toBe('bubble-storm');
+    expect(pickWeather(0.3)).toBe('bubble-storm');
+    expect(pickWeather(0.4)).toBe('jelly-rain');
+    expect(pickWeather(WEATHER_CHANCE - 0.001)).toBe('jelly-rain');
     expect(pickWeather(WEATHER_CHANCE)).toBe('clear');
     expect(pickWeather(0.999)).toBe('clear');
   });
@@ -24,8 +27,9 @@ describe('weird weather roll', () => {
 
   it('Showdown never rolls Double Tide, its flood follows the ring (backlog #20)', () => {
     expect(pickWeather(0, 'showdown')).toBe('bubble-storm');
-    expect(pickWeather(WEATHER_CHANCE / 2 - 0.001, 'showdown')).toBe('bubble-storm');
-    expect(pickWeather(WEATHER_CHANCE / 2, 'showdown')).toBe('bubble-storm');
+    expect(pickWeather(0.2, 'showdown')).toBe('bubble-storm');
+    expect(pickWeather(0.3, 'showdown')).toBe('jelly-rain');
+    expect(pickWeather(WEATHER_CHANCE - 0.001, 'showdown')).toBe('jelly-rain');
     expect(pickWeather(WEATHER_CHANCE, 'showdown')).toBe('clear');
     expect(pickWeather(0, 'treasure')).toBe('double-tide');
   });

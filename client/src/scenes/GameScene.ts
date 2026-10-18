@@ -30,6 +30,7 @@ import { tideLevel } from '../../../shared/sim/tide.ts';
 import { SHOWDOWN_CENTER, safeRadius } from '../../../shared/sim/showdown.ts';
 import { EMOTES } from '../../../shared/emotes.ts';
 import type { PickupKind, SnapBubble, SnapPurrl, SnapSummon, SnapWall } from '../../../shared/protocol.ts';
+import { drawJelly } from '../fx/jellyFx.ts';
 
 const INTERP_DELAY_MS = 100;
 /** how long the taffy arm stays stretched out after a punch */
@@ -233,6 +234,7 @@ export class GameScene extends Phaser.Scene {
     if (snap.purrl) this.drawPurrl(g, snap.purrl, nowMs);
     drawVolleys(g, arenaById(snap.m?.ar).cannons, snap.cn ?? []);
     for (const bu of snap.bb ?? []) this.drawBubble(g, bu, nowMs);
+    for (const j of snap.jl ?? []) drawJelly(g, j, nowMs);
     for (const c of snap.chests ?? []) {
       const bob = Math.sin(nowMs / 420 + c.id) * 2;
       const y = c.y + bob;

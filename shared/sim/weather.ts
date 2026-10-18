@@ -1,8 +1,8 @@
 /**
  * Weird Weather (backlog #4, slice 1): a modifier the room rolls when a round starts. Pure data +
  * pure functions, no DOM/Node, so the server, tests and the HUD share one source of truth.
- * Double Tide (the tide clock runs twice as fast) and the bubble storm (bubbles carry fighters up).
- * Jellyfish rain arrives in a later slice.
+ * Double Tide (the tide clock runs twice as fast), the bubble storm (bubbles carry fighters up) and
+ * jellyfish rain (jellies drift and lunge, stinging whoever they touch).
  */
 import type { RoomMode, Weather } from '../protocol.ts';
 
@@ -13,7 +13,7 @@ export const WEATHER_CHANCE = 0.5;
 export const DOUBLE_TIDE_RATE = 2;
 
 /** The modifiers a rolled round can get, in roll order. */
-const ROLLABLE: Exclude<Weather, 'clear'>[] = ['double-tide', 'bubble-storm'];
+const ROLLABLE: Exclude<Weather, 'clear'>[] = ['double-tide', 'bubble-storm', 'jelly-rain'];
 
 /** Showdown (backlog #20): the flood follows the closing ring, so Double Tide is never rolled there. */
 const SHOWDOWN_ROLLABLE: Exclude<Weather, 'clear'>[] = ROLLABLE.filter((w) => w !== 'double-tide');
@@ -23,6 +23,7 @@ export const WEATHER_NAMES: Record<Weather, string> = {
   clear: 'CALM SKIES',
   'double-tide': 'DOUBLE TIDE',
   'bubble-storm': 'BUBBLE STORM',
+  'jelly-rain': 'JELLY RAIN',
 };
 
 /** Pick a round's weather from a uniform roll in [0, 1), from the modes' own pool. */

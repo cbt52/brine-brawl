@@ -41,7 +41,7 @@ export type MatchPhase = 'waiting' | 'countdown' | 'playing' | 'results';
 export type RoomMode = 'bounty' | 'treasure' | 'showdown';
 
 /** Weird Weather (backlog #4): the modifier a round rolls when it starts. */
-export type Weather = 'clear' | 'double-tide' | 'bubble-storm';
+export type Weather = 'clear' | 'double-tide' | 'bubble-storm' | 'jelly-rain';
 
 /** One scoreboard row (sent in the results phase). */
 export interface ScoreRow {
@@ -262,6 +262,16 @@ export interface SnapBubble {
   r: number;
 }
 
+/** A jellyfish of jellyfish rain (backlog #30); it stings a fighter it touches. */
+export interface SnapJelly {
+  id: number;
+  x: number;
+  y: number;
+  r: number;
+  /** true while the jelly lunges, so the client can draw the warning glow */
+  d: boolean;
+}
+
 /** A reward dropped by a broken chest. */
 export interface SnapPickup {
   id: number;
@@ -323,6 +333,8 @@ export interface SnapMsg {
   purrl?: SnapPurrl;
   /** bubble storm bubbles, only in a bubble-storm round (backlog #17) */
   bb?: SnapBubble[];
+  /** jellyfish, only in a jelly-rain round (backlog #30) */
+  jl?: SnapJelly[];
   /** deck cannon volleys in flight, only on arenas with cannons (backlog #26) */
   cn?: SnapVolley[];
   /** Treasure Tide crew totals + escape countdown (T27) */

@@ -2,7 +2,7 @@ import { TICK_HZ, WORLD_W, WORLD_H } from '../constants.ts';
 import { OBSTACLES } from '../arena/docks.ts';
 import type { Rect } from '../arena/docks.ts';
 import { DOCKS_ARENA, type Arena } from '../arena/arena.ts';
-import type { AbilitySlot, PickupKind, RoomMode, SimEvent, SnapMsg, SnapPlayer, SnapVolley, Weather } from '../protocol.ts';
+import type { AbilitySlot, PickupKind, RoomMode, SimEvent, SnapJelly, SnapMsg, SnapPlayer, SnapVolley, Weather } from '../protocol.ts';
 import { getFighter } from '../fighters/index.ts';
 import { statusMask, TRAP_BREAK_DMG, type FighterDef, type StatusKind } from '../fighters/types.ts';
 import { pushOutRect, resolveWalls, separate } from './collide.ts';
@@ -26,6 +26,9 @@ import {
 } from './tide.ts';
 import { tideRate } from './weather.ts';
 import { BUBBLE_LIFT, BUBBLE_SLOW, inBubble, makeBubbles, stepBubbles, type Bubble } from './bubbles.ts';
+import {
+  JELLY_STING, JELLY_STING_CD, jellyLunging, jellyTouches, makeJellies, stepJellies, type Jelly,
+} from './jellies.ts';
 import {
   SHOWDOWN_EDGE_TICK_SEC, edgeDamage, lastSideInRing, outsideRing, showdownTideLevel,
 } from './showdown.ts';
@@ -210,6 +213,8 @@ export class World {
   weather: Weather = 'clear';
   /** the bubble storm's bubbles (backlog #17); empty unless this round rolled it */
   bubbles: Bubble[] = [];
+  /** the jellyfish rain's jellies (backlog #30); empty unless this round rolled it */
+  jellies: Jelly[] = [];
   /** room mode (T26/T27): Bounty Brawl, Treasure Tide or Showdown (backlog #6) */
   mode: RoomMode = 'bounty';
   /** seconds into the current round, set by the room; drives the Showdown ring (backlog #6) */
@@ -273,6 +278,7 @@ export class World {
   setWeather(w: Weather): void {
     this.weather = w;
     this.bubbles = w === 'bubble-storm' ? makeBubbles() : [];
+    this.jellies = w === 'jelly-rain' ? makeJellies() : [];
   }
 
   /** Pick the room mode; Treasure Tide grows its own coin/countdown bookkeeping. */
@@ -461,6 +467,8 @@ export class World {
     this.stepTide(dt);
     this.stepTreasure(dt);
     stepBubbles(this.bubbles, dt);
+    stepJellies(this.jellies, dt);
+    this.stepJellyStings();
     // static coral plus whatever stone a fighter built: one list for bodies, one for aging
     const stone = this.walls.length ? wallRects(this.walls) : undefined;
     const block = stone ? this.arena.obstacles.concat(stone) : this.arena.obstacles;
@@ -766,6 +774,17 @@ export class World {
   }
 
   /** Single damage entry point: also feeds the attacker's ult charge and Crew Combo bookkeeping. */
+  /** Jellyfish rain (backlog #30): a fighter a jelly touches is stung, once per jelly per cooldown. */
+  private stepJellyStings(): void {
+    for (const j of this.jellies) {
+      for (const p of this.players.values()) {
+        if (p.down || j.cd.has(p.id) || !jellyTouches(j, p.x, p.y, p.r)) continue;
+        j.cd.set(p.id, JELLY_STING_CD);
+        this.damage(-1, p, JELLY_STING, p.x, p.y);
+      }
+    }
+  }
+
   damage(attacker: number, v: SimPlayer, dmg: number, x: number, y: number, slot?: AbilitySlot): void {
     if (v.shield > 0 || v.down || v.burrow) return;
     // no friendly fire (T26): a teammate's shot, zone or splash passes through
@@ -951,7 +970,7 @@ export class World {
 
   /** Debug shots (`dbg` op `wx`): force this round's weather, e.g. `bubble-storm` (backlog #17). */
   debugWeather(w: string): void {
-    if (w === 'clear' || w === 'double-tide' || w === 'bubble-storm') this.setWeather(w);
+    if (w === 'clear' || w === 'double-tide' || w === 'bubble-storm' || w === 'jelly-rain') this.setWeather(w);
   }
 
   debugHp(id: number, hp: number): void {
@@ -1037,6 +1056,9 @@ export class World {
       cn: this.volleySnap(),
       bb: this.bubbles.length
         ? this.bubbles.map((b) => ({ id: b.id, x: Math.round(b.x), y: Math.round(b.y), r: b.r }))
+        : undefined,
+      jl: this.jellies.length
+        ? this.jellies.map((j): SnapJelly => ({ id: j.id, x: Math.round(j.x), y: Math.round(j.y), r: j.r, d: jellyLunging(j) }))
         : undefined,
       tr: this.treasure ? this.treasure.info() : undefined,
       walls: this.walls.length
