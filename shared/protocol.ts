@@ -83,6 +83,8 @@ export interface MatchInfo {
   bl?: string;
   /** the layout this match plays on (backlog #26): scenery, pools and kelp for prediction + draw */
   ar?: ArenaId;
+  /** true only for the viewer who hosts the room (backlog #27): the ☰ menu greys out bot controls for the rest */
+  host?: boolean;
 }
 
 export interface DbgMsg {

@@ -120,6 +120,8 @@ body.in-lobby #rotate { display: none; }
   color: #b9dcd6; line-height: 1.25; }
 .card .moves b { font-family: 'Lilita One', system-ui, sans-serif; font-weight: 400; font-size: 10px; color: #fff; margin-right: 2px; }
 #menu .frow { flex-wrap: wrap; max-width: 280px; }
+/* backlog #27: bot controls the viewer cannot use (not the host) */
+#menu .big:disabled { opacity: .4; cursor: not-allowed; transform: none; box-shadow: none; }
 .big.pick { font-size: 12px; padding: 4px 8px; background: #26506a; }
 .big.pick.on { background: #ffc93c; color: #1b1b2f; text-shadow: none; }
 @media (max-height: 560px) {

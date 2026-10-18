@@ -49,7 +49,7 @@ export function mountMenu(net: Net, touch: boolean): void {
     <div class="row"><button class="big sm alt" data-testid="menu-bot-minus">− Bot</button>
     <span data-testid="menu-bots"></span>
     <button class="big sm alt" data-testid="menu-bot-plus">+ Bot</button></div>
-    <small>Bots: host only</small>
+    <small data-testid="menu-host-hint">Bots: host only</small>
     <div class="row" data-testid="menu-levels"></div>
     <small>Bot level: host only · bots already in the room switch too</small>
     <button class="big sm alt" data-testid="menu-stats">Stats</button>
@@ -110,10 +110,19 @@ export function mountMenu(net: Net, touch: boolean): void {
       b.className = `big sm${b.dataset.level === cur ? '' : ' alt'}`;
     }
   };
+  // backlog #27: only the host can change bots, so the other players see the controls greyed out
+  const botControls = [q('menu-bot-minus'), q('menu-bot-plus'), ...lvlRow.querySelectorAll('button[data-level]')] as HTMLButtonElement[];
+  const hostHint = q('menu-host-hint') as HTMLElement;
+  const markHost = () => {
+    const host = !!net.last?.m?.host;
+    for (const b of botControls) b.disabled = !host;
+    hostHint.textContent = host ? 'You host this room: bots and levels are yours' : 'Host only: the first player in the room sets bots and levels';
+  };
   const refresh = () => {
     q('menu-bots').textContent = `${bots()} bots`;
     markFighterRow(frow, myFighter());
     markLevel();
+    markHost();
   };
   const setBots = (n: number) => { net.send({ t: 'bots', n: Math.max(0, Math.min(7, n)) }); };
   const toggle = (open: boolean) => {

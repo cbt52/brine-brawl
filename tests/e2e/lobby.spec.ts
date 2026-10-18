@@ -23,6 +23,27 @@ test('create room: invite url, host bot controls', async ({ page }) => {
   await expect.poll(() => page.evaluate(() => (window as any).__brawl.state()?.players.length)).toBe(2);
 });
 
+test('bot controls: only the room host can use them (backlog #27)', async ({ page, browser }) => {
+  await page.goto('/');
+  await page.getByTestId('create-room').click();
+  const room = new URL(await page.getByTestId('invite-url').inputValue()).searchParams.get('room')!;
+  await page.getByTestId('invite-close').click();
+  await expect.poll(() => page.evaluate(() => (window as any).__brawl.connected)).toBe(true);
+  // a second player joins the same room by link (the first human stays the host)
+  const guest = await browser.newPage();
+  await guest.goto(`/?room=${encodeURIComponent(room)}&name=Guest`);
+  await expect.poll(() => guest.evaluate(() => (window as any).__brawl.connected)).toBe(true);
+  await page.getByTestId('menu-btn').click();
+  await guest.getByTestId('menu-btn').click();
+  await expect(page.getByTestId('menu-bot-plus')).toBeEnabled();
+  await expect(page.getByTestId('menu-level-sharky')).toBeEnabled();
+  await expect(guest.getByTestId('menu-bot-plus')).toBeDisabled();
+  await expect(guest.getByTestId('menu-bot-minus')).toBeDisabled();
+  await expect(guest.getByTestId('menu-level-sharky')).toBeDisabled();
+  await expect(guest.getByTestId('menu-host-hint')).toContainText('Host only');
+  await guest.close();
+});
+
 test('lobby title stays on one line and fits the screen', async ({ page }) => {
   await page.goto('/');
   const title = page.locator('#lobby .title');

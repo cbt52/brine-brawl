@@ -190,6 +190,11 @@ export class Room {
     this.world.setSkin(c.id, sanitizeSkin(raw));
   }
 
+  /** The first human to join is the host (backlog #14/#27); null once the room is empty. */
+  hostId(): number | null {
+    return this.clients.keys().next().value ?? null;
+  }
+
   /** Host's ☰-menu level change (backlog #14): the bots already in the room switch with it. */
   setBotLevel(raw: unknown): void {
     this.botLevel = sanitizeBotLevel(raw);
@@ -323,10 +328,12 @@ export class RoomManager {
       info.bl = r.botLevel;
       info.ar = r.world.arena.id;
       if (r.mode === 'showdown') info.sd = Math.round(r.world.roundT * 10) / 10;
+      const host = r.hostId();
       for (const c of r.clients.values()) {
         if (c.ws.readyState !== 1) continue;
         const snap = r.world.snapshotFor(c.id);
-        snap.m = info;
+        // the host flag is per viewer, so each client gets its own copy of the info
+        snap.m = { ...info, host: c.id === host };
         c.ws.send(JSON.stringify(snap));
       }
       r.world.clearEvents();

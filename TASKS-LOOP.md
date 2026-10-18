@@ -457,7 +457,6 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 ## 5. IMPROVEMENT BACKLOG (ordered; T99 takes from the top; user feedback goes first)
 11. Optional ONLY if the user asks: ComfyUI portraits (127.0.0.1:8188, 2–7 min/img, 16 GB RAM, never while the user is using it).
 
-27. Host-only bot controls: non-hosts see the ☰ bot count and level buttons but tapping them does nothing (the server ignores them). Send an `host` flag in the match info and grey out the bot and level rows for non-hosts, with a 'host only' hint.
 28. Ready count on the results screen: the poster shows "2/3 ready" (a `rd` count in MatchInfo, from `Room.rematch`'s ready set) so players see who the round is waiting for, and the footer shows "Next round in Ns" only once the round is ready.
 29. Portraits in the ☰ fighter row: the row is text-only, so a skin change shows on the body and nowhere else in the menu. Give each button a small portrait via `skinnedPortrait` (`client/src/art/skinPortrait.ts`) at the picked skin, and keep the `on` state from `markFighterRow`.
 30. Weird Weather part 3 (slice 2a = bubble storm: `shared/sim/bubbles.ts`, carry + slow in `stepMove`, `bb` snapshot, predicted, `dbg wx` op): jellyfish rain as a third `Weather` entry, drifting stinging jellies that dash through the open sand, with their own sim hook and a shot check.
@@ -475,20 +474,11 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 42. Join options are positional: `RoomManager.join` now takes 11 positional arguments (the `arena` pick was the last). Pass one `JoinOpts` object from `server/index.ts` so the next lobby option does not add a 12th, and keep the `rooms.join` call sites in one place.
 43. Galleon tips say the docks: the tips card always reads "Welcome to the docks" and lists the kelp and tide tip, which do not exist on the deck. Pick the card's heading and tips by the room's arena (`tutorialTips` takes the layout id, like the mode tip in #34).
 44. Cannon warning cue: a volley's telegraph and bar are drawn (`client/src/fx/cannonFx.ts`) but silent. Play a short warning tick the first time a lane shows `st: 'warn'` in `snap.cn`, and a thud when it turns to `fire`, in `client/src/audio/map.ts` terms (kept quiet, one cue per volley per lane).
+45. Host hand-over toast: the bot controls now follow the host role (`MatchInfo.host`), so when the host leaves and the next player becomes host their ☰ menu unlocks silently. Show a one-line toast "You host this room now" on that change (client compares `host` between snapshots), so the newly enabled controls are explained.
 
 ---
 
 ## 6. LOG (one line per task/hotfix; archive older lines to `.loop/log-archive.md` if >40 lines)
-- T28 ✅ 2026-10-18 — Crew Combos (Element-Paarnamen, +40 % Burst, 1,5 s/300 u, `slot` bis ins Damage-Chokepoint), KO-Kamera folgt Killer, Results Rematch/Change fighter; CP7, 428 Tests+e2e grün
-- T25 ✅ 2026-10-18 — Balance-Harness (`npm run balance`, --quick 1 s): 12×12-Paare ×10 Seeds ×60 s + FFA×20, `.loop/balance.md`; Bot-Nahkampf-Fix (prefRange aus der eigenen Reichweite); 3 Balance-Pässe, Outliers 11→5; CP6, 397 Tests+e2e 15/15+healthz grün
-- T27 ✅ 2026-10-18 — Treasure Tide: Sunken Chest spawnt alle 7 s eine Münze, getragene Münzen fallen bei KO, ≥10 Münzen starten 15 s Escape-Countdown (reset bei Verlust), HUD-Crew-Balken + Banner, Bot-Rollen carry/collect/escort; 13 neue Tests, check 420+e2e 15/15 grün
-- T26 ✅ 2026-10-18 — Teams: RoomMode (bounty|treasure) Lobby→Join→Room, autoTeams (sticky, Humans gespreizt), kein Friendly Fire (damage/Projektil/Ability/Element/Bot-Ziel), Crew-Ring+Ally-Namen, Bots regroup; 407 Tests+e2e 15/15 grün
-- T30 ✅ 2026-10-18 — Ashka (Fire Darts/Flame Step/Phoenix Ribbon), Kip (Boomerang `returns`-Primitive, Smoke Pop `selfSpeedMul`, Triple Rang), Uncle Tobo (Hot Tea Splash/Tea Break/Redirect Bolt); Bot nutzt Self-Heal-Special; 11 Tests, check 451+shot grün
-- T31 ✅ 2026-10-18 — Nova (Mist Orb/Storm Cloud/`strikes`-Lightning Chart), Lenny (Fib Shot/Decoy via `summon`/Big Fib-Lob), Doc Fawnsworth (`allyHeal`-Dart, Grow Form, Field Surgery); `shared/sim/summons.ts`-Primitive (decoy/turret, Snapshot `sum[]`, Client-Draw + Heil-FX); 15 Tests, check 466+shot grün
-- T32 ✅ 2026-10-18 — Lumpy (Flop Slap/Rock Nap-Immunität/Big Nap Quake), Squall Mopefin (Sour Note/Ink Cloud via neuem `AoeAbility.hides`/Grand Recital), Teeny Krill (Laser Pew/Mini-Turret-Summon/Mech-Max-Pierce); 10 Tests, check 476+shot grün
-- T33 ✅ 2026-10-18 — Roster-Politur: Fraktions-Tabs + 🎲 Random + Bios + Scroll-Grid, Balance-Vollpass 18→0 Outliers (alle 24 in 40–60 %), Galerie-Textband fix, PWA-Manifest+Icons+SW; CP8, 483 Tests+e2e 34/34+healthz grün
-- T99 ✅ 2026-10-18 — Emote-Rad: 4 Sticker (`shared/emotes.ts`, Index + 1,2 s Cooldown im Room), DOM-Rad oben rechts (Taste 1–4/V), Blase über dem Kämpfer; 4 Unit + 4 e2e-Tests, check 488 grün, Shot ok
-- T99 ✅ 2026-10-18 — Purrl-Schnecke (Backlog #1): `shared/sim/purrl.ts` wandert über Sand (seeded, meidet Korallen+Flut), heilt +10 einmal pro Leben (Respawn setzt zurück), Snapshot `purrl`, Client-Zeichnung; 9 Unit-Tests, check 497 grün, kein Live-Shot (kein Teleport-Hook)
 - T99 ✅ 2026-10-18 — Taffy Galleon slice 1: `shared/sim/cannon.ts` (Kanone: 1 s Telegraph, wandernde Leiste, Zeit-pure Treffer, Aim-Winkel); 8 Unit-Tests, check 505 grün; Arena-Rest → §5 #13
 - T99 ✅ 2026-10-18 — Skins slice 2: `join.skin` → room → `world.setSkin` → snapshot `sk`; lobby Skin button (localStorage); rig `setSkin` with async `addtexture` fallback, skin copies from recoloured SVG text; gallery shows both swaps; 4 unit tests, check 574 + e2e 19/19 + shot ok
 - T99 ✅ 2026-10-18 — Weird Weather slice 1: `shared/sim/weather.ts` (Double Tide = tide clock ×2, 50 % roll per round in `server/rooms.ts`), `wx` in MatchInfo, HUD tag; 8 unit tests, check 581 grün; Jelly/Bubble → §5 #17
@@ -519,3 +509,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T99 ✅ 2026-10-18 — Galleon part 3d-1 (#26): `join.arena` picks the room's layout at creation (`arenaById`, unknown = docks), `Room` builds its `World` on it; 5 tests, check 714 grün → §5 #26 (3d-2), #42
 - T99 ✅ 2026-10-18 — Galleon deck art (#26, 3d-2a): `ArenaArt.setArena` paints the deck (`client/src/art/deckArt.ts`: planks, hull rail, crates, cannon carriages), `?arena=galleon` joins a galleon room; check 714 grün, galleon+docks shots ok → §5 #26 (lobby + telegraph), #43 (tips)
 - T99 ✅ 2026-10-18 — Galleon lobby deck pick (Docks/Galleon, sent with join) + cannon telegraph/bar (`cn` snapshot, `fx/cannonFx.ts`); 6 unit + 2 e2e, check 720 grün, lobby e2e 14/14, shot ok → §5 #26 done, #44 (cannon cue)
+- T99 ✅ 2026-10-18 — Host-only bot controls (backlog #27): `MatchInfo.host` per viewer (`Room.hostId`), ☰ bot+level buttons disabled for non-hosts with a hint; 3 unit + 1 e2e, check 723 grün, lobby e2e 6/6 → §5 #45

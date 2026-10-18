@@ -57,7 +57,7 @@ function send(ws: WebSocket, msg: S2C): void {
 
 /** The first human to join a room is its host (bot controls, backlog #14). */
 function isHost(j: { room: Room; client: Client }): boolean {
-  return j.room.clients.keys().next().value === j.client.id;
+  return j.room.hostId() === j.client.id;
 }
 
 function onConnection(ws: WebSocket): void {
