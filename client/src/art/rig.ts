@@ -150,6 +150,15 @@ export class FighterSprite extends Phaser.GameObjects.Container {
     }
   }
 
+  /**
+   * World y of the name plate's top edge — overlays drawn above the head (status chips) stack on
+   * this so they never cover the name or the HP bar.
+   */
+  get headTopY(): number {
+    const nameH = this.nameText ? this.nameText.height : this.h * 0.19;
+    return this.y - this.h * 1.02 - nameH;
+  }
+
   /** World y of the fighter's feet (dust / KO poof spawns). */
   get groundY(): number {
     return this.y + this.feetY;

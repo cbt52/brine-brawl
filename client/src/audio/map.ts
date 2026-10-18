@@ -16,7 +16,8 @@ export type SfxName =
   | 'ult'
   | 'pickup'
   | 'countdown'
-  | 'horn';
+  | 'horn'
+  | 'react';
 
 /** A hit louder than this gets the heavy "bonk" instead of the element sound. */
 export const HEAVY_HIT = 25;
@@ -75,6 +76,8 @@ export function cueForEvent(
         : { name: elementSfx(elementOf(e.id)), x: e.x, y: e.y };
     case 'status':
       return e.s === 'trapped' ? { name: 'pop' } : null;
+    case 'react':
+      return { name: 'react', x: e.x, y: e.y };
     case 'spawn':
       return null;
     default:

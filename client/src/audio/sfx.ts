@@ -67,6 +67,11 @@ export const PRESETS: Record<SfxName, Voice[]> = {
   countdown: [
     { wave: 'sine', freq: 660, dur: 0.12, gain: 0.12 },
   ],
+  react: [
+    { wave: 'triangle', freq: 520, to: 1180, dur: 0.16, gain: 0.13 },
+    { wave: 'sine', freq: 1560, dur: 0.1, gain: 0.07, delay: 0.1 },
+    { wave: 'noise', freq: 1, dur: 0.22, gain: 0.07, filter: 2400 },
+  ],
   horn: [
     { wave: 'sawtooth', freq: 174, dur: 0.45, gain: 0.09 },
     { wave: 'square', freq: 262, dur: 0.45, gain: 0.06 },

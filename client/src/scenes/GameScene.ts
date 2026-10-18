@@ -7,11 +7,14 @@ import { Controls } from '../input/controls.ts';
 import { interpolate, interpolateProjs, type Pos } from '../net/interp.ts';
 import { Predictor } from '../net/predict.ts';
 import { CombatFx } from '../fx/combatFx.ts';
-import { elementColor } from '../fx/style.ts';
+import { ELEMENT_COLOR, elementColor } from '../fx/style.ts';
+import {
+  dripPhase, flameAlpha, reactionColor, reactionLabel, STATUS_ICON, statusColor, statusList, type IconKind,
+} from '../fx/statusFx.ts';
 import { HudScene } from './HudScene.ts';
 import { syncResults } from '../ui/results.ts';
 import { getFighter } from '../../../shared/fighters/index.ts';
-import { STATUS_CODE, type Element } from '../../../shared/fighters/types.ts';
+import { hasStatus, type Element } from '../../../shared/fighters/types.ts';
 import { FighterSprite, preloadArt } from '../art/rig.ts';
 import { getArt } from '../art/manifest.ts';
 import { ArenaArt } from '../art/arena.ts';
@@ -130,12 +133,13 @@ export class GameScene extends Phaser.Scene {
     const g = this.overGfx;
     g.clear();
     for (const p of view) {
-      if (p.st === STATUS_CODE.trapped && !p.dn) {
+      if (hasStatus(p.st, 'trapped') && !p.dn) {
         const r = getFighter(p.f).radius * 1.75;
         g.fillStyle(0x9fe7ff, 0.22).fillCircle(p.x, p.y, r);
         g.lineStyle(3, 0xeafcff, 0.9).strokeCircle(p.x, p.y, r);
         g.fillStyle(0xffffff, 0.55).fillEllipse(p.x - r * 0.35, p.y - r * 0.45, r * 0.5, r * 0.28);
       }
+      if (p.st && !p.dn) this.drawStatus(g, p, nowMs);
       const arm = this.armUntil.get(p.id);
       if (!arm) continue;
       if (nowMs >= arm.until) { this.armUntil.delete(p.id); continue; }
@@ -165,6 +169,85 @@ export class GameScene extends Phaser.Scene {
       g.fillStyle(0xe8c7a0, 1).fillCircle(fist[0], fist[1], 15);
       g.lineStyle(4, 0x1b1b2f, 1).strokeCircle(fist[0], fist[1], 15);
     }
+  }
+
+  /**
+   * Status feedback above the head (T17): one chip per status, a flicker ring while burning and
+   * blue drips while wet. Cheap Graphics calls only, no per-status objects.
+   */
+  private drawStatus(g: Phaser.GameObjects.Graphics, p: SnapPlayer, nowMs: number): void {
+    const r = getFighter(p.f).radius;
+    const list = statusList(p.st);
+    const step = 15;
+    const baseX = p.x - ((list.length - 1) * step) / 2;
+    // stack above the name plate when the rig is known, else above the body
+    const y = (this.rigs.get(p.id)?.headTopY ?? p.y - r - 40) - 9;
+    for (let i = 0; i < list.length; i++) {
+      const color = statusColor(list[i]);
+      const x = baseX + i * step;
+      g.fillStyle(0x1b1b2f, 0.8).fillCircle(x, y, 9);
+      g.lineStyle(2, color, 1).strokeCircle(x, y, 9);
+      this.drawGlyph(g, STATUS_ICON[list[i]], x, y, color);
+    }
+    if (hasStatus(p.st, 'burn')) {
+      g.lineStyle(3, ELEMENT_COLOR.fire, flameAlpha(nowMs)).strokeCircle(p.x, p.y, r * 1.25);
+    }
+    if (hasStatus(p.st, 'wet')) {
+      for (let i = 0; i < 2; i++) {
+        const phase = dripPhase(nowMs, i * 0.5);
+        const dx = p.x + (i === 0 ? -8 : 7);
+        const dy = p.y + r * 0.5 + phase * 16;
+        g.fillStyle(ELEMENT_COLOR.water, 0.75 * (1 - phase)).fillCircle(dx, dy, 3);
+      }
+    }
+  }
+
+  /** Tiny vector glyph inside a status chip (7–10 px), so the icon reads without a font. */
+  private drawGlyph(
+    g: Phaser.GameObjects.Graphics,
+    kind: IconKind,
+    x: number,
+    y: number,
+    color: number,
+  ): void {
+    g.fillStyle(color, 1);
+    if (kind === 'drop') {
+      g.fillCircle(x, y + 1, 4);
+      g.fillTriangle(x - 4, y + 1, x + 4, y + 1, x, y - 5);
+      return;
+    }
+    if (kind === 'flame') {
+      g.fillCircle(x, y + 2, 4);
+      g.fillTriangle(x - 3, y + 2, x + 3, y + 2, x, y - 6);
+      return;
+    }
+    if (kind === 'bolt') {
+      g.fillPoints([
+        { x: x + 3, y: y - 6 }, { x: x - 3, y: y + 1 }, { x: x, y: y + 1 },
+        { x: x - 2, y: y + 6 }, { x: x + 3, y: y - 1 }, { x: x + 0.5, y: y - 1 },
+      ], true);
+      return;
+    }
+    if (kind === 'weight') {
+      g.fillRoundedRect(x - 5, y - 2, 10, 7, 2);
+      g.lineStyle(2, 0x1b1b2f, 1).strokeCircle(x, y - 3, 2);
+      return;
+    }
+    if (kind === 'star') {
+      g.fillPoints([
+        { x, y: y - 7 }, { x: x + 2, y: y - 2 }, { x: x + 7, y }, { x: x + 2, y: y + 2 },
+        { x, y: y + 7 }, { x: x - 2, y: y + 2 }, { x: x - 7, y }, { x: x - 2, y: y - 2 },
+      ], true);
+      return;
+    }
+    if (kind === 'knot') {
+      g.lineStyle(2, color, 1).strokeCircle(x - 1, y + 1, 4);
+      g.fillCircle(x + 4, y - 4, 2.5);
+      return;
+    }
+    // 'bubble'
+    g.lineStyle(2, color, 1).strokeCircle(x, y, 5);
+    g.fillCircle(x - 2, y - 2, 1.6);
   }
 
   /**
@@ -263,6 +346,15 @@ export class GameScene extends Phaser.Scene {
       } else if (e.k === 'cast') {
         this.rigs.get(e.id)?.attack();
         this.fx.cast(e.x, e.y, e.a ?? 0, elementColor(getArt(this.kinds.get(e.id)).element));
+      } else if (e.k === 'react') {
+        const color = reactionColor(e.r);
+        const word = reactionLabel(e.r);
+        if (word) this.fx.reaction(e.x, e.y, word, color);
+        this.fx.impact(e.x, e.y, color);
+        if (e.v === this.net.id) {
+          this.fx.shake('hit');
+          navigator.vibrate?.(35);
+        }
       } else if (e.k === 'hit') {
         const victim = this.rigs.get(e.v);
         victim?.hit();

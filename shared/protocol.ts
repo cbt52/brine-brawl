@@ -110,8 +110,10 @@ export type SimEvent =
   | { k: 'spawn'; id: number }
   /** an ability was cast (cosmetic hook for the FX + audio passes); `slot` lets the client pick ult sfx */
   | { k: 'cast'; id: number; ab: string; x: number; y: number; a: number; slot?: AbilitySlot }
-  /** a status landed on a victim */
-  | { k: 'status'; v: number; s: string; sec: number };
+  /** a status landed on a victim (`sec` 0 = it was cleared) */
+  | { k: 'status'; v: number; s: string; sec: number }
+  /** two elements reacted on a victim (shock/steam/flare/mud/wildfire/thunderclap) */
+  | { k: 'react'; v: number; r: string; x: number; y: number };
 
 export interface SnapMsg {
   t: 'snap';

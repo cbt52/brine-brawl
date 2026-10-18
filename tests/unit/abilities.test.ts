@@ -4,6 +4,7 @@ import { castAbility, abilityReach } from '../../shared/sim/abilities.ts';
 import { BotBrain } from '../../shared/sim/bot.ts';
 import { TICK_HZ } from '../../shared/constants.ts';
 import { getFighter, randomFighterId, resolveFighterId, FIGHTERS } from '../../shared/fighters/index.ts';
+import { STATUS_BIT } from '../../shared/fighters/types.ts';
 import type { AbilityDef } from '../../shared/fighters/types.ts';
 
 const inp = (o: Partial<SimInput> = {}): SimInput => ({ seq: 1, mx: 0, my: 0, ax: 1, ay: 0, atk: false, spc: false, ult: false, ...o });
@@ -185,7 +186,7 @@ describe('status', () => {
     castAbility(w, a, { kind: 'status', at: 'aim', range: 200, radius: 60, status: 'burn', sec: 0.5 });
     expect(b.status).toBe('burn');
     expect(w.events.some((e) => e.k === 'status' && e.v === 2 && e.s === 'burn')).toBe(true);
-    expect(w.snapshotFor(1).players.find((p) => p.id === 2)!.st).toBe(2);
+    expect(w.snapshotFor(1).players.find((p) => p.id === 2)!.st).toBe(STATUS_BIT.burn);
     run(w, 0.7);
     expect(b.status).toBeNull();
   });
@@ -436,7 +437,7 @@ describe('T11 kits: Cap\'n Noodle + Sudsy Loofah', () => {
     castAbility(w, a, getFighter('sudsy').special);
     run(w, 0.6);
     expect(b.status).toBe('trapped');
-    expect(w.snapshotFor(1).players.find((p) => p.id === 2)!.st).toBe(7);
+    expect(w.snapshotFor(1).players.find((p) => p.id === 2)!.st).toBe(STATUS_BIT.trapped);
     const x0 = b.x;
     const ammo0 = b.ammo;
     for (let i = 0; i < TICK_HZ / 3; i++) {

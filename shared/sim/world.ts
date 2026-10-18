@@ -2,11 +2,12 @@ import { TICK_HZ, WORLD_W, WORLD_H } from '../constants.ts';
 import { OBSTACLES, SPAWNS } from '../arena/docks.ts';
 import type { SimEvent, SnapMsg, SnapPlayer } from '../protocol.ts';
 import { getFighter } from '../fighters/index.ts';
-import { STATUS_CODE, TRAP_BREAK_DMG, type FighterDef, type StatusKind } from '../fighters/types.ts';
+import { statusMask, TRAP_BREAK_DMG, type FighterDef, type StatusKind } from '../fighters/types.ts';
 import { pushOutRect, resolveWalls, separate } from './collide.ts';
 import * as C from './combat.ts';
 import type { Projectile } from './combat.ts';
-import { applyStatus, castAbility, stepBurrow, stepDash, stepZones, type BurrowState, type DashState, type Zone } from './abilities.ts';
+import { castAbility, hitElement, stepBurrow, stepDash, stepZones, type BurrowState, type DashState, type Zone } from './abilities.ts';
+import { applyElementHit, BURN_DPS, BURN_TICK_SEC, statusSpeedMul } from './elements.ts';
 import { canSee, REVEAL_SEC } from './visibility.ts';
 
 export const BASE_SPEED = 240;
@@ -57,6 +58,10 @@ export interface SimPlayer {
   buffLeft: number;
   status: StatusKind | null;
   statusLeft: number;
+  /** seconds of "cannot walk" left (MUD root): attacks still work */
+  rootLeft: number;
+  /** burn accumulator, so the 4 dmg/s lands in half-second chunks */
+  burnT: number;
   /** damage taken while `trapped`; reaching TRAP_BREAK_DMG pops the bubble */
   trapTook: number;
   /** seconds of "just attacked" bush reveal left (see visibility.ts) */
@@ -99,7 +104,7 @@ export class World {
       id, name, fighter: def.id, def, x: s.x, y: s.y, r: def.radius,
       hp: def.maxHp, mhp: def.maxHp, speedMul: def.speedMul, aim: 0, ack: 0, input: null,
       ammo: def.ammo, reload: 0, fireCd: 0, fireLatch: false, spcCd: 0, uc: 0, dash: null, burrow: null,
-      buffMul: 1, buffLeft: 0, status: null, statusLeft: 0, trapTook: 0,
+      buffMul: 1, buffLeft: 0, status: null, statusLeft: 0, rootLeft: 0, burnT: 0, trapTook: 0,
       revealT: 0, down: false, respawn: 0, shield: C.SHIELD_SEC, kos: 0, deaths: 0, pendingFighter: null, bot,
     };
     this.players.set(id, p);
@@ -160,6 +165,17 @@ export class World {
         p.statusLeft -= dt;
         if (p.statusLeft <= 0) { p.statusLeft = 0; p.status = null; p.trapTook = 0; }
       }
+      if (p.rootLeft > 0) p.rootLeft = Math.max(0, p.rootLeft - dt);
+      // burn: 4 dmg/s, applied in half-second chunks so the damage FX does not run at 30 Hz
+      if (p.status === 'burn' && !p.down && p.shield <= 0) {
+        p.burnT += dt;
+        if (p.burnT >= BURN_TICK_SEC) {
+          p.burnT -= BURN_TICK_SEC;
+          this.damage(-1, p, BURN_DPS * BURN_TICK_SEC, p.x, p.y);
+        }
+      } else {
+        p.burnT = 0;
+      }
       // a bubble trap holds the victim in place; a stun locks input the same way
       const trapped = p.status === 'trapped';
       const disabled = trapped || p.status === 'stun';
@@ -169,8 +185,9 @@ export class World {
       const dashing = !disabled && stepDash(this, p, dt);
       if (i) {
         if (!dashing && !disabled) {
-          const spd = BASE_SPEED * p.speedMul * (p.buffLeft > 0 ? p.buffMul : 1);
-          stepMove(p, i.mx, i.my, spd, dt);
+          const spd = BASE_SPEED * p.speedMul * (p.buffLeft > 0 ? p.buffMul : 1) * statusSpeedMul(p.status);
+          const rooted = p.rootLeft > 0;
+          if (!rooted) stepMove(p, i.mx, i.my, spd, dt);
         }
         if (!disabled && Number.isFinite(i.ax) && Number.isFinite(i.ay) && (i.ax !== 0 || i.ay !== 0)) p.aim = Math.atan2(i.ay, i.ax);
         p.ack = i.seq;
@@ -256,9 +273,12 @@ export class World {
           } else dead = true;
           this.damage(pr.owner, v, pr.dmg, pr.x, pr.y);
           // a spawn shield absorbs the hit entirely: no status either
-          if (pr.status && !v.down && v.shield <= 0) {
-            applyStatus(v, pr.status, pr.statusSec ?? 1);
-            this.events.push({ k: 'status', v: v.id, s: pr.status, sec: pr.statusSec ?? 1 });
+          if (!v.down && v.shield <= 0) {
+            const el = hitElement(pr.element, pr.status ?? null);
+            const react = applyElementHit(this, pr.owner, v, pr.status ?? null, pr.statusSec ?? 0, el);
+            if (react === null && pr.status) {
+              this.events.push({ k: 'status', v: v.id, s: pr.status, sec: pr.statusSec ?? 1 });
+            }
           }
           if (dead) break;
         }
@@ -385,14 +405,16 @@ export class World {
   snapshotFor(viewerId: number): SnapMsg {
     const players: SnapPlayer[] = [];
     const viewer = this.players.get(viewerId);
+    // steam clouds hide like a kelp bush (reaction FX, see elements.ts)
+    const hides = this.zones.filter((z) => z.hides);
     for (const p of this.players.values()) {
       // underground players are hidden from everybody but the owner
       if (p.burrow && p.id !== viewerId) continue;
       // kelp hides fighters from far enemies unless they just attacked
-      if (viewer && !canSee(viewer, p)) continue;
+      if (viewer && !canSee(viewer, p, hides)) continue;
       players.push({
         id: p.id, x: Math.round(p.x), y: Math.round(p.y), hp: p.hp, mhp: p.mhp,
-        f: p.fighter, n: p.name, st: p.status ? STATUS_CODE[p.status] : 0,
+        f: p.fighter, n: p.name, st: statusMask(p.status),
         a: Math.round((p.aim * 180) / Math.PI),
         am: p.ammo, dn: p.down ? 1 : 0, sh: p.shield > 0 ? 1 : 0, k: p.kos, d: p.deaths,
         uc: Math.round(Math.max(0, Math.min(1, p.uc / p.def.ultCharge)) * 100),

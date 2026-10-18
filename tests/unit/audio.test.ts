@@ -37,6 +37,8 @@ describe('event → preset mapping', () => {
     expect(cueForEvent({ k: 'ko', a: 1, v: 2 }, elementOf)?.name).toBe('ko');
     expect(cueForEvent({ k: 'status', v: 2, s: 'trapped', sec: 1 }, elementOf)?.name).toBe('pop');
     expect(cueForEvent({ k: 'status', v: 2, s: 'wet', sec: 1 }, elementOf)).toBeNull();
+    // reactions get their own cue, positioned at the victim
+    expect(cueForEvent({ k: 'react', v: 2, r: 'steam', x: 10, y: 20 })).toEqual({ name: 'react', x: 10, y: 20 });
     expect(cueForEvent({ k: 'spawn', id: 2 }, elementOf)).toBeNull();
   });
 

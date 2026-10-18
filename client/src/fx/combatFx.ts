@@ -230,6 +230,33 @@ export class CombatFx {
     });
   }
 
+  /** Reaction popup word: bigger than a damage number, bounces up and out. */
+  reaction(x: number, y: number, word: string, color: number): void {
+    const hex = '#' + color.toString(16).padStart(6, '0');
+    const t = this.scene.add
+      .text(x, y - 55, word, {
+        fontFamily: FONT,
+        fontSize: this.mobile ? '26px' : '34px',
+        color: hex,
+        stroke: '#1b1b2f',
+        strokeThickness: 8,
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5)
+      .setDepth(TEXT_DEPTH + 1)
+      .setScale(0.2);
+    this.scene.tweens.add({ targets: t, scale: 1, duration: 180, ease: 'Back.easeOut' });
+    this.scene.tweens.add({
+      targets: t,
+      y: y - 130,
+      alpha: 0,
+      delay: 320,
+      duration: 620,
+      ease: 'Cubic.easeOut',
+      onComplete: () => t.destroy(),
+    });
+  }
+
   /** Screenshake for hits/KOs that involve the local player. */
   shake(kind: 'hit' | 'ko'): void {
     if (!this.shakeOn) return;

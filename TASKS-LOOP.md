@@ -300,13 +300,18 @@ Each reaction shows a big popup word ("SHOCK!").
 
 ### CP5 — "Überraschung: Gezeiten, Elemente, Kopfgeld"
 
-- [ ] **T17 — Elements, statuses, reactions**
+- [x] **T17 — Elements, statuses, reactions**
   - Do:
     - `shared/sim/elements.ts`: statuses and a reaction table per §2.7. Abilities apply their fighter's element (ability-level override allowed).
     - Snapshot `st` bitflags.
     - Client: small status icons above heads, tint overlays (wet = blue drips, burn = flicker), reaction popup words with a big bounce and a distinct sfx.
     - Table-driven unit tests for all 6 reactions.
   - Test: `npm run check`
+  - Note: `shared/sim/elements.ts` owns statuses, the 6-row reaction table (status × element →
+    shock/steam/flare/mud/wildfire/thunderclap), the burn tick (4 dmg/s in 0.5 s chunks), the mud
+    root (0.8 s) and the steam cloud that hides like kelp. Abilities route every status/damage zone
+    through `applyElementHit`, `st` is a bit mask, chips + drips + flicker ring + reaction words live
+    in `client/src/fx/statusFx.ts` / `GameScene.drawStatus`, reactions play the new `react` sfx.
 
 - [ ] **T18 — Rising Tide**
   - Do:

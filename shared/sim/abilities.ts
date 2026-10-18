@@ -1,6 +1,7 @@
 import type { AbilitySlot, SimEvent } from '../protocol.ts';
-import type { AbilityDef, StatusKind } from '../fighters/types.ts';
+import type { AbilityDef, Element, StatusKind } from '../fighters/types.ts';
 import { OBSTACLES } from '../arena/docks.ts';
+import { applyElementHit, applyStatus as storeStatus, ELEMENT_OF_STATUS } from './elements.ts';
 import { resolveWalls } from './collide.ts';
 import type { Projectile } from './combat.ts';
 import type { SimPlayer } from './world.ts';
@@ -29,8 +30,12 @@ export interface Zone {
   aim: number;
   status: StatusKind | null;
   statusSec: number;
+  /** element of the hit; defaults to the status element */
+  element?: Element;
   tickT: number;
   fired: boolean;
+  /** a cloud that hides like a kelp bush (steam reaction) */
+  hides?: boolean;
 }
 
 export interface DashState {
@@ -42,7 +47,7 @@ export interface DashState {
   /** stop on the first wall/enemy touched */
   stopOnContact: boolean;
   /** trail zones dropped along the path */
-  trail: { radius: number; dmg: number; status: StatusKind | null; statusSec: number } | null;
+  trail: { radius: number; dmg: number; status: StatusKind | null; statusSec: number; element?: Element } | null;
   trailT: number;
 }
 
@@ -54,6 +59,7 @@ export interface BurrowState {
   dmg: number;
   status: StatusKind | null;
   statusSec: number;
+  element?: Element;
 }
 
 /**
@@ -87,6 +93,13 @@ interface HitOpts {
   aim?: number;
   status?: StatusKind | null;
   statusSec?: number;
+  /** element of the hit; defaults to the status element (neutral for pure knockback) */
+  element?: Element;
+}
+
+/** Element of a hit: explicit override, else the status element, else neutral. */
+export function hitElement(element?: Element, status?: StatusKind | null): Element {
+  return element ?? (status ? ELEMENT_OF_STATUS[status] : 'neutral');
 }
 
 /** Damage (and optional push/pull) everything inside a circle (or cone). */
@@ -106,20 +119,15 @@ function hitAll(
     const uy = d > 1e-6 ? dy / d : 0;
     if (push) shove(v, ux, uy, push);
     if (pull) shove(v, -ux, -uy, Math.min(pull, Math.max(0, d)));
-    if (o.status && !v.down && v.shield <= 0) {
-      applyStatus(v, o.status, o.statusSec ?? 1);
-      h.events.push({ k: 'status', v: v.id, s: o.status, sec: o.statusSec ?? 1 });
+    if (!v.down && v.shield <= 0) {
+      const react = applyElementHit(h, owner, v, o.status ?? null, o.statusSec ?? 0, hitElement(o.element, o.status));
+      if (react === null && o.status) h.events.push({ k: 'status', v: v.id, s: o.status, sec: o.statusSec ?? 1 });
     }
   }
 }
 
-function applyStatus(p: SimPlayer, status: StatusKind, sec: number): void {
-  p.status = status;
-  p.statusLeft = Math.max(p.statusLeft, sec);
-  if (status === 'trapped') p.trapTook = 0;
-}
-
-/** Same as `applyStatus`, exported for the world's projectile hits. */
+/** Store a status directly (bubble trap pop, tests). */
+const applyStatus = storeStatus;
 export { applyStatus };
 
 const TAU = Math.PI * 2;
@@ -153,7 +161,7 @@ export function castAbility(
           left: def.range, dmg: def.dmg, r: def.radius,
           pierce: !!def.pierce, bounces: Math.max(0, Math.floor(def.bounce ?? 0)),
           lob: !!def.lob, aoeOnEnd: def.aoeOnEnd, hit: new Set(),
-          status: def.status, statusSec: def.statusSec,
+          status: def.status, statusSec: def.statusSec, element: hitElement(def.element, def.status),
         });
       }
       break;
@@ -169,9 +177,10 @@ export function castAbility(
         if (d > v.r && Math.abs(wrapPi(Math.atan2(dy, dx) - p.aim)) > half) continue;
         h.damage(p.id, v, def.dmg, v.x, v.y);
         if (def.knockback) shove(v, d > 1e-6 ? dx / d : ax, d > 1e-6 ? dy / d : ay, def.knockback);
-        if (def.status && !v.down && v.shield <= 0) {
-          applyStatus(v, def.status, def.statusSec ?? 1);
-          h.events.push({ k: 'status', v: v.id, s: def.status, sec: def.statusSec ?? 1 });
+        if (!v.down && v.shield <= 0) {
+          const el = hitElement(def.element, def.status);
+          const react = applyElementHit(h, p.id, v, def.status ?? null, def.statusSec ?? 0, el);
+          if (react === null && def.status) h.events.push({ k: 'status', v: v.id, s: def.status, sec: def.statusSec ?? 1 });
         }
       }
       break;
@@ -182,7 +191,11 @@ export function castAbility(
         vx: (ax * def.dist) / dur, vy: (ay * def.dist) / dur, left: dur, dmg: def.contactDmg ?? 0, hit: new Set(),
         stopOnContact: !!def.stopOnContact,
         trail: def.trailZone
-          ? { radius: def.trailZone.radius, dmg: def.trailZone.dmg ?? 0, status: def.trailZone.status ?? null, statusSec: def.trailZone.statusSec ?? 0 }
+          ? {
+            radius: def.trailZone.radius, dmg: def.trailZone.dmg ?? 0,
+            status: def.trailZone.status ?? null, statusSec: def.trailZone.statusSec ?? 0,
+            element: hitElement(def.element ?? def.trailZone.element, def.trailZone.status),
+          }
           : null,
         trailT: 0,
       };
@@ -197,6 +210,7 @@ export function castAbility(
         dmg: def.dmg,
         status: def.status ?? null,
         statusSec: def.statusSec ?? 0,
+        element: hitElement(def.element, def.status),
       };
       p.dash = null;
       break;
@@ -210,6 +224,7 @@ export function castAbility(
         dmg: def.dmg, tickDmg: def.tickDmg ?? 0, push: def.push ?? 0, pull: def.pull ?? 0,
         tickPull: def.tickPull ?? 0, coneDeg: def.coneDeg ?? 0, aim: p.aim,
         status: def.status ?? null, statusSec: def.statusSec ?? 0,
+        element: hitElement(def.element, def.status),
         tickT: 0, fired: false,
       });
       break;
@@ -230,8 +245,9 @@ export function castAbility(
         if (Math.hypot(v.x - sx, v.y - sy) > def.radius + v.r) continue;
         if (def.dmg) h.damage(p.id, v, def.dmg, v.x, v.y);
         if (!v.down) {
-          applyStatus(v, def.status, def.sec);
-          h.events.push({ k: 'status', v: v.id, s: def.status, sec: def.sec });
+          const el = hitElement(def.element, def.status);
+          const react = applyElementHit(h, p.id, v, def.status, def.sec, el);
+          if (react === null) h.events.push({ k: 'status', v: v.id, s: def.status, sec: def.sec });
         }
       }
       break;
@@ -262,7 +278,7 @@ export function abilityReach(def: AbilityDef): number {
 export function stepZones(h: CastHost, dt: number): void {
   const keep: Zone[] = [];
   for (const z of h.zones) {
-    const opts: HitOpts = { coneDeg: z.coneDeg, aim: z.aim, status: z.status, statusSec: z.statusSec };
+    const opts: HitOpts = { coneDeg: z.coneDeg, aim: z.aim, status: z.status, statusSec: z.statusSec, element: z.element };
     if (!z.fired) {
       z.delay -= dt;
       if (z.delay > 0) { keep.push(z); continue; }
@@ -309,7 +325,8 @@ export function stepDash(h: CastHost, p: SimPlayer, dt: number): boolean {
       h.zones.push({
         id: h.newProjId(), owner: p.id, x: p.x, y: p.y, r: d.trail.radius,
         delay: 0, dur: 0, dmg: d.trail.dmg, tickDmg: 0, push: 0, pull: 0, tickPull: 0,
-        coneDeg: 0, aim: 0, status: d.trail.status, statusSec: d.trail.statusSec, tickT: 0, fired: false,
+        coneDeg: 0, aim: 0, status: d.trail.status, statusSec: d.trail.statusSec,
+        element: d.trail.element, tickT: 0, fired: false,
       });
     }
   }
@@ -342,7 +359,7 @@ export function stepBurrow(h: CastHost, p: SimPlayer, dt: number): boolean {
   p.y = b.ty;
   resolveWalls(p, OBSTACLES);
   p.burrow = null;
-  hitAll(h, p.id, p.x, p.y, b.radius, b.dmg, 0, 0, { status: b.status, statusSec: b.statusSec });
+  hitAll(h, p.id, p.x, p.y, b.radius, b.dmg, 0, 0, { status: b.status, statusSec: b.statusSec, element: b.element });
   h.events.push({ k: 'cast', id: p.id, ab: 'burrow', x: Math.round(p.x), y: Math.round(p.y), a: 0 });
   return false;
 }

@@ -12,10 +12,20 @@ export type Element = 'neutral' | 'water' | 'fire' | 'volt' | 'earth' | 'leaf' |
 /** `trapped` = stuck inside a bubble: no movement, no attacks, breaks after 25 damage. */
 export type StatusKind = 'wet' | 'burn' | 'static' | 'heavy' | 'tangled' | 'stun' | 'trapped';
 
-/** Snapshot code for a status (`st`), 0 = none. */
-export const STATUS_CODE: Record<StatusKind, number> = {
-  wet: 1, burn: 2, static: 3, heavy: 4, tangled: 5, stun: 6, trapped: 7,
+/** Snapshot bit for a status (`st`); `0` = no status. */
+export const STATUS_BIT: Record<StatusKind, number> = {
+  wet: 1, burn: 2, static: 4, heavy: 8, tangled: 16, stun: 32, trapped: 64,
 };
+
+/** Snapshot mask for a (single) status — bit flags so a second status can be added later. */
+export function statusMask(status: StatusKind | null | undefined): number {
+  return status ? STATUS_BIT[status] : 0;
+}
+
+/** True when the snapshot mask `st` contains `status`. */
+export function hasStatus(st: number | undefined, status: StatusKind): boolean {
+  return ((st ?? 0) & STATUS_BIT[status]) !== 0;
+}
 
 /** Damage needed to pop a bubble trap early. */
 export const TRAP_BREAK_DMG = 25;
@@ -27,6 +37,8 @@ interface AbilityBase {
   /** cosmetic key for the client FX pass (T13) */
   fx?: string;
   cd?: number;
+  /** element override; defaults to the status element, else the fighter's element */
+  element?: Element;
 }
 
 export interface ProjectileAbility extends AbilityBase {
@@ -76,7 +88,7 @@ export interface DashAbility extends AbilityBase {
   /** cosmetic: leave a trail */
   trail?: boolean;
   /** functional trail: damage/status zones dropped along the dash path */
-  trailZone?: { radius: number; dmg?: number; status?: StatusKind; statusSec?: number };
+  trailZone?: { radius: number; dmg?: number; status?: StatusKind; statusSec?: number; element?: Element };
 }
 
 export interface AoeAbility extends AbilityBase {
