@@ -34,3 +34,18 @@ export function emoteIndex(raw: unknown): number {
 export function emoteReady(lastAt: number, now: number): boolean {
   return now - lastAt >= EMOTE_COOLDOWN_MS;
 }
+
+/** Backlog #10: a bot that KOs a human answers with a sticker one time in three. */
+export const BOT_KO_CHANCE = 1 / 3;
+/** The stickers a bot picks from after a KO (ids from EMOTES). */
+export const BOT_KO_STICKERS: readonly string[] = ['haha', 'gg', 'arr'];
+
+/**
+ * Sticker index a bot sends after scoring a KO on a human, or null when it stays quiet.
+ * `rng` is injected so the room (Math.random) and the tests (seeded) share one rule.
+ */
+export function botKoSticker(rng: () => number): number | null {
+  if (rng() >= BOT_KO_CHANCE) return null;
+  const id = BOT_KO_STICKERS[Math.floor(rng() * BOT_KO_STICKERS.length)];
+  return EMOTES.findIndex((e) => e.id === id);
+}

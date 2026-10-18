@@ -1,12 +1,12 @@
 import type { WebSocket } from 'ws';
 import { MAX_HUMANS, MAX_NAME_LEN, TICK_HZ } from '../shared/constants.ts';
-import type { InputMsg, RoomMode, ScoreRow } from '../shared/protocol.ts';
+import type { InputMsg, RoomMode, ScoreRow, SimEvent } from '../shared/protocol.ts';
 import { World } from '../shared/sim/world.ts';
 import { BotBrain, sanitizeBotLevel, type BotDifficulty } from '../shared/sim/bot.ts';
 import { autoTeams, type Team } from '../shared/sim/teams.ts';
 import { randomFighterId, resolveFighterId } from '../shared/fighters/index.ts';
 import { Match, rankPlayers } from './match.ts';
-import { emoteIndex, emoteReady } from '../shared/emotes.ts';
+import { botKoSticker, emoteIndex, emoteReady } from '../shared/emotes.ts';
 import { sanitizeSkin } from '../shared/skins.ts';
 import { pickWeather } from '../shared/sim/weather.ts';
 
@@ -98,7 +98,9 @@ export class Room {
     while (this.acc >= dt) {
       this.world.setRoundT(this.roundSec());
       for (const b of this.bots.values()) this.world.setInput(b.id, b.think(this.world, dt));
+      const from = this.world.events.length;
       this.world.step(dt);
+      this.answerKos(this.world.events.slice(from), now);
       this.stepMatch(dt);
       this.acc -= dt;
       n++;
@@ -176,13 +178,30 @@ export class Room {
    * the event for the next snapshot. Returns false when the request was rejected.
    */
   emote(c: Client, raw: unknown, now = Date.now()): boolean {
+    return this.relayEmote(c.id, raw, now);
+  }
+
+  /** Shared by humans and bots: one index check and one cooldown per fighter id. */
+  private relayEmote(id: number, raw: unknown, now: number): boolean {
     const e = emoteIndex(raw);
-    if (e < 0 || !this.world.players.has(c.id)) return false;
-    const last = this.emoteAt.get(c.id);
+    if (e < 0 || !this.world.players.has(id)) return false;
+    const last = this.emoteAt.get(id);
     if (last !== undefined && !emoteReady(last, now)) return false;
-    this.emoteAt.set(c.id, now);
-    this.world.emote(c.id, e);
+    this.emoteAt.set(id, now);
+    this.world.emote(id, e);
     return true;
+  }
+
+  /**
+   * Backlog #10: a bot that scores a KO on a human answers with a sticker, one time in three.
+   * It goes through the same cooldown, so a bot on cooldown just stays quiet.
+   */
+  answerKos(events: readonly SimEvent[], now: number, rng: () => number = Math.random): void {
+    for (const ev of events) {
+      if (ev.k !== 'ko' || !this.bots.has(ev.a) || !this.clients.has(ev.v)) continue;
+      const e = botKoSticker(rng);
+      if (e !== null) this.relayEmote(ev.a, e, now);
+    }
   }
 }
 
