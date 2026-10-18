@@ -268,9 +268,17 @@ Each reaction shows a big popup word ("SHOCK!").
     - `client/gallery.html?look=3d`: each fighter shown as sprite next to its 3/4 blockout, toggleable.
   - Accept: `npm run check` green; one gallery screenshot shows a consistent light direction, sprites readable at 48 px
     and visibly matching their blockouts; `LIKENESS.md` covers all 24 fighters.
+  - Note: `/gallery.html` + `client/src/art/{manifest,rig}.ts` exist since T09 (T09 ran first because this task landed
+    mid-iteration, 02:29) — build the `?look=3d` mode and the 24 likeness passes on top of them.
   - Test: `npm run check && npm run shot -- --name T08b --path "/gallery.html?look=3d"`
 
-- [ ] **T09 — SVG art pipeline, animation rig, gallery**
+- [x] **T09 — SVG art pipeline, animation rig, gallery**
+  - Done: `client/public/art/README.md` (spec) + `default`, `voltbun`, `mira` each with a `-hurt` face (enforced by
+    `tests/unit/art.test.ts`: 128 canvas, `#1b1b2f` outline, flat palette, faction accent, same body on the hurt face).
+    `client/src/art/manifest.ts` (keys/urls, faction colours, element labels) + `art/rig.ts` FighterSprite: shadow,
+    SVG body, faction-coloured name/HP plate with ammo pips, idle bob, run lean, attack stretch, hit flash + hurt face
+    + wobble, KO spin/shrink/poof, flipX by aim, white self ring. GameScene draws rigs instead of coloured circles.
+    `/gallery.html` (`client/src/gallery.ts`, extra vite input) shows every fighter at 128 + 48 px, states cycling.
   - Do:
     - Art spec in `client/public/art/README.md`:
       - SVG viewBox 0 0 128 128, facing right, centered, with a feet/ground line;
@@ -583,3 +591,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T06 ✅ 2026-10-18 — DOM lobby+invite+☰ menu, clipboard fallback, bots msg; portrait rotate hint no longer covers menus
 - T07 ✅ 2026-10-18 — Match-Flow + HUD-Scene (Timer/KOs/Feed/Scoreboard), Results-Overlay, ?matchsec, Touch-Tap-Fix
 - T08 ✅ 2026-10-18 — Fighter-Registry + 6 Ability-Primitive generisch, Ult-Ladung/Special-CD im Snap+HUD, Bots nutzen beides
+- T09 ✅ 2026-10-18 — SVG-Pipeline (3 Kämpfer + Hurt-Faces, art.test), FighterSprite-Rig ersetzt Kreise, /gallery.html

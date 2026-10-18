@@ -22,7 +22,10 @@ export default defineConfig({
     outDir: path.resolve(repoRoot, process.env.OUT_DIR ?? 'dist/client'),
     emptyOutDir: true,
     rollupOptions: {
-      input: { index: path.resolve(repoRoot, 'client/index.html') },
+      input: {
+        index: path.resolve(repoRoot, 'client/index.html'),
+        gallery: path.resolve(repoRoot, 'client/gallery.html'),
+      },
     },
   },
   plugins: [

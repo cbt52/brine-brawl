@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- Voltbun (hurt): same body, squeezed >< eyes and an open mouth. -->
+  <g stroke="#1b1b2f" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+    <rect x="16" y="78" width="20" height="24" rx="5" fill="#FFC93C"/>
+    <rect x="22" y="71" width="8" height="9" rx="3" fill="#E4D3B0"/>
+    <g transform="rotate(-12 48 32)">
+      <rect x="40" y="6" width="17" height="48" rx="8" fill="#FFF3D6"/>
+      <path d="M40 24 L48.5 15 L57 24 L48.5 31 Z" fill="#2EC4B6"/>
+    </g>
+    <g transform="rotate(12 82 32)">
+      <rect x="71" y="6" width="17" height="48" rx="8" fill="#FFF3D6"/>
+      <path d="M71 24 L79.5 15 L88 24 L79.5 31 Z" fill="#2EC4B6"/>
+    </g>
+    <ellipse cx="48" cy="112" rx="13" ry="7" fill="#E4D3B0"/>
+    <ellipse cx="82" cy="112" rx="13" ry="7" fill="#E4D3B0"/>
+    <ellipse cx="64" cy="90" rx="31" ry="24" fill="#FFF3D6"/>
+    <ellipse cx="70" cy="96" rx="16" ry="12" fill="#E4D3B0" stroke="none"/>
+    <ellipse cx="36" cy="92" rx="7" ry="10" fill="#FFF3D6"/>
+    <ellipse cx="92" cy="90" rx="7" ry="10" fill="#FFF3D6"/>
+    <circle cx="64" cy="56" r="27" fill="#FFF3D6"/>
+    <!-- squeezed eyes -->
+    <path d="M49 48 L59 55 L49 62" fill="none" stroke-width="5"/>
+    <path d="M85 48 L75 55 L85 62" fill="none" stroke-width="5"/>
+    <!-- open mouth -->
+    <path d="M55 66 Q66 84 79 66 Q67 73 55 66 Z" fill="#1b1b2f"/>
+    <path d="M62 74 Q66 79 71 73 Q66 72 62 74 Z" fill="#FF9FB0" stroke="none"/>
+  </g>
+</svg>

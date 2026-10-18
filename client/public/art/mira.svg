@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- Mira Tidecaller: shell-bead braid, teal parka with wave trim, water ribbon around her hands. -->
+  <g stroke="#1b1b2f" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+    <!-- braid -->
+    <path d="M86 44 Q100 62 93 88" fill="none" stroke="#3B2F4D" stroke-width="9"/>
+    <ellipse cx="95" cy="56" rx="5" ry="6" fill="#FFC93C" stroke-width="3"/>
+    <ellipse cx="95" cy="70" rx="5" ry="6" fill="#EAF6F6" stroke-width="3"/>
+    <ellipse cx="91" cy="84" rx="5" ry="6" fill="#FFC93C" stroke-width="3"/>
+    <!-- boots -->
+    <ellipse cx="52" cy="112" rx="11" ry="7" fill="#35507A"/>
+    <ellipse cx="78" cy="112" rx="11" ry="7" fill="#35507A"/>
+    <!-- parka -->
+    <path d="M40 78 Q64 70 88 78 L94 106 Q64 118 34 106 Z" fill="#2EC4B6"/>
+    <!-- wave trim -->
+    <path d="M34 106 Q50 114 64 109 Q78 104 94 106 L94 111 Q78 109 64 114 Q50 119 34 111 Z" fill="#EAF6F6" stroke-width="4"/>
+    <path d="M64 79 L64 105" fill="none" stroke="#EAF6F6" stroke-width="3"/>
+    <!-- water ribbon -->
+    <path d="M38 94 Q54 74 68 86 Q82 98 96 80" fill="none" stroke="#8FE3F0" stroke-width="9"/>
+    <path d="M38 94 Q54 74 68 86 Q82 98 96 80" fill="none" stroke="#EAF6F6" stroke-width="3"/>
+    <!-- hands -->
+    <circle cx="39" cy="93" r="7" fill="#F2C79C"/>
+    <circle cx="95" cy="80" r="7" fill="#F2C79C"/>
+    <!-- hood -->
+    <path d="M34 56 Q28 18 64 15 Q100 18 94 56 Q84 33 64 33 Q44 33 34 56 Z" fill="#1F9A8F"/>
+    <!-- head -->
+    <circle cx="64" cy="48" r="24" fill="#F2C79C"/>
+    <!-- hair fringe -->
+    <path d="M41 40 Q48 24 64 23 Q81 24 90 40 Q79 31 64 31 Q49 31 41 40 Z" fill="#3B2F4D"/>
+    <path d="M41 40 Q44 48 42 54" fill="none" stroke="#3B2F4D" stroke-width="7"/>
+    <!-- eyes -->
+    <ellipse cx="57" cy="50" rx="7.5" ry="9" fill="#ffffff" stroke-width="4"/>
+    <ellipse cx="79" cy="50" rx="7.5" ry="9" fill="#ffffff" stroke-width="4"/>
+    <circle cx="60" cy="51" r="4" fill="#1b1b2f" stroke="none"/>
+    <circle cx="82" cy="51" r="4" fill="#1b1b2f" stroke="none"/>
+    <!-- determined brows -->
+    <path d="M49 39 L62 43 M73 43 L86 38" fill="none" stroke-width="4"/>
+    <!-- mouth -->
+    <path d="M62 63 Q69 68 75 61" fill="none" stroke-width="4"/>
+    <!-- wave accent on the cheek -->
+    <path d="M86 62 Q90 58 94 62" fill="none" stroke="#8FE3F0" stroke-width="4"/>
+  </g>
+</svg>

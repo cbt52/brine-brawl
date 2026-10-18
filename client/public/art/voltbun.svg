@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- Voltbun: round cream-white bunny, teal zigzag ear tips, battery-shaped cotton tail, mischievous grin. -->
+  <g stroke="#1b1b2f" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+    <!-- battery tail -->
+    <rect x="16" y="78" width="20" height="24" rx="5" fill="#FFC93C"/>
+    <rect x="22" y="71" width="8" height="9" rx="3" fill="#E4D3B0"/>
+    <!-- ears -->
+    <g transform="rotate(-12 48 32)">
+      <rect x="40" y="6" width="17" height="48" rx="8" fill="#FFF3D6"/>
+      <path d="M40 24 L48.5 15 L57 24 L48.5 31 Z" fill="#2EC4B6"/>
+    </g>
+    <g transform="rotate(12 82 32)">
+      <rect x="71" y="6" width="17" height="48" rx="8" fill="#FFF3D6"/>
+      <path d="M71 24 L79.5 15 L88 24 L79.5 31 Z" fill="#2EC4B6"/>
+    </g>
+    <!-- feet -->
+    <ellipse cx="48" cy="112" rx="13" ry="7" fill="#E4D3B0"/>
+    <ellipse cx="82" cy="112" rx="13" ry="7" fill="#E4D3B0"/>
+    <!-- body -->
+    <ellipse cx="64" cy="90" rx="31" ry="24" fill="#FFF3D6"/>
+    <!-- tummy patch -->
+    <ellipse cx="70" cy="96" rx="16" ry="12" fill="#E4D3B0" stroke="none"/>
+    <!-- arms -->
+    <ellipse cx="36" cy="92" rx="7" ry="10" fill="#FFF3D6"/>
+    <ellipse cx="92" cy="90" rx="7" ry="10" fill="#FFF3D6"/>
+    <!-- head -->
+    <circle cx="64" cy="56" r="27" fill="#FFF3D6"/>
+    <!-- eyes -->
+    <ellipse cx="56" cy="54" rx="9" ry="10" fill="#ffffff" stroke-width="4"/>
+    <ellipse cx="80" cy="54" rx="9" ry="10" fill="#ffffff" stroke-width="4"/>
+    <circle cx="60" cy="55" r="4.5" fill="#1b1b2f" stroke="none"/>
+    <circle cx="84" cy="55" r="4.5" fill="#1b1b2f" stroke="none"/>
+    <circle cx="61.5" cy="53" r="1.6" fill="#ffffff" stroke="none"/>
+    <circle cx="85.5" cy="53" r="1.6" fill="#ffffff" stroke="none"/>
+    <!-- mischievous brows -->
+    <path d="M48 40 L60 45 M72 45 L84 38" fill="none" stroke-width="4"/>
+    <!-- nose + grin with one fang -->
+    <path d="M68 62 L74 62 L71 66 Z" fill="#FF9FB0" stroke-width="3"/>
+    <path d="M56 70 Q66 80 80 68" fill="none" stroke-width="4"/>
+    <path d="M74 72 L79 71 L77 78 Z" fill="#ffffff" stroke-width="3"/>
+  </g>
+</svg>

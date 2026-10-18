@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <!-- Deckhand (hurt): same body, squeezed >< eyes and an open mouth. -->
+  <g stroke="#1b1b2f" stroke-width="5" stroke-linejoin="round" stroke-linecap="round">
+    <ellipse cx="50" cy="112" rx="12" ry="7" fill="#35507A"/>
+    <ellipse cx="78" cy="112" rx="12" ry="7" fill="#35507A"/>
+    <path d="M94 94 L90 78" fill="none" stroke="#8C5A3C" stroke-width="7"/>
+    <path d="M90 78 L84 70 M90 78 L96 70" fill="none" stroke="#8C5A3C" stroke-width="7"/>
+    <path d="M84 70 Q90 66 96 70" fill="none" stroke="#1b1b2f" stroke-width="3"/>
+    <ellipse cx="64" cy="92" rx="26" ry="22" fill="#F5E6C8"/>
+    <path d="M44 88 Q64 96 84 88 L88 108 Q64 118 40 108 Z" fill="#35507A"/>
+    <path d="M56 90 L56 84 M72 90 L72 84" fill="none" stroke="#F5E6C8" stroke-width="4"/>
+    <ellipse cx="40" cy="92" rx="8" ry="11" fill="#F5E6C8"/>
+    <ellipse cx="90" cy="92" rx="8" ry="11" fill="#F5E6C8"/>
+    <path d="M44 74 Q64 82 84 74 L84 82 Q64 90 44 82 Z" fill="#FF7AA2"/>
+    <circle cx="64" cy="50" r="25" fill="#F5E6C8"/>
+    <path d="M42 42 Q64 8 86 42 Z" fill="#35507A"/>
+    <path d="M42 36 Q64 30 86 36 L86 42 Q64 36 42 42 Z" fill="#FF7AA2" stroke="none"/>
+    <ellipse cx="64" cy="43" rx="31" ry="8" fill="#35507A"/>
+    <!-- squeezed eyes -->
+    <path d="M50 48 L60 55 L50 62" fill="none" stroke-width="5"/>
+    <path d="M84 48 L74 55 L84 62" fill="none" stroke-width="5"/>
+    <!-- open mouth -->
+    <path d="M56 66 Q66 82 78 66 Q68 72 56 66 Z" fill="#1b1b2f"/>
+    <path d="M62 73 Q66 78 71 72 Q66 71 62 73 Z" fill="#FF7AA2" stroke="none"/>
+  </g>
+</svg>

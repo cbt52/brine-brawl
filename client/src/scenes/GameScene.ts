@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { WORLD_W, WORLD_H } from '../../../shared/constants.ts';
 import { OBSTACLES } from '../../../shared/arena/docks.ts';
-import { PLAYER_RADIUS } from '../../../shared/sim/world.ts';
 import type { Net } from '../net.ts';
 import type { SnapPlayer } from '../../../shared/protocol.ts';
 import { Controls } from '../input/controls.ts';
@@ -10,12 +9,15 @@ import { CombatFx } from '../fx/combatFx.ts';
 import { HudScene } from './HudScene.ts';
 import { syncResults } from '../ui/results.ts';
 import { getFighter } from '../../../shared/fighters/index.ts';
+import { FighterSprite, preloadArt } from '../art/rig.ts';
+import { getArt } from '../art/manifest.ts';
 
 const INTERP_DELAY_MS = 100;
 
 export class GameScene extends Phaser.Scene {
   private gfx!: Phaser.GameObjects.Graphics;
-  private labels = new Map<number, Phaser.GameObjects.Text>();
+  private projGfx!: Phaser.GameObjects.Graphics;
+  private rigs = new Map<number, FighterSprite>();
   private controls!: Controls;
   private self: Pos | null = null;
   private camInit = false;
@@ -27,8 +29,13 @@ export class GameScene extends Phaser.Scene {
     super('game');
   }
 
+  preload(): void {
+    preloadArt(this);
+  }
+
   create(): void {
-    this.gfx = this.add.graphics();
+    this.gfx = this.add.graphics().setDepth(0);
+    this.projGfx = this.add.graphics().setDepth(10);
     this.cameras.main.setBounds(-100, -100, WORLD_W + 200, WORLD_H + 200);
     this.cameras.main.centerOn(WORLD_W / 2, WORLD_H / 2);
     this.applyZoom();
@@ -55,17 +62,6 @@ export class GameScene extends Phaser.Scene {
     g.lineStyle(6, 0xffc93c, 1).strokeRect(0, 0, WORLD_W, WORLD_H);
   }
 
-  private drawBars(g: Phaser.GameObjects.Graphics, x: number, y: number, frac: number, ammo: number, maxAmmo: number): void {
-    const w = 56;
-    const top = y - 50;
-    g.fillStyle(0x1b1b2f, 0.8).fillRoundedRect(x - w / 2 - 2, top - 2, w + 4, 12, 4);
-    const col = frac > 0.6 ? 0x6bd968 : frac > 0.3 ? 0xffd23f : 0xe63946;
-    g.fillStyle(col, 1).fillRoundedRect(x - w / 2, top, Math.max(2, w * frac), 8, 3);
-    for (let i = 0; i < maxAmmo; i++) {
-      g.fillStyle(i < ammo ? 0xfff3b0 : 0x44506a, 1).fillCircle(x - (maxAmmo - 1) * 6 + i * 12, top + 18, 4);
-    }
-  }
-
   /** HUD lives in its own scene (screen space) — just feed it the current view. */
   private updateHud(view: SnapPlayer[]): void {
     this.hud.setMatch(this.net.last?.m, view, this.net.id);
@@ -84,42 +80,39 @@ export class GameScene extends Phaser.Scene {
     for (const p of view) {
       seen.add(p.id);
       this.names.set(p.id, p.n);
-      const me = p.id === this.net.id;
-      let t = this.labels.get(p.id);
-      if (!t) {
-        t = this.add.text(0, 0, p.n, { fontSize: '18px', color: '#fff' }).setOrigin(0.5);
-        this.labels.set(p.id, t);
+      const def = getFighter(p.f);
+      const art = getArt(p.f);
+      let rig = this.rigs.get(p.id);
+      if (!rig) {
+        rig = new FighterSprite(this, p.x, p.y, { artId: p.f, height: def.radius * 2.6, hud: true });
+        rig.setDepth(20);
+        rig.setSelf(p.id === this.net.id);
+        this.rigs.set(p.id, rig);
       }
-      if (p.dn) { t.setVisible(false); continue; }
-      t.setVisible(true).setPosition(p.x, p.y - 62);
-      if (me) this.self = { x: p.x, y: p.y };
-      const blink = p.sh && Math.floor(nowMs / 100) % 2 === 0;
-      const flash = (this.fx.flashUntil.get(p.id) ?? 0) > nowMs;
-      const alpha = blink ? 0.35 : 1;
-      g.fillStyle(flash ? 0xffffff : me ? 0xff7aa2 : 0x2ec4b6, alpha).fillCircle(p.x, p.y, PLAYER_RADIUS);
-      g.lineStyle(4, 0x1b1b2f, alpha).strokeCircle(p.x, p.y, PLAYER_RADIUS);
-      // eyes look along the aim direction
-      const ax = Math.cos((p.a * Math.PI) / 180);
-      const ay = Math.sin((p.a * Math.PI) / 180);
-      for (const side of [-1, 1]) {
-        const ex = p.x + ax * 12 - ay * 10 * side;
-        const ey = p.y + ay * 12 + ax * 10 * side;
-        g.fillStyle(0xffffff, alpha).fillCircle(ex, ey, 8);
-        g.fillStyle(0x1b1b2f, alpha).fillCircle(ex + ax * 3, ey + ay * 3, 4);
-      }
-      this.drawBars(g, p.x, p.y, p.hp / p.mhp, p.am, getFighter(p.f).ammo);
+      rig.setLabel(p.n);
+      rig.sync(p.x, p.y, p.a, Boolean(p.dn));
+      rig.setBars(p.hp / p.mhp, p.am, def.ammo, art.color);
+      // spawn shield blinks; a KO'd fighter keeps its rig for the death animation
+      rig.setAlpha(p.sh && Math.floor(nowMs / 100) % 2 === 0 ? 0.45 : 1);
+      if (p.id === this.net.id) this.self = { x: p.x, y: p.y };
     }
+    const pg = this.projGfx;
+    pg.clear();
     for (const pr of interpolateProjs(this.net.buffer, nowMs - INTERP_DELAY_MS)) {
-      g.fillStyle(0xfff3b0, 1).fillCircle(pr.x, pr.y, 9);
-      g.lineStyle(3, 0x1b1b2f, 1).strokeCircle(pr.x, pr.y, 9);
+      pg.fillStyle(0xfff3b0, 1).fillCircle(pr.x, pr.y, 9);
+      pg.lineStyle(3, 0x1b1b2f, 1).strokeCircle(pr.x, pr.y, 9);
     }
     const evs = this.net.events.splice(0);
+    for (const e of evs) {
+      if (e.k === 'shot' || e.k === 'cast') this.rigs.get(e.id)?.attack();
+      else if (e.k === 'hit') this.rigs.get(e.v)?.hit();
+    }
     this.controls.setCooldowns(view.find((p) => p.id === this.net.id));
     this.fx.handle(evs, this.net.id, () => navigator.vibrate?.(30));
     this.hud.addEvents(evs, (id) => this.names.get(id) ?? '?');
     this.updateHud(view);
-    for (const [id, t] of this.labels) {
-      if (!seen.has(id)) { t.destroy(); this.labels.delete(id); }
+    for (const [id, rig] of this.rigs) {
+      if (!seen.has(id)) { rig.destroy(); this.rigs.delete(id); }
     }
     if (this.self && seen.has(this.net.id)) {
       const cam = this.cameras.main;
