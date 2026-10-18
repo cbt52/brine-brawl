@@ -10,6 +10,7 @@ import { showLobby } from './ui/lobby.ts';
 import { savedFighter, savedSkin } from './ui/select.ts';
 import { mountMenu, showInvite } from './ui/menu.ts';
 import { mountEmotes } from './ui/emotes.ts';
+import { mountTutorial } from './ui/tutorial.ts';
 
 const params = new URLSearchParams(location.search);
 const net = new Net();
@@ -32,6 +33,7 @@ function withFighter(q: URLSearchParams): URLSearchParams {
 if (roomParam && (params.has('name') || params.has('bots'))) {
   net.start(withFighter(new URLSearchParams(params)));
   mountMenu(net);
+  mountTutorial(fxOpts.mobile);
 } else {
   void showLobby(roomParam, params.get('name') ?? savedName).then((c) => {
     const q = new URLSearchParams(params);
@@ -45,6 +47,7 @@ if (roomParam && (params.has('name') || params.has('bots'))) {
     history.replaceState(null, '', `/?room=${encodeURIComponent(c.room)}`);
     net.start(q);
     mountMenu(net);
+    mountTutorial(fxOpts.mobile);
     if (c.invite) showInvite(c.room);
   });
 }

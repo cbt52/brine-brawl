@@ -34,6 +34,14 @@ body.in-lobby #rotate { display: none; }
   -webkit-tap-highlight-color: transparent; }
 #sb-btn.on { background: #ffc93c; border-color: #1b1b2f; }
 
+/* first-time tips (backlog #7): centred and click-through except the button, so the arena stays playable */
+#tutorial { z-index: 18; pointer-events: none; width: min(340px, 90vw); box-sizing: border-box; font-size: 15px; }
+#tutorial > b { font-size: 18px; color: #ffc93c; }
+#tutorial ul { list-style: none; margin: 0; padding: 0; width: 100%; display: flex; flex-direction: column; gap: 6px; }
+#tutorial li { background: #ffffff14; border-radius: 10px; padding: 6px 10px; line-height: 1.25; }
+#tutorial li b { color: #9fd6d0; font-weight: 400; }
+#tutorial .big { pointer-events: auto; }
+
 /* results overlay: WANTED posters + ranking + confetti, auto-removed when the next countdown starts */
 #results { z-index: 25; min-width: min(380px, 92vw); max-height: 92vh; overflow-y: auto; overflow-x: hidden; gap: 10px; }
 #results h2 { margin: 0; font-size: clamp(20px, 6vw, 30px); color: #ffc93c; text-align: center;

@@ -455,7 +455,6 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 
 ---
 ## 5. IMPROVEMENT BACKLOG (ordered; T99 takes from the top; user feedback goes first)
-7. Tutorial overlay for first-time players (3 tips, dismissible).
 8. Colorblind-friendly team outlines and status shapes.
 9. Local stats page (matches, favorite fighter, best bounty) in localStorage.
 10. Bots answer: a bot that KOs you sends a sticker back over the T99 emote channel (one in three KOs).
@@ -470,24 +469,10 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 
 19. Lint: `tests/e2e/emotes.spec.ts:1` has an unused `eslint-disable` directive, so `npm run check` prints a warning. Drop the directive so the lint output is clean.
 20. Showdown part 3 (slice 2 = ring wiring in `World.step`, room round clock, bot edge-flee, HUD timer, shot-checked): a last-standing finish (the round ends early when one crew or one fighter is left inside the ring), a tinted outside-of-ring wash (only the bright edge line is drawn now), and a Showdown-only weather roll, because Double Tide does nothing there (the flood follows the ring).
+21. Tips card on demand: the first-visit tips (`client/src/ui/tutorial.ts`, shown once via `brawl.tutorial`) can't be reopened today. Add a "How to play" button to the ☰ menu that mounts the same card again, and reuse `tutorialTips(touch)` so the text stays in one place.
 
 ---
 ## 6. LOG (one line per task/hotfix; archive older lines to `.loop/log-archive.md` if >40 lines)
-- T16 ✅ 2026-10-18 — client prediction (ack-rollback, 100 ms blend, 120 u snap), ping HUD, ?lag=ms; e2e green; CP4 checkpoint
-- T04 ✅ 2026-10-18 — twin-stick touch.ts, DOM buttons+rings, rotate overlay, fullscreen, mobile e2e green
-- RF ✅ 2026-10-18 — input throttle 30/s w/ immediate flag edges, per-input aim source, serve.sh verified (T01/T01a ticked)
-- HF ✅ 2026-10-18 — serve.sh mkdir lock (.loop/serve.lock, stale >5 min dropped)
-- T05 ✅ 2026-10-18 — BotBrain (wander/chase/kite/flee, lead+error, react delay, whiskers), room bots, dbg bots, unit+smoke green
-- T06 ✅ 2026-10-18 — DOM lobby+invite+☰ menu, clipboard fallback, bots msg; portrait rotate hint no longer covers menus
-- T07 ✅ 2026-10-18 — Match-Flow + HUD-Scene (Timer/KOs/Feed/Scoreboard), Results-Overlay, ?matchsec, Touch-Tap-Fix
-- T08 ✅ 2026-10-18 — Fighter-Registry + 6 Ability-Primitive generisch, Ult-Ladung/Special-CD im Snap+HUD, Bots nutzen beides
-- T09 ✅ 2026-10-18 — SVG-Pipeline (3 Kämpfer + Hurt-Faces, art.test), FighterSprite-Rig ersetzt Kreise, /gallery.html
-- T08b ✅ 2026-10-18 — Kunst-Pipeline: 24 Kämpfer + Deckhand aus EINEM Modell → SVG-Sprites + three-Blockouts, Galerie ?look=3d
-- T10 ✅ 2026-10-18 — Voltbun+Mira-Kits (Burrow-/Trail-/Cone-/TickPull-Primitive), Bots mit Zufalls-Kits; check+smoke grün
-- T11 ✅ 2026-10-18 — Noodle+Sudsy-Kits (Projektil-Status, Trap-Status, Stop-Dash), Taffy-Arm+Bubble-FX, Galerie grün; check+smoke+shot grün
-- T12 ✅ 2026-10-18 — Charakterauswahl (Karten mit Stats/Moves im Lobby-Menü, localStorage, ☰-Wechsel ab Respawn); CP3, e2e+healthz grün
-- T13 ✅ 2026-10-18 — Juice-Pass: Partikel (Mündungsfeuer, Impact-Ringe, Funken, Staub, KO-Sterne), Hitstop, Screenshake-Toggle, Vignette, lowfx-Budget; check+e2e+shot grün
-- T14 ✅ 2026-10-18 — Arena-Art in RenderTexture (Sand/Planken/Korallen/Shallows/Waves), Kelp-Büsche verstecken Kämpfer (200 u / 1 s Reveal, Bots+Snapshot gefiltert); check+shot grün
 - T15 ✅ 2026-10-18 — Prozedurales Audio (11 Presets, Distanz-Dämpfung, iOS-Unlock, Shanty-Loop, ☰ Sound/Music-Toggles, cast-slot für Ult-SFX); cp1-e2e-Position aus dem Busch; check+e2e grün
 - T19 ✅ 2026-10-18 — Bounty Brawl: 100-Start, KO-Purse 50+50 %, +100 Bounty, 3 Münzen, Krone+WANTED-Marker, WANTED-Poster-Results; check+339 Tests+e2e 15/15 grün
 - T17 ✅ 2026-10-18 — Elemente/Statuses: 6-Reaktions-Tabelle, Burn-Tick, Mud-Root, Steam-Cloud, st-Bitmaske, Status-FX+Reaktionsworte; check grün
@@ -513,3 +498,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T99 ✅ 2026-10-18 — Kill-cam (backlog #5): own KO replays the 2 s before it (`net/killcam.ts`, `Net.buffer` kept 3 s by age), camera on the killer, "KO CAM · name" tag, events muted during replay; 7 unit + 1 e2e, check 588 + e2e desktop 20/20 grün; banner not screenshot-checked → §5 #18
 - T99 ✅ 2026-10-18 — Showdown slice 1: `shared/sim/showdown.ts` ring 1000→260 u (30–150 s), tide tracks shrink, edge dmg; 11 tests, check 599 grün; wiring → §5 #6
 - T99 ✅ 2026-10-18 — Showdown part 2: lobby mode, ring + HUD timer, edge dmg, flood follows ring, bots turn back; 11 tests, check 612 grün, shot ok → §5 #20
+- T99 ✅ 2026-10-18 — Tips card (backlog #7): first visit shows 3 tips (PC/touch text), 'Got it' or 20 s saves brawl.tutorial, click-through; 4 unit + 1 e2e, check 616 + e2e desktop 21/21 + shot ok → §5 #21
