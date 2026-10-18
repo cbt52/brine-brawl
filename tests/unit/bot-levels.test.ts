@@ -33,6 +33,40 @@ describe('bot levels (T99)', () => {
     expect(mgr.rooms.get('lvl-default')!.botLevel).toBe('normal');
   });
 
+  it('the host switches the level and the bots already in the room switch with it (backlog #14)', () => {
+    const mgr = new RoomManager();
+    mgr.join({} as WebSocket, 'lvl-switch', 'A', 'default', 2, undefined, undefined, undefined, 'normal');
+    const room = mgr.rooms.get('lvl-switch')!;
+    room.setBotLevel('sharky');
+    expect(room.botLevel).toBe('sharky');
+    for (const b of room.bots.values()) expect(b.difficulty).toBe('sharky');
+    // a bot added later spawns on the new level too
+    room.wantBots = 3;
+    room.syncBots();
+    expect(room.bots.size).toBe(3);
+    for (const b of room.bots.values()) expect(b.difficulty).toBe('sharky');
+  });
+
+  it('an unknown level from the menu falls back to normal', () => {
+    const mgr = new RoomManager();
+    mgr.join({} as WebSocket, 'lvl-junk', 'A', 'default', 1, undefined, undefined, undefined, 'easy');
+    const room = mgr.rooms.get('lvl-junk')!;
+    room.setBotLevel('insane');
+    expect(room.botLevel).toBe('normal');
+    for (const b of room.bots.values()) expect(b.difficulty).toBe('normal');
+  });
+
+  it('the match info sent to every client carries the room level for the ☰ menu', () => {
+    const mgr = new RoomManager();
+    const sent: { m?: { bl?: string } }[] = [];
+    const ws = { readyState: 1, send: (s: string) => sent.push(JSON.parse(s)) } as unknown as WebSocket;
+    mgr.join(ws, 'lvl-info', 'A', 'default', 1, undefined, undefined, undefined, 'easy');
+    mgr.rooms.get('lvl-info')!.setBotLevel('sharky');
+    mgr.broadcast();
+    expect(sent.length).toBeGreaterThan(0);
+    expect(sent[0].m?.bl).toBe('sharky');
+  });
+
   it('a later joiner cannot change the level of a room already in play', () => {
     const mgr = new RoomManager();
     mgr.join({} as WebSocket, 'lvl-keep', 'A', 'default', 0, undefined, undefined, undefined, 'easy');

@@ -165,6 +165,12 @@ export class Room {
     this.world.setFighter(c.id, id);
   }
 
+  /** Host's ☰-menu level change (backlog #14): the bots already in the room switch with it. */
+  setBotLevel(raw: unknown): void {
+    this.botLevel = sanitizeBotLevel(raw);
+    for (const b of this.bots.values()) b.setDifficulty(this.botLevel);
+  }
+
   setInput(c: Client, i: InputMsg): void {
     const n = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
     this.world.setInput(c.id, {
@@ -277,6 +283,7 @@ export class RoomManager {
       info.ros = r.roster();
       info.mode = r.mode;
       info.wx = r.world.weather;
+      info.bl = r.botLevel;
       if (r.mode === 'showdown') info.sd = Math.round(r.world.roundT * 10) / 10;
       for (const c of r.clients.values()) {
         if (c.ws.readyState !== 1) continue;

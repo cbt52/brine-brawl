@@ -1,4 +1,5 @@
 import type { Net } from '../net.ts';
+import { BOT_LEVELS } from '../../../shared/sim/bot.ts';
 import { copyText, inviteUrl } from './rooms.ts';
 import { fighterRowHtml, markFighterRow, saveFighter, savedFighter } from './select.ts';
 import { setShakeEnabled, shakeEnabled, setSfxEnabled, sfxEnabled, setMusicEnabled, musicEnabled } from './settings.ts';
@@ -46,6 +47,8 @@ export function mountMenu(net: Net): void {
     <span data-testid="menu-bots"></span>
     <button class="big sm alt" data-testid="menu-bot-plus">+ Bot</button></div>
     <small>Bots: host only</small>
+    <div class="row" data-testid="menu-levels"></div>
+    <small>Bot level: host only · bots already in the room switch too</small>
     <button class="big sm alt" data-testid="menu-stats">Stats</button>
     <button class="big sm alt" data-testid="menu-shake">Screenshake</button>
     <button class="big sm alt" data-testid="menu-sfx">Sound</button>
@@ -78,9 +81,23 @@ export function mountMenu(net: Net): void {
     if (btn) pick(btn.dataset.fighter!);
   });
   const bots = () => (net.last?.players ?? []).filter((p) => p.id >= 1000).length;
+  // bot level (backlog #14): the room's current level comes back in the match info (`bl`)
+  const lvlRow = q('menu-levels') as HTMLElement;
+  lvlRow.innerHTML = BOT_LEVELS.map((l) => `<button class="big sm alt" data-level="${l}" data-testid="menu-level-${l}">${l[0].toUpperCase()}${l.slice(1)}</button>`).join('');
+  lvlRow.addEventListener('click', (e) => {
+    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-level]');
+    if (btn) net.send({ t: 'botlevel', level: btn.dataset.level! });
+  });
+  const markLevel = () => {
+    const cur = net.last?.m?.bl;
+    for (const b of lvlRow.querySelectorAll<HTMLButtonElement>('button[data-level]')) {
+      b.className = `big sm${b.dataset.level === cur ? '' : ' alt'}`;
+    }
+  };
   const refresh = () => {
     q('menu-bots').textContent = `${bots()} bots`;
     markFighterRow(frow, myFighter());
+    markLevel();
   };
   const setBots = (n: number) => { net.send({ t: 'bots', n: Math.max(0, Math.min(7, n)) }); };
   const toggle = (open: boolean) => {

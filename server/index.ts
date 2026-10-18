@@ -55,6 +55,11 @@ function send(ws: WebSocket, msg: S2C): void {
   if (ws.readyState === 1) ws.send(JSON.stringify(msg));
 }
 
+/** The first human to join a room is its host (bot controls, backlog #14). */
+function isHost(j: { room: Room; client: Client }): boolean {
+  return j.room.clients.keys().next().value === j.client.id;
+}
+
 function onConnection(ws: WebSocket): void {
   let joined: { room: Room; client: Client } | null = null;
   let windowStart = Date.now();
@@ -96,10 +101,14 @@ function onConnection(ws: WebSocket): void {
         break;
       case 'bots':
         // host (first human in the room) adjusts the bot count
-        if (joined && joined.room.clients.keys().next().value === joined.client.id) {
+        if (joined && isHost(joined)) {
           joined.room.wantBots = Math.max(0, Math.min(7, Math.floor(Number(msg.n) || 0)));
           joined.room.syncBots();
         }
+        break;
+      case 'botlevel':
+        // host switches the level for the bots in the room (backlog #14)
+        if (joined && isHost(joined)) joined.room.setBotLevel(msg.level);
         break;
       case 'ping':
         send(ws, { t: 'pong', ts: msg.ts });

@@ -73,6 +73,8 @@ export interface MatchInfo {
   wx?: Weather;
   /** Showdown only (backlog #6): seconds into the round, drives the ring and its HUD timer */
   sd?: number;
+  /** bot level of this room (backlog #14): easy / normal / sharky — the ☰ menu highlights it */
+  bl?: string;
 }
 
 export interface DbgMsg {
@@ -84,6 +86,12 @@ export interface DbgMsg {
 export interface BotsMsg {
   t: 'bots';
   n: number;
+}
+
+/** Host switches the bot level for the bots in the room (backlog #14): easy / normal / sharky. */
+export interface BotLevelMsg {
+  t: 'botlevel';
+  level: string;
 }
 
 /** Change your fighter; it takes effect on the next respawn (no debug flag needed). */
@@ -103,6 +111,7 @@ export type C2S =
   | InputMsg
   | DbgMsg
   | BotsMsg
+  | BotLevelMsg
   | PickMsg
   | EmoteMsg
   /** start the next round right away (results screen "Rematch", T28) */

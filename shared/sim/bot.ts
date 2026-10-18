@@ -80,15 +80,24 @@ export class BotBrain {
   private strafeT = 0;
   private err = 0;
   private errT = 0;
-  private readonly prm: { errDeg: number; react: number };
+  /** lobby / ☰-menu level (backlog #14); `setDifficulty` swaps it mid-round */
+  difficulty: BotDifficulty;
+  private get prm(): { errDeg: number; react: number } {
+    return BOT_PARAMS[this.difficulty];
+  }
   /** randomness source: `Math.random` in play, a seeded PRNG in the balance harness */
   private readonly rng: () => number;
 
   constructor(public id: number, difficulty: BotDifficulty = 'normal', rng: () => number = Math.random) {
-    this.prm = BOT_PARAMS[difficulty];
+    this.difficulty = difficulty;
     this.rng = rng;
     this.wanderAng = rng() * Math.PI * 2;
     this.strafeDir = rng() < 0.5 ? 1 : -1;
+  }
+
+  /** Backlog #14: the host changes the level; bots already in the room switch on their next think. */
+  setDifficulty(difficulty: BotDifficulty): void {
+    this.difficulty = difficulty;
   }
 
   private perceive(world: World, me: SimPlayer, dt: number): void {
