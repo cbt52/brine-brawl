@@ -53,6 +53,8 @@ export interface ScoreRow {
   bot: number;
   /** crew 0/1 when the match runs teams; absent in a free-for-all */
   tm?: number;
+  /** skin index (shared/skins.ts) so the WANTED poster matches the body; absent = the drawn look */
+  sk?: number;
 }
 
 export interface MatchInfo {
@@ -100,6 +102,12 @@ export interface PickMsg {
   fighter: string;
 }
 
+/** Change your skin from the ☰ menu (backlog #16); cosmetic, it shows on the next snapshot. */
+export interface SkinMsg {
+  t: 'skin';
+  skin: number;
+}
+
 /** Send an emote sticker (T99); `e` is an index into shared/emotes.ts EMOTES. */
 export interface EmoteMsg {
   t: 'emote';
@@ -113,6 +121,7 @@ export type C2S =
   | BotsMsg
   | BotLevelMsg
   | PickMsg
+  | SkinMsg
   | EmoteMsg
   /** results screen "Rematch" = Ready tap (T28, backlog #15): the next round starts once everyone has tapped */
   | { t: 'rematch' }

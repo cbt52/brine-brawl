@@ -1,7 +1,7 @@
 import type { Net } from '../net.ts';
 import { BOT_LEVELS } from '../../../shared/sim/bot.ts';
 import { copyText, inviteUrl } from './rooms.ts';
-import { fighterRowHtml, markFighterRow, saveFighter, savedFighter } from './select.ts';
+import { fighterRowHtml, markFighterRow, nextSkin, saveFighter, saveSkin, savedFighter, savedSkin, skinLabel } from './select.ts';
 import { setShakeEnabled, shakeEnabled, setSfxEnabled, sfxEnabled, setMusicEnabled, musicEnabled } from './settings.ts';
 import { showStats } from './statsPage.ts';
 
@@ -43,6 +43,8 @@ export function mountMenu(net: Net): void {
   panel.innerHTML = `<button class="big sm" data-testid="menu-invite">Copy invite link</button>
     <div class="row frow" data-testid="menu-fighters"></div>
     <small>Fighter — applies on your next respawn</small>
+    <button class="big sm alt" data-testid="menu-skin"></button>
+    <small>Skin — applies at once</small>
     <div class="row"><button class="big sm alt" data-testid="menu-bot-minus">− Bot</button>
     <span data-testid="menu-bots"></span>
     <button class="big sm alt" data-testid="menu-bot-plus">+ Bot</button></div>
@@ -80,6 +82,17 @@ export function mountMenu(net: Net): void {
     const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-fighter]');
     if (btn) pick(btn.dataset.fighter!);
   });
+  // skin (backlog #16): the same cycle as the lobby; the server sets it on our body at once
+  const skinBtn = q('menu-skin') as HTMLButtonElement;
+  let skin = savedSkin();
+  const syncSkin = () => { skinBtn.textContent = skinLabel(skin); };
+  skinBtn.addEventListener('click', () => {
+    skin = nextSkin(skin);
+    saveSkin(skin);
+    net.send({ t: 'skin', skin });
+    syncSkin();
+  });
+  syncSkin();
   const bots = () => (net.last?.players ?? []).filter((p) => p.id >= 1000).length;
   // bot level (backlog #14): the room's current level comes back in the match info (`bl`)
   const lvlRow = q('menu-levels') as HTMLElement;

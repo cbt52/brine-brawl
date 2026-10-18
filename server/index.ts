@@ -91,6 +91,10 @@ function onConnection(ws: WebSocket): void {
       case 'pick':
         if (joined) joined.room.setFighter(joined.client, msg.fighter);
         break;
+      case 'skin':
+        // ☰-menu skin change (backlog #16): cosmetic, so no host check
+        if (joined) joined.room.setSkin(joined.client, msg.skin);
+        break;
       case 'emote':
         // stickers are rate-limited per player (shared/emotes.ts EMOTE_COOLDOWN_MS)
         if (joined) joined.room.emote(joined.client, msg.e);

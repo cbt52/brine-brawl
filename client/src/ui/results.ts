@@ -34,7 +34,7 @@ function runnerUp(r: ScoreRow, place: number): HTMLLIElement {
   const pos = document.createElement('span');
   pos.className = 'pos';
   pos.textContent = `${place}.`;
-  li.append(pos, wantedPoster({ name: r.n, fighter: r.f, bounty: r.b, size: 'small' }));
+  li.append(pos, wantedPoster({ name: r.n, fighter: r.f, skin: r.sk, bounty: r.b, size: 'small' }));
   return li;
 }
 
@@ -46,7 +46,7 @@ function posterRow(rows: ScoreRow[]): HTMLDivElement {
   const big = document.createElement('div');
   big.className = 'wanted-big';
   big.setAttribute('data-testid', 'wanted-big');
-  if (win) big.append(wantedPoster({ name: win.n, fighter: win.f, bounty: win.b }));
+  if (win) big.append(wantedPoster({ name: win.n, fighter: win.f, skin: win.sk, bounty: win.b }));
   const rest = document.createElement('ol');
   rest.className = 'wanted-rest';
   rest.setAttribute('data-testid', 'wanted-rest');

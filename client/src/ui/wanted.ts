@@ -1,4 +1,5 @@
-import { artUrl, getArt } from '../art/manifest.ts';
+import { getArt } from '../art/manifest.ts';
+import { skinnedPortrait } from '../art/skinPortrait.ts';
 
 /**
  * Bounty Brawl results poster (T19): a procedurally drawn parchment WANTED sheet — torn edges,
@@ -9,6 +10,8 @@ export interface WantedOpts {
   name: string;
   /** fighter id, drives the portrait */
   fighter: string;
+  /** skin index (backlog #16): the portrait wears the fighter's skin; absent = the drawn look */
+  skin?: number;
   bounty: number;
   /** runner-ups get a small, simplified sheet */
   size?: 'big' | 'small';
@@ -178,7 +181,7 @@ export function wantedPoster(o: WantedOpts): HTMLCanvasElement {
     ctx.drawImage(img, boxX + (boxW - dw) / 2, boxY + (boxH - dh) / 2, dw, dh);
     frame();
   };
-  img.src = artUrl(art.id);
+  void skinnedPortrait(art.id, o.skin ?? 0).then((url) => { img.src = url; });
   cv.setAttribute('data-fighter', art.id);
 
   // name plate

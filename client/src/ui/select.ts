@@ -4,6 +4,7 @@ import type { Element, Faction, FighterDef, Role } from '../../../shared/fighter
 import { PASSIVE_OF } from '../../../shared/sim/passives.ts';
 import { SKINS, sanitizeSkin, skinAt } from '../../../shared/skins.ts';
 import { ELEMENT_LABEL, FACTION_COLOR, FACTION_LABEL, artUrl } from '../art/manifest.ts';
+import { skinnedPortrait } from '../art/skinPortrait.ts';
 import { escapeHtml } from './util.ts';
 
 /**
@@ -126,8 +127,10 @@ export function fighterCardsHtml(selected: string): string {
 /**
  * Fill `root` with faction tabs, a Random button and the scrollable card grid. One card is always
  * selected and every tap (or the dice) persists the choice. Tabs only filter, cards stay mounted.
+ * Returns the portrait setter: the cards show the saved skin (backlog #16) and the lobby calls it
+ * again when the skin button cycles.
  */
-export function mountFighterGrid(root: HTMLElement, selected: string, onPick?: (id: string) => void): void {
+export function mountFighterGrid(root: HTMLElement, selected: string, onPick?: (id: string) => void): (skin: number) => void {
   root.innerHTML = `<div class="tabs" role="tablist" data-testid="fighter-tabs">
       ${TABS.map(
         (t) =>
@@ -161,6 +164,18 @@ export function mountFighterGrid(root: HTMLElement, selected: string, onPick?: (
     filter('all');
     cards.find((c) => c.dataset.fighter === pick.id)?.scrollIntoView({ block: 'nearest' });
   });
+  // portraits follow the skin; a slow fetch for an old skin must not overwrite a newer one
+  let wanted = 0;
+  const setSkin = (skin: number) => {
+    wanted = skin;
+    for (const c of cards) {
+      const img = c.querySelector<HTMLImageElement>('img.portrait');
+      if (!img) continue;
+      void skinnedPortrait(c.dataset.fighter!, skin).then((url) => { if (wanted === skin) img.src = url; });
+    }
+  };
+  setSkin(savedSkin());
+  return setSkin;
 }
 
 /** Compact button row for the in-game menu. */

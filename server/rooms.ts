@@ -70,7 +70,7 @@ export class Room {
       id: p.id, name: p.name, kos: p.kos, deaths: p.deaths,
       // Treasure Tide scores the coins on the body, Bounty Brawl the bounty (T27)
       bounty: treasure ? p.carry : p.bounty,
-      fighter: p.fighter, bot: this.bots.has(p.id), team: p.team ?? undefined,
+      fighter: p.fighter, bot: this.bots.has(p.id), team: p.team ?? undefined, skin: p.skin,
     }));
     const ranked = rankPlayers(rows);
     if (!treasure) return ranked;
@@ -176,6 +176,11 @@ export class Room {
     const id = resolveFighterId(fighter);
     c.fighter = id;
     this.world.setFighter(c.id, id);
+  }
+
+  /** ☰-menu skin change (backlog #16): cosmetic, so it applies at once on the next snapshot. */
+  setSkin(c: Client, raw: unknown): void {
+    this.world.setSkin(c.id, sanitizeSkin(raw));
   }
 
   /** Host's ☰-menu level change (backlog #14): the bots already in the room switch with it. */

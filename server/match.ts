@@ -126,6 +126,8 @@ export function rankPlayers(
     id: number; name: string; kos: number; deaths: number; bounty?: number; fighter?: string; bot?: boolean;
     /** crew 0/1 (T26); omitted in a free-for-all */
     team?: Team;
+    /** skin index (backlog #16); 0 or omitted = the drawn look and no `sk` in the row */
+    skin?: number;
   }[],
 ): ScoreRow[] {
   return ps
@@ -134,6 +136,7 @@ export function rankPlayers(
       b: typeof p.bounty === 'number' && Number.isFinite(p.bounty) ? p.bounty : 0,
       f: p.fighter ?? '', bot: p.bot ? 1 : 0,
       ...(p.team === 0 || p.team === 1 ? { tm: p.team } : {}),
+      ...(p.skin ? { sk: p.skin } : {}),
     }))
     .sort((a, b) => b.b - a.b || b.k - a.k || a.d - b.d || a.n.localeCompare(b.n));
 }

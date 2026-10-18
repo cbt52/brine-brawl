@@ -74,7 +74,7 @@ export function showLobby(prefillRoom: string | null, prefillName: string | null
         <button class="big sm alt" data-testid="stats-open">📊 Stats</button></div>
       </section></div>`;
     document.body.appendChild(el);
-    mountFighterGrid(el.querySelector<HTMLElement>('[data-testid=fighter-select]')!, fighter, (id) => { fighter = id; });
+    const setCardSkin = mountFighterGrid(el.querySelector<HTMLElement>('[data-testid=fighter-select]')!, fighter, (id) => { fighter = id; });
     // the portrait "rotate" hint is for gameplay only – it must never cover the lobby
     document.body.classList.add('in-lobby');
     const name = el.querySelector<HTMLInputElement>('[data-testid=name-input]')!;
@@ -111,11 +111,12 @@ export function showLobby(prefillRoom: string | null, prefillName: string | null
       el.querySelector('[data-testid=level-hint]')!.textContent = LEVEL_HINT[l];
     };
     for (const b of levelBtns) b.addEventListener('click', () => pickLevel(b.dataset.level as BotDifficulty));
-    // skin picker (backlog #3): cycles the palette swaps and remembers the last one
+    // skin picker (backlog #3): cycles the palette swaps and remembers the last one; the cards follow (#16)
     el.querySelector('[data-testid=skin-select]')!.addEventListener('click', (ev) => {
       skin = nextSkin(skin);
       saveSkin(skin);
       (ev.currentTarget as HTMLButtonElement).textContent = skinLabel(skin);
+      setCardSkin(skin);
     });
     on('stats-open', showStats);
     on('join-go', () => done({ room: prefillRoom!, bots: 0, invite: false, mode }));
