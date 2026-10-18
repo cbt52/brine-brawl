@@ -85,6 +85,26 @@ describe('crew combos (T28)', () => {
     expect(burrower.hp).toBeGreaterThan(0);
   });
 
+  it('never damages the crewmate who completes the combo', () => {
+    const w = new World();
+    const a = w.addPlayer(1, 'Volt', 'voltbun', false, 0 as Team);
+    const b = w.addPlayer(2, 'Mira', 'mira', false, 0 as Team);
+    const foe = w.addPlayer(3, 'Foe', 'default', false, 1 as Team);
+    for (const p of [a, b, foe]) p.shield = 0;
+    a.x = 1000; a.y = 1000;
+    b.x = 1040; b.y = 1000; // inside COMBO_BURST_RADIUS of the victim
+    foe.x = 1080; foe.y = 1000;
+    w.clearEvents();
+    w.damage(a.id, foe, 20, foe.x, foe.y, 'ult');
+    const hpA = a.hp;
+    const hpB = b.hp;
+    w.damage(b.id, foe, 20, foe.x, foe.y, 'ult'); // b completes the combo and stands in the blast
+    expect(w.events.some((e) => e.k === 'combo')).toBe(true);
+    expect(b.hp).toBe(hpB);
+    expect(a.hp).toBe(hpA);
+    expect(foe.hp).toBeLessThan(foe.mhp);
+  });
+
   it('does not pair ults from rival crews', () => {
     const w = new World();
     const a = w.addPlayer(1, 'Volt', 'voltbun', false, 0 as Team);

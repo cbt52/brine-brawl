@@ -641,6 +641,9 @@ export class World {
     const bonus = dmg * COMBO_BONUS;
     for (const o of this.players.values()) {
       if (o.down || o.burrow) continue;
+      // the completer stands in its own blast (melee/self-AoE ults): friendly() only filters
+      // crews, and attacker === victim bypasses it, so skip the caster explicitly
+      if (o.id === a.id) continue;
       if (Math.hypot(o.x - v.x, o.y - v.y) > COMBO_BURST_RADIUS + o.r) continue;
       // damage() filters crews itself, so the burst never hurts the pair's own side
       this.damage(a.id, o, bonus, o.x, o.y);
