@@ -455,7 +455,6 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 
 ---
 ## 5. IMPROVEMENT BACKLOG (ordered; T99 takes from the top; user feedback goes first)
-1. Second arena "Taffy Galleon": rocking ship deck, cannon hazard that fires across lanes.
 2. Bot difficulty selector (easy / normal / sharky) in the lobby.
 3. Skins: 2 palette swaps per fighter (data-driven SVG color replacement).
 4. "Weird Weather" match modifiers: jellyfish rain, bubble storm, double tide.
@@ -466,7 +465,8 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 9. Local stats page (matches, favorite fighter, best bounty) in localStorage.
 10. Bots answer: a bot that KOs you sends a sticker back over the T99 emote channel (one in three KOs).
 11. Optional ONLY if the user asks: ComfyUI portraits (127.0.0.1:8188, 2–7 min/img, 16 GB RAM, never while the user is using it).
-12. Bots go for Purrl (backlog #1 snail) when they are hurt and it is within reach; today the snail is scenery for bots.
+12. Bots go for Purrl (the sea snail) when they are hurt and it is within reach; today the snail is scenery for bots.
+13. Taffy Galleon, part 2 (slice 1 = `shared/sim/cannon.ts`, telegraph + moving bar, unit-tested, not wired): second arena data (rocking ship deck, own spawns/coral/sand), `World` + bots + prediction take an arena instead of the docks constants, lane cannons placed in that arena and damaging bodies once per volley, rocking deck art in `client/src/art/arena.ts`.
 
 ---
 ## 6. LOG (one line per task/hotfix; archive older lines to `.loop/log-archive.md` if >40 lines)
@@ -510,3 +510,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T33 ✅ 2026-10-18 — Roster-Politur: Fraktions-Tabs + 🎲 Random + Bios + Scroll-Grid, Balance-Vollpass 18→0 Outliers (alle 24 in 40–60 %), Galerie-Textband fix, PWA-Manifest+Icons+SW; CP8, 483 Tests+e2e 34/34+healthz grün
 - T99 ✅ 2026-10-18 — Emote-Rad: 4 Sticker (`shared/emotes.ts`, Index + 1,2 s Cooldown im Room), DOM-Rad oben rechts (Taste 1–4/V), Blase über dem Kämpfer; 4 Unit + 4 e2e-Tests, check 488 grün, Shot ok
 - T99 ✅ 2026-10-18 — Purrl-Schnecke (Backlog #1): `shared/sim/purrl.ts` wandert über Sand (seeded, meidet Korallen+Flut), heilt +10 einmal pro Leben (Respawn setzt zurück), Snapshot `purrl`, Client-Zeichnung; 9 Unit-Tests, check 497 grün, kein Live-Shot (kein Teleport-Hook)
+- T99 ✅ 2026-10-18 — Taffy Galleon slice 1: `shared/sim/cannon.ts` (Kanone: 1 s Telegraph, wandernde Leiste, Zeit-pure Treffer, Aim-Winkel); 8 Unit-Tests, check 505 grün; Arena-Rest → §5 #13
