@@ -3,6 +3,7 @@ import type { MatchInfo, SimEvent, SnapPlayer, TideInfo, TreasureInfo, Weather }
 import { TEAM_COLORS } from '../../../shared/sim/teams.ts';
 import { WIN_COINS } from '../../../shared/sim/treasure.ts';
 import { WEATHER_NAMES } from '../../../shared/sim/weather.ts';
+import { SHOWDOWN_SHRINK_SEC, SHOWDOWN_START_SEC, shrinkFrac } from '../../../shared/sim/showdown.ts';
 
 const FEED_MAX = 4;
 const BRAWL_MS = 900;
@@ -43,6 +44,8 @@ export class HudScene extends Phaser.Scene {
   private tideText!: Phaser.GameObjects.Text;
   /** Weird Weather tag under the tide meter (backlog #4); hidden in calm rounds */
   private weatherText!: Phaser.GameObjects.Text;
+  /** Showdown ring timer (backlog #6): when the ring closes and how far it has got; hidden otherwise */
+  private ringText!: Phaser.GameObjects.Text;
   /** Treasure Tide crew coin totals + escape countdown (T27) */
   private trGfx!: Phaser.GameObjects.Graphics;
   private trText!: Phaser.GameObjects.Text;
@@ -69,6 +72,7 @@ export class HudScene extends Phaser.Scene {
     this.tideGfx = this.add.graphics().setDepth(9);
     this.tideText = this.txt(17).setOrigin(0.5, 0).setVisible(false);
     this.weatherText = this.txt(15).setOrigin(0.5, 0).setPosition(119, 152).setColor('#ffd23f').setVisible(false);
+    this.ringText = this.txt(15).setOrigin(0.5, 0).setPosition(119, 172).setColor('#ff9d8f').setVisible(false);
     this.trGfx = this.add.graphics().setDepth(9);
     this.trText = this.txt(16).setOrigin(0.5, 0).setVisible(false);
     this.escapeText = this.txt(26).setOrigin(0.5, 0).setAlpha(0);
@@ -188,6 +192,22 @@ export class HudScene extends Phaser.Scene {
     this.weatherText.setText(`WEIRD WEATHER · ${WEATHER_NAMES[wx]}`).setVisible(true);
   }
 
+  /** Showdown ring timer (backlog #6): the hold before the ring closes, then its shrink progress. */
+  private drawRingTimer(m: MatchInfo | undefined): void {
+    const sd = m?.mode === 'showdown' && m.st === 'playing' ? m.sd : undefined;
+    if (sd === undefined) {
+      this.ringText.setVisible(false);
+      return;
+    }
+    const frac = shrinkFrac(sd);
+    let label = 'RING AT MINIMUM · stay inside';
+    if (sd <= SHOWDOWN_START_SEC) label = `RING HOLDS · closes in ${Math.ceil(SHOWDOWN_START_SEC - sd)} s`;
+    else if (frac < 1) {
+      label = `RING CLOSING · ${Math.round(frac * 100)} % · min in ${Math.ceil(SHOWDOWN_SHRINK_SEC * (1 - frac))} s`;
+    }
+    this.ringText.setText(label).setVisible(true);
+  }
+
   /** Tide meter: phase label, countdown to the next change and a flood bar (T18). */
   private drawTide(tide: TideInfo | undefined): void {
     const g = this.tideGfx;
@@ -275,8 +295,10 @@ export class HudScene extends Phaser.Scene {
     m: MatchInfo | undefined, view: SnapPlayer[], selfId: number, ping = 0, tide?: TideInfo, tr?: TreasureInfo,
   ): void {
     if (!this.koText) return; // scene still booting
-    this.drawTide(tide);
+    // Showdown (backlog #6): the flood follows the ring, so the phase meter would only mislead
+    this.drawTide(m?.mode === 'showdown' ? undefined : tide);
     this.drawWeather(m?.wx);
+    this.drawRingTimer(m);
     this.drawTreasure(tr, m?.mode);
     const me = view.find((p) => p.id === selfId);
     if (m?.mode === 'treasure') {
@@ -340,7 +362,8 @@ export class HudScene extends Phaser.Scene {
       const roster = m?.ros?.length ? m.ros : view;
       const rows = [...roster].sort((a, b) => b.b - a.b || b.k - a.k || a.d - b.d || a.n.localeCompare(b.n));
       const teamMatch = rows.some((p) => p.tm !== undefined);
-      const lines = [m?.mode === 'treasure' ? 'SCOREBOARD · TREASURE TIDE' : 'SCOREBOARD · BOUNTY'];
+      const title = m?.mode === 'treasure' ? 'TREASURE TIDE' : m?.mode === 'showdown' ? 'SHOWDOWN' : 'BOUNTY';
+      const lines = [`SCOREBOARD · ${title}`];
       rows.forEach((p, i) => {
         // crew letter in front of the row, `*` marks your own crew (T26)
         const crew = p.tm === undefined ? '' : `${p.tm === 0 ? 'A' : 'B'}${p.tm === me?.tm ? '*' : ' '} `;

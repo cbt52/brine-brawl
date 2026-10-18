@@ -24,6 +24,7 @@ import { Sfx } from '../audio/sfx.ts';
 import { Shanty } from '../audio/music.ts';
 import { cueForEvent } from '../audio/map.ts';
 import { tideLevel } from '../../../shared/sim/tide.ts';
+import { SHOWDOWN_CENTER, safeRadius } from '../../../shared/sim/showdown.ts';
 import { EMOTES } from '../../../shared/emotes.ts';
 import type { PickupKind, SnapPurrl, SnapSummon, SnapWall } from '../../../shared/protocol.ts';
 
@@ -43,6 +44,8 @@ export interface GameFxOptions {
 export class GameScene extends Phaser.Scene {
   private arena!: ArenaArt;
   private projGfx!: Phaser.GameObjects.Graphics;
+  /** the Showdown ring edge, under the projectiles (backlog #6) */
+  private ringGfx!: Phaser.GameObjects.Graphics;
   /** low-tide chests and their dropped rewards */
   private lootGfx!: Phaser.GameObjects.Graphics;
   /** bubbles and stretchy arms drawn above the rigs */
@@ -89,6 +92,7 @@ export class GameScene extends Phaser.Scene {
 
   create(): void {
     this.arena = new ArenaArt(this, { lowfx: this.fxOpts.lowfx });
+    this.ringGfx = this.add.graphics().setDepth(9);
     this.projGfx = this.add.graphics().setDepth(10);
     this.lootGfx = this.add.graphics().setDepth(12);
     this.overGfx = this.add.graphics().setDepth(30);
@@ -189,6 +193,16 @@ export class GameScene extends Phaser.Scene {
       rematch: () => this.net.send({ t: 'rematch' }),
       changeFighter: () => window.dispatchEvent(new CustomEvent('brawl:menu')),
     });
+  }
+
+  /** Showdown (backlog #6): the closing ring as a bright edge; bodies outside it take edge damage. */
+  private drawRing(sd: number | undefined): void {
+    const g = this.ringGfx;
+    g.clear();
+    if (sd === undefined) return;
+    const r = safeRadius(sd);
+    g.lineStyle(16, 0xff5b4d, 0.3).strokeCircle(SHOWDOWN_CENTER.x, SHOWDOWN_CENTER.y, r);
+    g.lineStyle(4, 0xffd0c8, 0.95).strokeCircle(SHOWDOWN_CENTER.x, SHOWDOWN_CENTER.y, r);
   }
 
   /** Low-tide treasure and standing stone walls: everything the deck itself spawns. */
@@ -549,7 +563,10 @@ export class GameScene extends Phaser.Scene {
   update(time: number): void {
     this.controls.update(time);
     const tide = this.net.last?.tide;
-    const flood = tide ? tideLevel(tide.phase, tide.t) : 0;
+    const m = this.net.last?.m;
+    // Showdown (backlog #6): the server's flood level follows the ring, so take it as sent
+    const flood = tide ? (m?.mode === 'showdown' ? tide.level : tideLevel(tide.phase, tide.t)) : 0;
+    this.drawRing(m?.mode === 'showdown' && m.st === 'playing' ? m.sd : undefined);
     this.arena.setTide(flood);
     this.pred.setWater(flood);
     this.arena.updateWaves(time);

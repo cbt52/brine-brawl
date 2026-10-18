@@ -23,6 +23,9 @@ import {
   Tide, inWater, pickupFor, WATER_SLOW, WATER_WET_SEC,
 } from './tide.ts';
 import { tideRate } from './weather.ts';
+import {
+  SHOWDOWN_EDGE_TICK_SEC, edgeDamage, outsideRing, showdownTideLevel,
+} from './showdown.ts';
 import { COIN_SEC, DROP_MAX, SPOT, Treasure, teamTotals } from './treasure.ts';
 import {
   COMBO_BONUS, COMBO_BURST_RADIUS, COMBO_WINDOW_SEC, comboName, comboPartner, type UltHit,
@@ -120,6 +123,8 @@ export interface SimPlayer {
   rootLeft: number;
   /** burn accumulator, so the 4 dmg/s lands in half-second chunks */
   burnT: number;
+  /** Showdown edge accumulator: time spent outside the ring, lands in half-second chunks (backlog #6) */
+  edgeT: number;
   /** damage taken while `trapped`; reaching TRAP_BREAK_DMG pops the bubble */
   trapTook: number;
   /** seconds of "just attacked" bush reveal left (see visibility.ts) */
@@ -191,8 +196,10 @@ export class World {
   tide = new Tide();
   /** this round's Weird Weather modifier (backlog #4); the room rolls it at each round start */
   weather: Weather = 'clear';
-  /** room mode (T26/T27): Bounty Brawl or Treasure Tide */
+  /** room mode (T26/T27): Bounty Brawl, Treasure Tide or Showdown (backlog #6) */
   mode: RoomMode = 'bounty';
+  /** seconds into the current round, set by the room; drives the Showdown ring (backlog #6) */
+  roundT = 0;
   /** Treasure Tide coin economy (T27); `null` in Bounty Brawl */
   treasure: Treasure | null = null;
   /** low-tide treasure chests */
@@ -216,7 +223,7 @@ export class World {
       id, name, fighter: def.id, skin: 0, def, x: s.x, y: s.y, r: def.radius,
       hp: def.maxHp, mhp: def.maxHp, speedMul: def.speedMul, aim: 0, ack: 0, input: null,
       ammo: def.ammo, reload: 0, fireCd: 0, fireLatch: false, spcCd: 0, uc: 0, dash: null, burrow: null,
-      buffMul: 1, buffLeft: 0, dmgMul: 1, dmgMulLeft: 0, status: null, statusLeft: 0, rootLeft: 0, burnT: 0, trapTook: 0,
+      buffMul: 1, buffLeft: 0, dmgMul: 1, dmgMulLeft: 0, status: null, statusLeft: 0, rootLeft: 0, burnT: 0, edgeT: 0, trapTook: 0,
       revealT: 0, down: false, respawn: 0, shield: C.SHIELD_SEC, kos: 0, deaths: 0, pendingFighter: null, purrlFed: false,
       gold: 0, bounty: BOUNTY_START, waterT: 0, bot, team, carry: 0,
       evolveKos: 0, evolved: false, flowHits: 0, flowT: 0, flowReady: false, toonUsed: false, toonLeft: 0,
@@ -228,6 +235,11 @@ export class World {
 
   removePlayer(id: number): void {
     this.players.delete(id);
+  }
+
+  /** Round clock for the Showdown ring (backlog #6); the room feeds it once per sim step. */
+  setRoundT(t: number): void {
+    this.roundT = t;
   }
 
   /** Set the round's Weird Weather modifier (backlog #4). */
@@ -298,6 +310,8 @@ export class World {
    * swallowed as it rises again; rewards already on the deck stay until picked up or sunk.
    */
   private stepTide(dt: number): void {
+    // Showdown (backlog #6): the flood follows the closing ring, not the phase clock
+    this.tide.override = this.mode === 'showdown' ? showdownTideLevel(this.roundT) : null;
     const entered = this.tide.step(dt * tideRate(this.weather));
     if (entered === 'rising') this.chests = []; // the flood swallows whatever is left
     // stock the pools as soon as the tide is low — the round may start mid-low, and that is when the
@@ -401,6 +415,19 @@ export class World {
     return false;
   }
 
+  /** Showdown (backlog #6): a body outside the closing ring takes edge damage in half-second chunks. */
+  private stepEdge(p: SimPlayer, dt: number): void {
+    if (this.mode !== 'showdown' || !outsideRing(p.x, p.y, this.roundT)) {
+      p.edgeT = 0;
+      return;
+    }
+    p.edgeT += dt;
+    if (p.edgeT < SHOWDOWN_EDGE_TICK_SEC) return;
+    const dmg = edgeDamage(p.x, p.y, this.roundT, p.edgeT);
+    p.edgeT = 0;
+    this.damage(-1, p, dmg, p.x, p.y);
+  }
+
   step(dt = 1 / TICK_HZ): void {
     this.tick++;
     this.stepTide(dt);
@@ -444,6 +471,8 @@ export class World {
         p.burnT = 0;
       }
       // the burn can be the killing blow: the corpse must not move/reload/fire on this tick
+      if (p.down) continue;
+      this.stepEdge(p, dt);
       if (p.down) continue;
       // a bubble trap holds the victim in place; a stun locks input the same way, a toon pancake
       // only freezes for its half second (TOON LOGIC, T20)

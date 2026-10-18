@@ -5,6 +5,7 @@ import { abilityReach } from './abilities.ts';
 import { canSee } from './visibility.ts';
 import { sameTeam } from './teams.ts';
 import { SPOT } from './treasure.ts';
+import { edgeHeading } from './showdown.ts';
 import type { SimInput, SimPlayer, World } from './world.ts';
 
 export type BotDifficulty = 'easy' | 'normal' | 'sharky';
@@ -30,7 +31,7 @@ const FLEE_FRAC = 0.3;
 const LOOT_RANGE = 520;
 const RAD = Math.PI / 180;
 
-export type BotState = 'wander' | 'chase' | 'kite' | 'flee' | 'loot' | 'carry' | 'collect' | 'escort';
+export type BotState = 'wander' | 'chase' | 'kite' | 'flee' | 'loot' | 'carry' | 'collect' | 'escort' | 'ring';
 
 function blocked(x: number, y: number, r: number): boolean {
   if (x < r || y < r || x > WORLD_W - r || y > WORLD_H - r) return true;
@@ -269,6 +270,9 @@ export class BotBrain {
       }
     }
 
+    // Showdown (backlog #6): the closing ring beats every other goal — turn back before the edge hurts
+    const back = world.mode === 'showdown' ? edgeHeading(me.x, me.y, world.roundT) : null;
+    if (back !== null) { this.state = 'ring'; heading = back; move = 1; }
     if (move > 0) heading = steer(me, heading);
     // rising tide: the flood is slow and soaks you — leave it, and do not walk into it (chest runs are exempt)
     if (!looting && world.tide.level > 0.5) {

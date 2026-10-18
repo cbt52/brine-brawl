@@ -16,6 +16,8 @@ export const SHOWDOWN_FULL_R = 1000;
 export const SHOWDOWN_MIN_R = 260;
 /** Edge damage per second for a body outside the ring, once it has started closing. */
 export const SHOWDOWN_EDGE_DPS = 15;
+/** Edge damage lands in chunks this long (like the burn), so the damage FX does not fire at 30 Hz. */
+export const SHOWDOWN_EDGE_TICK_SEC = 0.5;
 
 /** Island centre the ring closes towards. */
 export const SHOWDOWN_CENTER = { x: WORLD_W / 2, y: WORLD_H / 2 };
@@ -47,4 +49,19 @@ export function outsideRing(x: number, y: number, t: number): boolean {
 export function edgeDamage(x: number, y: number, t: number, dt: number): number {
   if (!(dt > 0) || !(t > SHOWDOWN_START_SEC)) return 0;
   return outsideRing(x, y, t) ? SHOWDOWN_EDGE_DPS * dt : 0;
+}
+
+/** Units inside the ring edge where bots already turn back (before any edge damage lands). */
+export const SHOWDOWN_RING_MARGIN_U = 90;
+
+/**
+ * Heading back towards the island centre for a body that is within `margin` units of the ring
+ * edge or outside it; `null` while it is comfortably inside (bots use this to flee the edge).
+ */
+export function edgeHeading(x: number, y: number, t: number, margin = SHOWDOWN_RING_MARGIN_U): number | null {
+  if (!(t > SHOWDOWN_START_SEC)) return null; // no edge damage before the ring starts to close
+  const dx = SHOWDOWN_CENTER.x - x;
+  const dy = SHOWDOWN_CENTER.y - y;
+  if (Math.hypot(dx, dy) < safeRadius(t) - margin) return null;
+  return Math.atan2(dy, dx);
 }

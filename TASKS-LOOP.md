@@ -455,7 +455,6 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 
 ---
 ## 5. IMPROVEMENT BACKLOG (ordered; T99 takes from the top; user feedback goes first)
-6. Showdown part 2 (slice 1 = `shared/sim/showdown.ts`, ring 1000→260 u between 30 s and 150 s, the tide tracks the shrink, 15 dmg/s edge damage outside, unit-tested, not wired): a room mode flag, the ring and the rising flood drawn on the arena, edge damage applied in `World.step`, bots flee the edge, and a HUD ring timer.
 7. Tutorial overlay for first-time players (3 tips, dismissible).
 8. Colorblind-friendly team outlines and status shapes.
 9. Local stats page (matches, favorite fighter, best bounty) in localStorage.
@@ -470,10 +469,10 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 18. Kill-cam part 2 (slice 1 = `client/src/net/killcam.ts`, our own KO replays the 2 s before it from `Net.buffer`, camera follows the killer, "KO CAM · name" tag): slow motion (0.5x) for the last 0.5 s before the hit, a tap-to-skip on touch, and a short replay for the killer's own best KO too.
 
 19. Lint: `tests/e2e/emotes.spec.ts:1` has an unused `eslint-disable` directive, so `npm run check` prints a warning. Drop the directive so the lint output is clean.
+20. Showdown part 3 (slice 2 = ring wiring in `World.step`, room round clock, bot edge-flee, HUD timer, shot-checked): a last-standing finish (the round ends early when one crew or one fighter is left inside the ring), a tinted outside-of-ring wash (only the bright edge line is drawn now), and a Showdown-only weather roll, because Double Tide does nothing there (the flood follows the ring).
 
 ---
 ## 6. LOG (one line per task/hotfix; archive older lines to `.loop/log-archive.md` if >40 lines)
-- T24 ✅ 2026-10-18 — Pinchpenny (piercing coins, claw pull, coin slam) + Hammy (chop, tank dash, slow field); dropGold bit; 394 green
 - T16 ✅ 2026-10-18 — client prediction (ack-rollback, 100 ms blend, 120 u snap), ping HUD, ?lag=ms; e2e green; CP4 checkpoint
 - T04 ✅ 2026-10-18 — twin-stick touch.ts, DOM buttons+rings, rotate overlay, fullscreen, mobile e2e green
 - RF ✅ 2026-10-18 — input throttle 30/s w/ immediate flag edges, per-input aim source, serve.sh verified (T01/T01a ticked)
@@ -513,3 +512,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T99 ✅ 2026-10-18 — Weird Weather slice 1: `shared/sim/weather.ts` (Double Tide = tide clock ×2, 50 % roll per round in `server/rooms.ts`), `wx` in MatchInfo, HUD tag; 8 unit tests, check 581 grün; Jelly/Bubble → §5 #17
 - T99 ✅ 2026-10-18 — Kill-cam (backlog #5): own KO replays the 2 s before it (`net/killcam.ts`, `Net.buffer` kept 3 s by age), camera on the killer, "KO CAM · name" tag, events muted during replay; 7 unit + 1 e2e, check 588 + e2e desktop 20/20 grün; banner not screenshot-checked → §5 #18
 - T99 ✅ 2026-10-18 — Showdown slice 1: `shared/sim/showdown.ts` ring 1000→260 u (30–150 s), tide tracks shrink, edge dmg; 11 tests, check 599 grün; wiring → §5 #6
+- T99 ✅ 2026-10-18 — Showdown part 2: lobby mode, ring + HUD timer, edge dmg, flood follows ring, bots turn back; 11 tests, check 612 grün, shot ok → §5 #20

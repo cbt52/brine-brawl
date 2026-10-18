@@ -27,7 +27,7 @@ export function sanitizeName(raw: unknown): string {
 }
 
 export function sanitizeMode(raw: unknown): RoomMode | null {
-  return raw === 'bounty' || raw === 'treasure' ? raw : null;
+  return raw === 'bounty' || raw === 'treasure' || raw === 'showdown' ? raw : null;
 }
 
 export interface Client {
@@ -96,6 +96,7 @@ export class Room {
     const dt = 1 / TICK_HZ;
     let n = 0;
     while (this.acc >= dt) {
+      this.world.setRoundT(this.roundSec());
       for (const b of this.bots.values()) this.world.setInput(b.id, b.think(this.world, dt));
       this.world.step(dt);
       this.stepMatch(dt);
@@ -103,6 +104,11 @@ export class Room {
       n++;
     }
     return n;
+  }
+
+  /** Seconds into the round while it is being played (the Showdown ring clock, backlog #6). */
+  private roundSec(): number {
+    return this.match.phase === 'playing' ? this.match.cfg.matchSec - this.match.timer : 0;
   }
 
   private stepMatch(dt: number): void {
@@ -252,6 +258,7 @@ export class RoomManager {
       info.ros = r.roster();
       info.mode = r.mode;
       info.wx = r.world.weather;
+      if (r.mode === 'showdown') info.sd = Math.round(r.world.roundT * 10) / 10;
       for (const c of r.clients.values()) {
         if (c.ws.readyState !== 1) continue;
         const snap = r.world.snapshotFor(c.id);

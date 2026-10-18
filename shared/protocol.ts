@@ -33,8 +33,8 @@ export interface JoinMsg {
 /** Match phases: waiting for players → 3 s countdown → playing → results → countdown… */
 export type MatchPhase = 'waiting' | 'countdown' | 'playing' | 'results';
 
-/** Room mode (T26): Bounty Brawl or Treasure Tide (the chest objective arrives in T27). */
-export type RoomMode = 'bounty' | 'treasure';
+/** Room mode (T26): Bounty Brawl, Treasure Tide (T27) or Showdown (backlog #6, the closing ring). */
+export type RoomMode = 'bounty' | 'treasure' | 'showdown';
 
 /** Weird Weather (backlog #4): the modifier a round rolls when it starts. */
 export type Weather = 'clear' | 'double-tide';
@@ -71,6 +71,8 @@ export interface MatchInfo {
   mode?: RoomMode;
   /** this round's Weird Weather modifier (backlog #4) — HUD tag */
   wx?: Weather;
+  /** Showdown only (backlog #6): seconds into the round, drives the ring and its HUD timer */
+  sd?: number;
 }
 
 export interface DbgMsg {

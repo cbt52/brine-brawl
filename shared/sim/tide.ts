@@ -89,13 +89,15 @@ export class Tide {
   phase: TidePhase = 'low';
   /** seconds elapsed inside the current phase */
   elapsed = 0;
+  /** Showdown (backlog #6): the flood follows the ring instead of the phase clock when set */
+  override: number | null = null;
 
   get left(): number {
     return Math.max(0, phaseSec(this.phase) - this.elapsed);
   }
 
   get level(): number {
-    return tideLevel(this.phase, this.left);
+    return this.override ?? tideLevel(this.phase, this.left);
   }
 
   /** Advance the clock; returns the phase that was just entered (or null). */

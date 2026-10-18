@@ -26,6 +26,12 @@ const LEVEL_HINT: Record<BotDifficulty, string> = {
   sharky: 'Sharky bots aim true and react fast',
 };
 
+const MODE_HINT: Record<RoomMode, string> = {
+  bounty: 'Bounty Brawl: most doubloons wins',
+  treasure: 'Treasure Tide: guard the chest',
+  showdown: 'Showdown: the ring closes in, stay inside it',
+};
+
 const NAME_KEY = 'brawl.name';
 
 /** Full-screen lobby. Resolves once the player picks how to enter. */
@@ -50,8 +56,9 @@ export function showLobby(prefillRoom: string | null, prefillName: string | null
       <div class="row mode-row" data-testid="mode-select">
         <button class="big sm mode on" data-mode="bounty" data-testid="mode-bounty">Bounty</button>
         <button class="big sm alt mode" data-mode="treasure" data-testid="mode-treasure">Treasure</button>
+        <button class="big sm alt mode" data-mode="showdown" data-testid="mode-showdown">Showdown</button>
       </div>
-      <p class="sub small" data-testid="mode-hint">Bounty Brawl: most doubloons wins · Treasure Tide: guard the chest</p>
+      <p class="sub small" data-testid="mode-hint">${MODE_HINT[mode]}</p>
       <div class="row mode-row" data-testid="level-select">
         ${BOT_LEVELS.map((l) => `<button class="big sm mode${l === level ? ' on' : ' alt'}" data-level="${l}" data-testid="level-${l}">${l[0].toUpperCase()}${l.slice(1)}</button>`).join('')}
       </div>
@@ -87,6 +94,7 @@ export function showLobby(prefillRoom: string | null, prefillName: string | null
         b.classList.toggle('on', active);
         b.classList.toggle('alt', !active);
       }
+      el.querySelector('[data-testid=mode-hint]')!.textContent = MODE_HINT[m];
     };
     for (const b of modeBtns) b.addEventListener('click', () => pickMode(b.dataset.mode as RoomMode));
     // bot level selector (T99): Quick Play and any bots the host adds later use it
