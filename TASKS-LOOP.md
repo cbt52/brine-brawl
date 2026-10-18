@@ -237,19 +237,6 @@ Each reaction shows a big popup word ("SHOCK!").
   - Test: `npm run check && npm run smoke && npm run shot -- --name T11 --path /gallery.html`
 
 - [x] **T12 — Character select** · CP: yes
-  - Done: `shared/fighters/stats.ts` (HP/SPEED/DMG bars from the kit data + generated move one-liners), `moves{}` names
-    in all 5 kits, `SELECTABLE` registry view, `PickMsg` + `Room.setFighter` → `World.setFighter` parks the new kit in
-    `pendingFighter` and swaps def/radius/HP/speed on the next respawn (rig rebuilt in GameScene), `ui/select.ts`
-    card grid (portrait, faction/element/role badges, blurb lines) inline in the lobby + ☰ fighter row, choice in
-    localStorage `brawl.fighter` and sent as `join.fighter`; `dbg op kill` test hook; 7 unit + 3 e2e tests.
-  - Do:
-    - Lobby "Choose Fighter" grid: card = SVG portrait + name + faction badge + element icon + role + 3 stat bars (HP/Speed/Damage derived from data) + one-line attack/special/ult blurbs.
-    - Choice is saved to localStorage and sent in join. An in-game menu button changes the fighter on the next respawn (`dbg`-free normal message `pick{fighter}`).
-    - Bots pick random fighters.
-    - e2e: select Mira → own `f === 'mira'`.
-    - Mobile shot of the select screen.
-  - Checkpoint: "CP3 ✅ 4 Kämpfer", listing the 4 fighters with a one-line description each.
-  - Test: `npm run check && npm run e2e`
 
 ### CP4 — "Juice: fühlt sich gut an"
 
@@ -295,7 +282,13 @@ Each reaction shows a big popup word ("SHOCK!").
     - Unit test: event → preset mapping (pure function).
   - Test: `npm run check && npm run e2e`
 
-- [ ] **T16 — Client prediction + net diagnostics** · CP: yes
+- [x] **T16 — Client prediction + net diagnostics** · CP: yes
+  - Done: `client/src/net/predict.ts` (`Predictor`: local step on every sent input, snapshot `ack` prunes the
+    input log, replay from the server position, error blended out over `BLEND_MS`=100 ms, snap past
+    `SNAP_DIST`=120 u, instant snap while down); `GameScene.applyPrediction` swaps the own body into the
+    interpolated view (rigs + camera); `Controls.onSend` feeds it, movement edges now bypass the 20 ms
+    throttle; `Net` gained `ping` (2 s probe → HUD corner, colour by RTT) and `?lag=ms` (both directions);
+    `window.__brawl.self/lag/ping` for tests; 13 unit + 3 e2e tests.
   - Do:
     - Own player predicted with the shared movement step. Keep unacked inputs and re-apply them after each snapshot (reconcile). Smooth error correction (blend over 100 ms; snap if >120 u).
     - Ping display (`ping`/`pong` every 2 s) in the corner.
@@ -517,6 +510,7 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 
 ---
 ## 6. LOG (one line per task/hotfix; archive older lines to `.loop/log-archive.md` if >40 lines)
+- T16 ✅ 2026-10-18 — client prediction (ack-rollback, 100 ms blend, 120 u snap), ping HUD, ?lag=ms; e2e green; CP4 checkpoint
 - T00 ✅ 2026-10-18 — scaffold+MCP done; .claude/settings.json write was denied by harness (add manually, MCP works anyway)
 - T01-partial 🟡 2026-10-18 — server/client/smoke/shot done+green; PARTIAL: serve.sh not runnable (needs approval) → T01a
 - T01/T01a 🔴 2026-10-18 — BLOCKED: harness requires user approval to run scripts/serve.sh; check+smoke green; see checkpoint

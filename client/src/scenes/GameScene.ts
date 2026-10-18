@@ -5,6 +5,7 @@ import type { Net } from '../net.ts';
 import type { SnapPlayer } from '../../../shared/protocol.ts';
 import { Controls } from '../input/controls.ts';
 import { interpolate, interpolateProjs, type Pos } from '../net/interp.ts';
+import { Predictor } from '../net/predict.ts';
 import { CombatFx } from '../fx/combatFx.ts';
 import { elementColor } from '../fx/style.ts';
 import { HudScene } from './HudScene.ts';
@@ -41,7 +42,10 @@ export class GameScene extends Phaser.Scene {
   private kinds = new Map<number, string>();
   private rigs = new Map<number, FighterSprite>();
   private controls!: Controls;
-  private self: Pos | null = null;
+  /** drawn position of the local body (predicted, see net/predict.ts) */
+  self: Pos | null = null;
+  private pred = new Predictor();
+  private predReady = false;
   private camInit = false;
   private fx!: CombatFx;
   private hud!: HudScene;
@@ -71,6 +75,8 @@ export class GameScene extends Phaser.Scene {
     this.applyZoom();
     this.scale.on('resize', () => this.applyZoom());
     this.controls = new Controls(this, this.net, () => this.self);
+    // own body is predicted locally: replay every input until the server acks it
+    this.controls.onSend = (m) => this.pred.applyInput(m);
     this.fx = new CombatFx(this, { ...this.fxOpts, shake: shakeEnabled() });
     this.sfx = new Sfx();
     this.sfx.setEnabled(sfxEnabled());
@@ -115,7 +121,7 @@ export class GameScene extends Phaser.Scene {
 
   /** HUD lives in its own scene (screen space) — just feed it the current view. */
   private updateHud(view: SnapPlayer[]): void {
-    this.hud.setMatch(this.net.last?.m, view, this.net.id);
+    this.hud.setMatch(this.net.last?.m, view, this.net.id, this.net.ping);
     syncResults(this.net.last?.m);
   }
 
@@ -161,12 +167,35 @@ export class GameScene extends Phaser.Scene {
     }
   }
 
+  /**
+   * Replace the interpolated position of the local body with the predicted one, so input feels
+   * instant even at 100 ms latency. The snapshot's `ack` drops inputs the server already applied.
+   */
+  private applyPrediction(view: SnapPlayer[]): void {
+    const snap = this.net.last;
+    const own = snap?.players.find((q) => q.id === this.net.id);
+    if (!snap || !own) return;
+    const def = getFighter(own.f);
+    if (!this.predReady) {
+      this.pred.reset({ x: own.x, y: own.y }, own.f, def.radius);
+      this.predReady = true;
+    } else {
+      this.pred.reconcile({ x: own.x, y: own.y }, snap.ack, snap.tick, def.radius, own.f, own.dn === 1);
+    }
+    this.pred.advance(this.game.loop.delta);
+    const at = view.findIndex((q) => q.id === this.net.id);
+    if (at < 0) return;
+    const vis = this.pred.visual();
+    view[at] = { ...view[at], x: vis.x, y: vis.y };
+  }
+
   update(time: number): void {
     this.controls.update(time);
     this.arena.updateWaves(time);
 
     const nowMs = performance.now();
     const view = interpolate(this.net.buffer, nowMs - INTERP_DELAY_MS);
+    this.applyPrediction(view);
     const seen = new Set<number>();
     for (const p of view) {
       seen.add(p.id);

@@ -5,7 +5,9 @@ import type { Net } from '../net.ts';
 import { TouchControls, isTouchDevice } from './touch.ts';
 
 const SEND_EVERY_MS = 100;
-const MIN_GAP_MS = 33;
+/** Movement/aim changes are throttled to ~50 msgs/s — below the 60/s server cap, and small enough
+ * that a fresh keypress reaches the predictive client within one frame or two. */
+const MIN_GAP_MS = 20;
 
 /** Keyboard + mouse, plus twin-stick touch controls (see touch.ts). */
 export class Controls {
@@ -13,6 +15,7 @@ export class Controls {
   private seq = 0;
   private lastSent = 0;
   private lastKey = '';
+  private lastMoveKey = '';
   private lastFlags = '';
   private lastWasTouch = false;
   private atk = false;
@@ -20,6 +23,8 @@ export class Controls {
   private touch: TouchControls | null = null;
   aimX = 1;
   aimY = 0;
+  /** called with every input actually sent (client prediction replays these) */
+  onSend: ((m: InputMsg) => void) | null = null;
 
   constructor(private scene: Phaser.Scene, private net: Net, private getSelf: () => { x: number; y: number } | null) {
     const kb = scene.input.keyboard!;
@@ -94,11 +99,21 @@ export class Controls {
     const m = this.poll();
     const key = [m.mx.toFixed(2), m.my.toFixed(2), m.ax.toFixed(2), m.ay.toFixed(2), m.atk, m.spc, m.ult].join();
     const flags = `${m.atk}${m.spc}${m.ult}`;
+    // starting/stopping or turning goes out at once (prediction then answers on the same frame);
+    // aim-only wiggles and held directions are throttled to stay under the server's 60/s cap
+    const moveKey = `${m.mx},${m.my}`;
     const gap = now - this.lastSent;
-    if ((flags !== this.lastFlags) || (key !== this.lastKey && gap >= MIN_GAP_MS) || gap >= SEND_EVERY_MS) {
+    if (
+      flags !== this.lastFlags ||
+      moveKey !== this.lastMoveKey ||
+      (key !== this.lastKey && gap >= MIN_GAP_MS) ||
+      gap >= SEND_EVERY_MS
+    ) {
       this.lastFlags = flags;
+      this.lastMoveKey = moveKey;
       m.seq = ++this.seq;
       this.net.send(m);
+      this.onSend?.(m);
       this.lastKey = key;
       this.lastSent = now;
     }

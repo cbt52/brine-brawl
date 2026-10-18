@@ -25,6 +25,8 @@ export class HudScene extends Phaser.Scene {
   private cdText!: Phaser.GameObjects.Text;
   private waitText!: Phaser.GameObjects.Text;
   private feedText!: Phaser.GameObjects.Text;
+  /** round-trip time to the server (top right corner) */
+  private pingText!: Phaser.GameObjects.Text;
   private sbText!: Phaser.GameObjects.Text;
   private feed: string[] = [];
   private lastCd = '';
@@ -45,6 +47,7 @@ export class HudScene extends Phaser.Scene {
     this.cdText = this.txt(96).setOrigin(0.5).setAlpha(0);
     this.waitText = this.txt(20, { align: 'center' }).setOrigin(0.5);
     this.feedText = this.txt(18, { align: 'right' }).setOrigin(1, 0);
+    this.pingText = this.txt(15).setOrigin(0, 0);
     this.sbText = this.txt(18, { align: 'left', lineSpacing: 6 }).setOrigin(0.5);
     this.layout();
     this.ensureVignette();
@@ -90,6 +93,7 @@ export class HudScene extends Phaser.Scene {
     this.koText.setPosition(12, 8);
     this.abText.setPosition(12, 38);
     this.feedText.setPosition(w - 12, 54);
+    this.pingText.setPosition(12, 64); // under the KO/ability readout, clear of the ☰ buttons
     this.cdText.setPosition(w / 2, h / 2 - 30);
     this.waitText.setPosition(w / 2, h / 2 + 60);
     this.sbText.setPosition(w / 2, h / 2);
@@ -131,10 +135,12 @@ export class HudScene extends Phaser.Scene {
   }
 
   /** Called every frame by the game scene with the interpolated view. */
-  setMatch(m: MatchInfo | undefined, view: SnapPlayer[], selfId: number): void {
+  setMatch(m: MatchInfo | undefined, view: SnapPlayer[], selfId: number, ping = 0): void {
     if (!this.koText) return; // scene still booting
     const me = view.find((p) => p.id === selfId);
     this.koText.setText(`KOs ${me?.k ?? 0}  ·  KO'd ${me?.d ?? 0}`);
+    this.pingText.setVisible(ping > 0);
+    if (ping > 0) this.pingText.setText(`${ping} ms`).setColor(ping < 60 ? '#b8ffb0' : ping < 120 ? '#ffd23f' : '#ff8f8f');
     if (me) this.setAbilities(me);
     else this.abText.setText('');
 

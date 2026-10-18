@@ -64,6 +64,10 @@ window.__brawl = {
   get connected() { return net.connected; },
   get id() { return net.id; },
   get room() { return net.room; },
+  get ping() { return net.ping; },
+  get lag() { return net.lag; },
+  /** predicted (drawn) position of the local body — see client/src/net/predict.ts */
+  get self() { return (game.scene.getScene('game') as GameScene | null)?.self ?? null; },
   build: BUILD_ID,
   state: () => net.last,
   send: (m: C2S) => net.send(m),

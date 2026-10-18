@@ -8,6 +8,12 @@ export class Net {
   id = -1;
   room = '';
   last: SnapMsg | null = null;
+  /** round-trip time to the server in ms (0 while unknown) */
+  ping = 0;
+  /** `?lag=ms` — simulated one-way latency for testing prediction */
+  lag = 0;
+  /** ping/pong bookkeeping */
+  private pingSent: number | null = null;
   /** received snapshots with local arrival time, for interpolation */
   buffer: { at: number; snap: SnapMsg }[] = [];
   /** events not yet consumed by the scene */
@@ -16,10 +22,13 @@ export class Net {
   private overlay = document.getElementById('overlay')!;
 
   private params: URLSearchParams | null = null;
+  private pingTimer: ReturnType<typeof setInterval> | null = null;
 
   /** Connect and join; called once the lobby (or a ?room= link) has decided. */
   start(params: URLSearchParams): void {
     this.params = params;
+    const lag = Number(params.get('lag'));
+    this.lag = Number.isFinite(lag) && lag > 0 ? Math.min(1000, lag) : 0;
     this.connect();
   }
 
@@ -48,32 +57,51 @@ export class Net {
     };
     ws.onmessage = (e) => {
       const msg: S2C = JSON.parse(e.data);
-      if (msg.t === 'welcome') {
-        this.connected = true;
-        this.id = msg.id;
-        this.room = msg.room;
-        this.showOverlay(null);
-        if (msg.build !== BUILD_ID && BUILD_ID !== 'dev' && msg.build !== 'dev') {
-          this.showOverlay('New version – tap to reload', () => location.reload());
-        }
-      } else if (msg.t === 'snap') {
-        this.last = msg;
-        if (msg.ev.length) this.events.push(...msg.ev);
-        if (this.events.length > 200) this.events.splice(0, this.events.length - 200);
-        this.buffer.push({ at: performance.now(), snap: msg });
-        if (this.buffer.length > 30) this.buffer.shift();
-      } else if (msg.t === 'err') {
-        this.showOverlay(msg.msg);
-      }
+      // ?lag=… defers handling, which simulates delay in both directions
+      if (this.lag > 0) setTimeout(() => this.handle(msg), this.lag);
+      else this.handle(msg);
     };
     ws.onclose = () => {
       this.connected = false;
       this.showOverlay('Reconnecting…');
       setTimeout(() => this.connect(), 1000);
     };
+    if (this.pingTimer) clearInterval(this.pingTimer);
+    this.pingTimer = setInterval(() => {
+      this.pingSent = performance.now();
+      this.send({ t: 'ping', ts: this.pingSent });
+    }, 2000);
+  }
+
+  private handle(msg: S2C): void {
+    if (msg.t === 'pong') {
+      if (this.pingSent !== null) this.ping = Math.round(performance.now() - this.pingSent);
+      return;
+    }
+    if (msg.t === 'welcome') {
+      this.connected = true;
+      this.id = msg.id;
+      this.room = msg.room;
+      this.showOverlay(null);
+      if (msg.build !== BUILD_ID && BUILD_ID !== 'dev' && msg.build !== 'dev') {
+        this.showOverlay('New version – tap to reload', () => location.reload());
+      }
+    } else if (msg.t === 'snap') {
+      this.last = msg;
+      if (msg.ev.length) this.events.push(...msg.ev);
+      if (this.events.length > 200) this.events.splice(0, this.events.length - 200);
+      this.buffer.push({ at: performance.now(), snap: msg });
+      if (this.buffer.length > 30) this.buffer.shift();
+    } else if (msg.t === 'err') {
+      this.showOverlay(msg.msg);
+    }
   }
 
   send(msg: C2S): void {
-    if (this.ws?.readyState === WebSocket.OPEN) this.ws.send(JSON.stringify(msg));
+    const ws = this.ws;
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    const raw = JSON.stringify(msg);
+    if (this.lag > 0) setTimeout(() => { if (ws.readyState === WebSocket.OPEN) ws.send(raw); }, this.lag);
+    else ws.send(raw);
   }
 }
