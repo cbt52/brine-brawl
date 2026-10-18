@@ -67,11 +67,15 @@ test('results screen: Rematch starts the next round and Change fighter opens the
   await expect.poll(() => phase(page), { timeout: 12000 }).toBe('countdown');
   await expect.poll(() => phase(page), { timeout: 10000 }).toBe('playing');
   await expect(page.getByTestId('results')).toBeVisible({ timeout: 15000 });
+  // backlog #28: until everyone has tapped, the footer names the auto-start instead of "Next round"
+  await expect(page.getByTestId('results-ready')).toContainText('0/1 ready');
+  await expect(page.getByTestId('results-next')).toContainText(/auto-start in \d+s/);
   // backlog #15: a Ready tap is final for the round and restarts 10 s after the last human's tap
-  await expect(page.getByTestId('results-next')).toContainText(/Next round in \d+s/);
   await page.getByTestId('results-rematch').click();
   await expect(page.getByTestId('results-rematch')).toBeDisabled();
   await expect(page.getByTestId('results-rematch')).toContainText('Ready');
+  await expect(page.getByTestId('results-ready')).toContainText('1/1 ready');
+  await expect(page.getByTestId('results-next')).toContainText(/Next round in \d+s/);
   await expect.poll(() => phase(page), { timeout: 12000 }).toBe('countdown');
   await expect(page.getByTestId('results')).toBeHidden();
 });

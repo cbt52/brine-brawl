@@ -173,6 +173,12 @@ export class Room {
     return true;
   }
 
+  /** Ready tally for the results poster (backlog #28); only connected humans count, so a leaver's tap does not. */
+  readyTally(): { ready: number; of: number } {
+    const ids = [...this.clients.keys()];
+    return { ready: ids.filter((id) => this.readyIds.has(id)).length, of: ids.length };
+  }
+
   /** Drop per-client bookkeeping when somebody leaves the room. */
   dropClient(id: number): void {
     this.emoteAt.delete(id);
@@ -327,6 +333,7 @@ export class RoomManager {
       info.wx = r.world.weather;
       info.bl = r.botLevel;
       info.ar = r.world.arena.id;
+      if (r.match.phase === 'results') info.rd = r.readyTally();
       if (r.mode === 'showdown') info.sd = Math.round(r.world.roundT * 10) / 10;
       const host = r.hostId();
       for (const c of r.clients.values()) {

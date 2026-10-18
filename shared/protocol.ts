@@ -85,6 +85,8 @@ export interface MatchInfo {
   ar?: ArenaId;
   /** true only for the viewer who hosts the room (backlog #27): the ☰ menu greys out bot controls for the rest */
   host?: boolean;
+  /** results phase only (backlog #28): connected humans who tapped Ready, out of all connected humans */
+  rd?: { ready: number; of: number };
 }
 
 export interface DbgMsg {

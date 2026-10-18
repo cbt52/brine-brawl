@@ -64,6 +64,26 @@ export interface ResultsActions {
 /** Footer line under the buttons: the room restarts by itself when the countdown runs out (backlog #15). */
 const nextText = (t: number): string => `Next round in ${t}s`;
 
+/** Ready line on the poster (backlog #28): "2/3 ready", connected humans only. */
+export const readyLine = (rd: { ready: number; of: number } | undefined): string =>
+  rd ? `${rd.ready}/${rd.of} ready` : '';
+
+/**
+ * Footer under the buttons (backlog #28): "Next round in Ns" only once everyone has tapped Ready.
+ * Until then the results timer still restarts the round on its own, so the footer says that instead.
+ */
+export function resultsFooter(m: Pick<MatchInfo, 't' | 'rd'>): string {
+  if (m.rd && m.rd.ready < m.rd.of) return `Waiting for everyone to tap Ready · auto-start in ${m.t}s`;
+  return nextText(m.t);
+}
+
+function refreshFooter(el: HTMLElement, m: MatchInfo): void {
+  const ready = el.querySelector('[data-testid=results-ready]');
+  if (ready) ready.textContent = readyLine(m.rd);
+  const next = el.querySelector('[data-testid=results-next]');
+  if (next) next.textContent = resultsFooter(m);
+}
+
 /**
  * Show the results overlay once per round and drop it as soon as the next countdown starts.
  * `newBest` > 0 tags the round as the player's new record bounty (backlog #23).
@@ -73,8 +93,7 @@ export function syncResults(m: MatchInfo | undefined, actions: ResultsActions = 
   if (m?.st === 'results' && m.res) {
     if (dismissed === m.r) { el?.remove(); return; }
     if (shown === m.r && el) {
-      const next = el.querySelector('[data-testid=results-next]');
-      if (next) next.textContent = nextText(m.t);
+      refreshFooter(el, m);
       return;
     }
     shown = m.r;
@@ -93,7 +112,8 @@ export function syncResults(m: MatchInfo | undefined, actions: ResultsActions = 
         <button class="big" data-testid="results-rematch">Rematch</button>
         <button class="big alt" data-testid="results-fighter">Change fighter</button>
       </div>
-      <small data-testid="results-next">${nextText(m.t)}</small>`;
+      <small data-testid="results-ready">${readyLine(m.rd)}</small>
+      <small data-testid="results-next">${resultsFooter(m)}</small>`;
     div.insertBefore(posterRow(rows), div.querySelector('.rank-list'));
     const ready = div.querySelector<HTMLButtonElement>('[data-testid=results-rematch]');
     ready?.addEventListener('click', () => {

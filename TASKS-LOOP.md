@@ -457,7 +457,6 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 ## 5. IMPROVEMENT BACKLOG (ordered; T99 takes from the top; user feedback goes first)
 11. Optional ONLY if the user asks: ComfyUI portraits (127.0.0.1:8188, 2–7 min/img, 16 GB RAM, never while the user is using it).
 
-28. Ready count on the results screen: the poster shows "2/3 ready" (a `rd` count in MatchInfo, from `Room.rematch`'s ready set) so players see who the round is waiting for, and the footer shows "Next round in Ns" only once the round is ready.
 29. Portraits in the ☰ fighter row: the row is text-only, so a skin change shows on the body and nowhere else in the menu. Give each button a small portrait via `skinnedPortrait` (`client/src/art/skinPortrait.ts`) at the picked skin, and keep the `on` state from `markFighterRow`.
 30. Weird Weather part 3 (slice 2a = bubble storm: `shared/sim/bubbles.ts`, carry + slow in `stepMove`, `bb` snapshot, predicted, `dbg wx` op): jellyfish rain as a third `Weather` entry, drifting stinging jellies that dash through the open sand, with their own sim hook and a shot check.
 31. Kill-cam part 3 (the remaining piece of old #18; slow motion and tap-to-skip are done in `client/src/net/killcam.ts`): the killer's own best KO also gets a short replay, so a KO you were in is seen again after the round. Reuse the 2 s lead-up and `KillCam.start`, and tag it "BEST KO CAM".
@@ -475,6 +474,7 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 43. Galleon tips say the docks: the tips card always reads "Welcome to the docks" and lists the kelp and tide tip, which do not exist on the deck. Pick the card's heading and tips by the room's arena (`tutorialTips` takes the layout id, like the mode tip in #34).
 44. Cannon warning cue: a volley's telegraph and bar are drawn (`client/src/fx/cannonFx.ts`) but silent. Play a short warning tick the first time a lane shows `st: 'warn'` in `snap.cn`, and a thud when it turns to `fire`, in `client/src/audio/map.ts` terms (kept quiet, one cue per volley per lane).
 45. Host hand-over toast: the bot controls now follow the host role (`MatchInfo.host`), so when the host leaves and the next player becomes host their ☰ menu unlocks silently. Show a one-line toast "You host this room now" on that change (client compares `host` between snapshots), so the newly enabled controls are explained.
+46. Results auto-start vs Ready: a human who has not tapped Ready still gets the round restarted after the 8 s results wait (`Match.update` `results` case), so a slow tapper loses the rematch. Hold the results a few seconds longer while any connected human is unready (the footer already says "auto-start in Ns"), with a unit test on `Room.readyTally` plus the match with one slow tapper.
 
 ---
 
@@ -510,3 +510,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T99 ✅ 2026-10-18 — Galleon deck art (#26, 3d-2a): `ArenaArt.setArena` paints the deck (`client/src/art/deckArt.ts`: planks, hull rail, crates, cannon carriages), `?arena=galleon` joins a galleon room; check 714 grün, galleon+docks shots ok → §5 #26 (lobby + telegraph), #43 (tips)
 - T99 ✅ 2026-10-18 — Galleon lobby deck pick (Docks/Galleon, sent with join) + cannon telegraph/bar (`cn` snapshot, `fx/cannonFx.ts`); 6 unit + 2 e2e, check 720 grün, lobby e2e 14/14, shot ok → §5 #26 done, #44 (cannon cue)
 - T99 ✅ 2026-10-18 — Host-only bot controls (backlog #27): `MatchInfo.host` per viewer (`Room.hostId`), ☰ bot+level buttons disabled for non-hosts with a hint; 3 unit + 1 e2e, check 723 grün, lobby e2e 6/6 → §5 #45
+- T99 ✅ 2026-10-18 — Ready count (backlog #28): `MatchInfo.rd` (connected humans who tapped / connected), "x/y ready" on the results poster, "Next round in" only once all are ready; 6 unit, check 729 grün, match e2e 4/4 → §5 #46 (auto-start vs slow tapper)
