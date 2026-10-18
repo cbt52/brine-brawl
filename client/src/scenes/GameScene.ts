@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { WORLD_W, WORLD_H } from '../../../shared/constants.ts';
-import { OBSTACLES } from '../../../shared/arena/docks.ts';
+import { inBush } from '../../../shared/sim/visibility.ts';
 import type { Net } from '../net.ts';
 import type { SnapPlayer } from '../../../shared/protocol.ts';
 import { Controls } from '../input/controls.ts';
@@ -13,6 +13,7 @@ import { getFighter } from '../../../shared/fighters/index.ts';
 import { STATUS_CODE } from '../../../shared/fighters/types.ts';
 import { FighterSprite, preloadArt } from '../art/rig.ts';
 import { getArt } from '../art/manifest.ts';
+import { ArenaArt } from '../art/arena.ts';
 import { shakeEnabled } from '../ui/settings.ts';
 
 const INTERP_DELAY_MS = 100;
@@ -29,7 +30,7 @@ export interface GameFxOptions {
 }
 
 export class GameScene extends Phaser.Scene {
-  private gfx!: Phaser.GameObjects.Graphics;
+  private arena!: ArenaArt;
   private projGfx!: Phaser.GameObjects.Graphics;
   /** bubbles and stretchy arms drawn above the rigs */
   private overGfx!: Phaser.GameObjects.Graphics;
@@ -54,7 +55,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   create(): void {
-    this.gfx = this.add.graphics().setDepth(0);
+    this.arena = new ArenaArt(this, { lowfx: this.fxOpts.lowfx });
     this.projGfx = this.add.graphics().setDepth(10);
     this.overGfx = this.add.graphics().setDepth(30);
     this.cameras.main.setBounds(-100, -100, WORLD_W + 200, WORLD_H + 200);
@@ -75,18 +76,6 @@ export class GameScene extends Phaser.Scene {
   private onShakeSetting = (e: CustomEvent<boolean>): void => {
     this.fx.setShake(Boolean(e.detail));
   };
-
-  private drawWorld(g: Phaser.GameObjects.Graphics): void {
-    g.fillStyle(0x1d4e63, 1).fillRect(0, 0, WORLD_W, WORLD_H);
-    g.lineStyle(1, 0xffffff, 0.12);
-    for (let x = 0; x <= WORLD_W; x += 100) g.lineBetween(x, 0, x, WORLD_H);
-    for (let y = 0; y <= WORLD_H; y += 100) g.lineBetween(0, y, WORLD_W, y);
-    for (const o of OBSTACLES) {
-      g.fillStyle(0xe07a5f, 1).fillRoundedRect(o.x, o.y, o.w, o.h, 14);
-      g.lineStyle(4, 0x1b1b2f, 1).strokeRoundedRect(o.x, o.y, o.w, o.h, 14);
-    }
-    g.lineStyle(6, 0xffc93c, 1).strokeRect(0, 0, WORLD_W, WORLD_H);
-  }
 
   /** HUD lives in its own scene (screen space) — just feed it the current view. */
   private updateHud(view: SnapPlayer[]): void {
@@ -138,9 +127,7 @@ export class GameScene extends Phaser.Scene {
 
   update(time: number): void {
     this.controls.update(time);
-    const g = this.gfx;
-    g.clear();
-    this.drawWorld(g);
+    this.arena.updateWaves(time);
 
     const nowMs = performance.now();
     const view = interpolate(this.net.buffer, nowMs - INTERP_DELAY_MS);
@@ -168,8 +155,11 @@ export class GameScene extends Phaser.Scene {
       rig.setLabel(p.n);
       rig.sync(p.x, p.y, p.a, Boolean(p.dn));
       rig.setBars(p.hp / p.mhp, p.am, def.ammo, art.color);
-      // spawn shield blinks; a KO'd fighter keeps its rig for the death animation
-      rig.setAlpha(p.sh && Math.floor(nowMs / 100) % 2 === 0 ? 0.45 : 1);
+      // spawn shield blinks; a KO'd fighter keeps its rig for the death animation;
+      // your own body shows through the kelp so you can still steer
+      const blink = p.sh && Math.floor(nowMs / 100) % 2 === 0;
+      const hiding = p.id === this.net.id && inBush(p.x, p.y);
+      rig.setAlpha(blink ? 0.45 : hiding ? 0.55 : 1);
       rig.setUltReady(p.id === this.net.id && p.uc >= 100 && !p.dn);
       // footstep dust while running (skipped once the FX budget dropped to lowfx)
       const prev = this.lastPos.get(p.id);

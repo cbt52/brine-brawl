@@ -7,6 +7,7 @@ import { pushOutRect, resolveWalls, separate } from './collide.ts';
 import * as C from './combat.ts';
 import type { Projectile } from './combat.ts';
 import { applyStatus, castAbility, stepBurrow, stepDash, stepZones, type BurrowState, type DashState, type Zone } from './abilities.ts';
+import { canSee, REVEAL_SEC } from './visibility.ts';
 
 export const BASE_SPEED = 240;
 /** default body radius (kits carry their own `radius`) */
@@ -58,6 +59,8 @@ export interface SimPlayer {
   statusLeft: number;
   /** damage taken while `trapped`; reaching TRAP_BREAK_DMG pops the bubble */
   trapTook: number;
+  /** seconds of "just attacked" bush reveal left (see visibility.ts) */
+  revealT: number;
   down: boolean;
   respawn: number;
   shield: number;
@@ -97,7 +100,7 @@ export class World {
       hp: def.maxHp, mhp: def.maxHp, speedMul: def.speedMul, aim: 0, ack: 0, input: null,
       ammo: def.ammo, reload: 0, fireCd: 0, fireLatch: false, spcCd: 0, uc: 0, dash: null, burrow: null,
       buffMul: 1, buffLeft: 0, status: null, statusLeft: 0, trapTook: 0,
-      down: false, respawn: 0, shield: C.SHIELD_SEC, kos: 0, deaths: 0, pendingFighter: null, bot,
+      revealT: 0, down: false, respawn: 0, shield: C.SHIELD_SEC, kos: 0, deaths: 0, pendingFighter: null, bot,
     };
     this.players.set(id, p);
     this.events.push({ k: 'spawn', id });
@@ -148,6 +151,7 @@ export class World {
       if (p.shield > 0) p.shield = Math.max(0, p.shield - dt);
       if (p.fireCd > 0) p.fireCd = Math.max(0, p.fireCd - dt);
       if (p.spcCd > 0) p.spcCd = Math.max(0, p.spcCd - dt);
+      if (p.revealT > 0) p.revealT = Math.max(0, p.revealT - dt);
       if (p.buffLeft > 0) {
         p.buffLeft -= dt;
         if (p.buffLeft <= 0) { p.buffLeft = 0; p.buffMul = 1; }
@@ -175,8 +179,14 @@ export class World {
       if (!disabled && (p.fireLatch || i?.atk) && p.ammo > 0 && p.fireCd <= 0) this.fire(p);
       p.fireLatch = false;
       // specials/ults are hold-to-cast, gated by cooldown / charge (works the same for bots)
-      if (!disabled && i?.spc && p.spcCd <= 0 && castAbility(this, p, p.def.special)) p.spcCd = p.def.special.cd > 0 ? p.def.special.cd : 1;
-      if (!disabled && i?.ult && p.uc >= p.def.ultCharge && castAbility(this, p, p.def.ult)) p.uc = 0;
+      if (!disabled && i?.spc && p.spcCd <= 0 && castAbility(this, p, p.def.special)) {
+        p.spcCd = p.def.special.cd > 0 ? p.def.special.cd : 1;
+        p.revealT = REVEAL_SEC;
+      }
+      if (!disabled && i?.ult && p.uc >= p.def.ultCharge && castAbility(this, p, p.def.ult)) {
+        p.uc = 0;
+        p.revealT = REVEAL_SEC;
+      }
     }
     stepZones(this, dt);
     const alive = list.filter((p) => !p.down && !p.burrow);
@@ -194,6 +204,7 @@ export class World {
   private fire(p: SimPlayer): void {
     p.ammo--;
     p.fireCd = C.FIRE_GAP_SEC;
+    p.revealT = REVEAL_SEC;
     castAbility(this, p, p.def.attack);
     this.events.push({
       k: 'shot', id: p.id,
@@ -373,9 +384,12 @@ export class World {
 
   snapshotFor(viewerId: number): SnapMsg {
     const players: SnapPlayer[] = [];
+    const viewer = this.players.get(viewerId);
     for (const p of this.players.values()) {
       // underground players are hidden from everybody but the owner
       if (p.burrow && p.id !== viewerId) continue;
+      // kelp hides fighters from far enemies unless they just attacked
+      if (viewer && !canSee(viewer, p)) continue;
       players.push({
         id: p.id, x: Math.round(p.x), y: Math.round(p.y), hp: p.hp, mhp: p.mhp,
         f: p.fighter, n: p.name, st: p.status ? STATUS_CODE[p.status] : 0,

@@ -2,6 +2,7 @@ import { OBSTACLES, SPAWNS } from '../arena/docks.ts';
 import { WORLD_W, WORLD_H } from '../constants.ts';
 import { pushOutRect } from './collide.ts';
 import { abilityReach } from './abilities.ts';
+import { canSee } from './visibility.ts';
 import type { SimInput, SimPlayer, World } from './world.ts';
 
 export type BotDifficulty = 'easy' | 'normal';
@@ -55,12 +56,13 @@ export class BotBrain {
   private perceive(world: World, me: SimPlayer, dt: number): void {
     this.reactT -= dt;
     const cur = this.seen ? world.players.get(this.seen.id) : undefined;
-    if (this.reactT > 0 && cur && !cur.down) return;
+    if (this.reactT > 0 && cur && !cur.down && canSee(me, cur)) return;
     this.reactT = this.prm.react;
     let best: SimPlayer | null = null;
     let bd = SEE_RANGE;
     for (const o of world.players.values()) {
       if (o.id === me.id || o.down) continue;
+      if (!canSee(me, o)) continue; // kelp hides targets from bots too
       const d = Math.hypot(o.x - me.x, o.y - me.y);
       if (d < bd) { bd = d; best = o; }
     }

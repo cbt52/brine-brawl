@@ -271,7 +271,7 @@ Each reaction shows a big popup word ("SHOCK!").
     - ult-ready glow; low-HP red vignette pulse;
     - particle budget cap, with auto `lowfx` when FPS <45 for 3 s (also `?lowfx=1`).
 
-- [ ] **T14 — Arena art + bushes**
+- [x] **T14 — Arena art + bushes**
   - Do:
     - Background drawn once into a RenderTexture: sand island, lagoon water with animated wave lines (tweened graphics), wooden pier planks, coral walls matching the collision rects, barrels/crates decor, edge vignette.
     - Kelp bushes: players inside are invisible to enemies unless within 200 u or they just attacked (1 s reveal). Implement as per-client snapshot filtering on the server; bots respect it.
@@ -529,3 +529,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T11 ✅ 2026-10-18 — Noodle+Sudsy-Kits (Projektil-Status, Trap-Status, Stop-Dash), Taffy-Arm+Bubble-FX, Galerie grün; check+smoke+shot grün
 - T12 ✅ 2026-10-18 — Charakterauswahl (Karten mit Stats/Moves im Lobby-Menü, localStorage, ☰-Wechsel ab Respawn); CP3, e2e+healthz grün
 - T13 ✅ 2026-10-18 — Juice-Pass: Partikel (Mündungsfeuer, Impact-Ringe, Funken, Staub, KO-Sterne), Hitstop, Screenshake-Toggle, Vignette, lowfx-Budget; check+e2e+shot grün
+- T14 ✅ 2026-10-18 — Arena-Art in RenderTexture (Sand/Planken/Korallen/Shallows/Waves), Kelp-Büsche verstecken Kämpfer (200 u / 1 s Reveal, Bots+Snapshot gefiltert); check+shot grün
