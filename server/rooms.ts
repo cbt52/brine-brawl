@@ -46,19 +46,31 @@ export class Room {
   private nextBot = 1000;
   acc = 0;
   last = Date.now();
-  constructor(public id: string, mode: RoomMode = 'bounty') { this.mode = mode; }
+  constructor(public id: string, mode: RoomMode = 'bounty') {
+    this.mode = mode;
+    this.world.setMode(mode);
+  }
 
   /**
    * Full roster for the scoreboard — every combatant, including fighters the viewer's snapshot
    * hides behind kelp (the `players` list is filtered per viewer).
    */
   roster(): ScoreRow[] {
-    return rankPlayers(
-      [...this.world.players.values()].map((p) => ({
-        id: p.id, name: p.name, kos: p.kos, deaths: p.deaths, bounty: p.bounty,
-        fighter: p.fighter, bot: this.bots.has(p.id), team: p.team ?? undefined,
-      })),
-    );
+    const treasure = this.mode === 'treasure';
+    const rows = [...this.world.players.values()].map((p) => ({
+      id: p.id, name: p.name, kos: p.kos, deaths: p.deaths,
+      // Treasure Tide scores the coins on the body, Bounty Brawl the bounty (T27)
+      bounty: treasure ? p.carry : p.bounty,
+      fighter: p.fighter, bot: this.bots.has(p.id), team: p.team ?? undefined,
+    }));
+    const ranked = rankPlayers(rows);
+    if (!treasure) return ranked;
+    // the crew with the bigger pile tops the board, then coins, then KOs
+    const totals: [number, number] = [0, 0];
+    for (const r of ranked) if (r.tm === 0 || r.tm === 1) totals[r.tm] += r.b;
+    const order = totals[1] > totals[0] ? [1, 0] : [0, 1];
+    const crewRank = (tm?: number): number => (tm === order[0] ? 0 : 1);
+    return ranked.sort((x, y) => crewRank(x.tm) - crewRank(y.tm));
   }
 
   /** Auto-balance the crews: existing sides stay, newcomers join the smaller crew (T26). */
@@ -90,6 +102,10 @@ export class Room {
     const ev = this.match.update(dt, this.world.players.size);
     if (ev === 'start') this.world.resetScores();
     else if (ev === 'end') this.match.ranking = this.roster();
+    // Treasure Tide (T27): a finished escape countdown ends the round right there
+    if (this.match.phase === 'playing' && this.world.treasure?.won != null) {
+      if (this.match.finish() === 'end') this.match.ranking = this.roster();
+    }
   }
 
   /** Bots fill free slots up to the requested count; humans take priority. */

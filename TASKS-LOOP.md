@@ -368,7 +368,8 @@ Each fighter task: SVG + hurt SVG, data kit, hooks if needed, unit test per abil
     - Lobby: mode selector on Create Room; Quick Play picks a random mode.
     - Unit tests: friendly fire off, team assignment.
   - Test: `npm run check && npm run smoke`
-- [ ] **T27 — Treasure Tide mode**
+- [x] **T27 — Treasure Tide mode**
+  - Note: `shared/sim/treasure.ts` (SPAWN_SEC 7 s, WIN_COINS 10, COUNTDOWN_SEC 15) + `World.treasure`/`carry`; the sunken chest at the central shallows surfaces a doubloon every 7 s (wading is slow at high tide), doubloons ride on the body in the snapshot (`ca`) and the whole pile spills as pickups on a KO (bounty purse is off in this mode); a crew at ≥10 coins runs a 15 s escape countdown (`tr` in the snapshot) that resets when the pile shrinks, and running it out ends the round via `Match.finish()`; crews are ranked by carried coins. HUD: crew coin bars + `CREW A ESCAPES IN 12s` banner, coin pile above the carrier's head, carried counter in the readout, crown/WANTED hidden. Bots: `carry`/`collect`/`escort` roles plus carrier hunting. 13 new tests in `tests/unit/treasure.test.ts` + 2 in `match.test.ts`, check 420 green + e2e 15/15.
   - Do:
     - Sunken Chest in the center spawns a doubloon every 7 s (underwater at high tide → slow to reach). Carried coins show above the head and drop on KO.
     - A team with ≥10 combined starts a 15 s countdown, and it resets if they drop below 10. Win, else timeout → most coins.
@@ -539,4 +540,5 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T22 ✅ 2026-10-18 — Pip+Brak-Kits (Gust-Pair, Kite-Dash, Pull-Zone; Wall-Primitive `shared/sim/walls.ts`), 14 neue Tests, check+378 grün
 - T23 ✅ 2026-10-18 — Sable+Bisque-Kits (breiter Saber-Arc, Claw-Dash, Spin-Ult; Fire-Dash-Trail, 5-Gang-Combo-Cone), 8 neue Tests, check+386+shot grün
 - T25 ✅ 2026-10-18 — Balance-Harness (`npm run balance`, --quick 1 s): 12×12-Paare ×10 Seeds ×60 s + FFA×20, `.loop/balance.md`; Bot-Nahkampf-Fix (prefRange aus der eigenen Reichweite); 3 Balance-Pässe, Outliers 11→5; CP6, 397 Tests+e2e 15/15+healthz grün
+- T27 ✅ 2026-10-18 — Treasure Tide: Sunken Chest spawnt alle 7 s eine Münze, getragene Münzen fallen bei KO, ≥10 Münzen starten 15 s Escape-Countdown (reset bei Verlust), HUD-Crew-Balken + Banner, Bot-Rollen carry/collect/escort; 13 neue Tests, check 420+e2e 15/15 grün
 - T26 ✅ 2026-10-18 — Teams: RoomMode (bounty|treasure) Lobby→Join→Room, autoTeams (sticky, Humans gespreizt), kein Friendly Fire (damage/Projektil/Ability/Element/Bot-Ziel), Crew-Ring+Ally-Namen, Bots regroup; 407 Tests+e2e 15/15 grün

@@ -1,7 +1,7 @@
 import { TICK_HZ, WORLD_W, WORLD_H } from '../constants.ts';
 import { OBSTACLES, SPAWNS } from '../arena/docks.ts';
 import type { Rect } from '../arena/docks.ts';
-import type { PickupKind, SimEvent, SnapMsg, SnapPlayer } from '../protocol.ts';
+import type { PickupKind, RoomMode, SimEvent, SnapMsg, SnapPlayer } from '../protocol.ts';
 import { getFighter } from '../fighters/index.ts';
 import { statusMask, TRAP_BREAK_DMG, type FighterDef, type StatusKind } from '../fighters/types.ts';
 import { pushOutRect, resolveWalls, separate } from './collide.ts';
@@ -20,6 +20,7 @@ import {
   CHEST_HP, CHEST_RADIUS, CHEST_SPOTS, PICKUP_HEAL, PICKUP_RADIUS, PICKUP_SEC, PICKUP_ULT_FRAC,
   Tide, inWater, pickupFor, WATER_SLOW, WATER_WET_SEC,
 } from './tide.ts';
+import { COIN_SEC, DROP_MAX, SPOT, Treasure, teamTotals } from './treasure.ts';
 
 export const BASE_SPEED = 240;
 /** default body radius (kits carry their own `radius`) */
@@ -126,6 +127,8 @@ export interface SimPlayer {
   toonLeft: number;
   /** team A/B for crew matches (T26); `null` = no teams, i.e. friendly fire is on */
   team: Team | null;
+  /** doubloons carried on the body in Treasure Tide (T27); they spill on a KO */
+  carry: number;
   bot?: boolean;
 }
 
@@ -160,6 +163,10 @@ export class World {
   events: SimEvent[] = [];
   /** rising-tide clock (design §2.10) */
   tide = new Tide();
+  /** room mode (T26/T27): Bounty Brawl or Treasure Tide */
+  mode: RoomMode = 'bounty';
+  /** Treasure Tide coin economy (T27); `null` in Bounty Brawl */
+  treasure: Treasure | null = null;
   /** low-tide treasure chests */
   chests: Chest[] = [];
   /** true once the current low tide has been stocked, so a round does not wait for the next one */
@@ -179,7 +186,7 @@ export class World {
       ammo: def.ammo, reload: 0, fireCd: 0, fireLatch: false, spcCd: 0, uc: 0, dash: null, burrow: null,
       buffMul: 1, buffLeft: 0, dmgMul: 1, dmgMulLeft: 0, status: null, statusLeft: 0, rootLeft: 0, burnT: 0, trapTook: 0,
       revealT: 0, down: false, respawn: 0, shield: C.SHIELD_SEC, kos: 0, deaths: 0, pendingFighter: null,
-      gold: 0, bounty: BOUNTY_START, waterT: 0, bot, team,
+      gold: 0, bounty: BOUNTY_START, waterT: 0, bot, team, carry: 0,
       evolveKos: 0, evolved: false, flowHits: 0, flowT: 0, flowReady: false, toonUsed: false, toonLeft: 0,
     };
     this.players.set(id, p);
@@ -189,6 +196,12 @@ export class World {
 
   removePlayer(id: number): void {
     this.players.delete(id);
+  }
+
+  /** Pick the room mode; Treasure Tide grows its own coin/countdown bookkeeping. */
+  setMode(mode: RoomMode): void {
+    this.mode = mode;
+    this.treasure = mode === 'treasure' ? new Treasure() : null;
   }
 
   /** Put a fighter on crew A/B (rooms auto-balance; tests set it directly). */
@@ -268,6 +281,25 @@ export class World {
     this.picks = keep;
   }
 
+  /**
+   * Treasure Tide (T27): the sunken chest surfaces one doubloon every few seconds, and the crew that
+   * holds enough of them runs a 15 s escape countdown. Returns the winning crew once it ran out.
+   */
+  private stepTreasure(dt: number): Team | null {
+    const tr = this.treasure;
+    if (!tr) return null;
+    const { spawn } = tr.step(dt, teamTotals([...this.players.values()]));
+    if (spawn) {
+      // a small deterministic ring offset so coins do not stack exactly on the chest
+      const a = ((this.tick % 8) / 8) * Math.PI * 2;
+      this.picks.push({
+        id: this.newProjId(), x: SPOT.x + Math.cos(a) * 20, y: SPOT.y + Math.sin(a) * 14,
+        kind: 'gold', left: COIN_SEC,
+      });
+    }
+    return tr.won;
+  }
+
   /** Rising-tide water at the current flood level (used by the shock chain, bots and tests). */
   inWaterAt(x: number, y: number): boolean {
     return inWater(x, y, this.tide.level);
@@ -277,7 +309,11 @@ export class World {
   private collect(p: SimPlayer, pk: Pickup): void {
     if (pk.kind === 'heal') p.hp = Math.min(p.mhp, p.hp + PICKUP_HEAL);
     else if (pk.kind === 'ult') p.uc = Math.min(p.def.ultCharge, p.uc + p.def.ultCharge * PICKUP_ULT_FRAC);
-    else p.gold++;
+    else {
+      p.gold++;
+      // Treasure Tide: doubloons ride on the body instead of the purse (T27)
+      if (this.treasure) p.carry++;
+    }
     this.events.push({ k: 'pick', id: p.id, kind: pk.kind, x: Math.round(pk.x), y: Math.round(pk.y) });
   }
 
@@ -325,6 +361,7 @@ export class World {
   step(dt = 1 / TICK_HZ): void {
     this.tick++;
     this.stepTide(dt);
+    this.stepTreasure(dt);
     // static coral plus whatever stone a fighter built: one list for bodies, one for aging
     const block = this.walls.length ? OBSTACLES.concat(wallRects(this.walls)) : OBSTACLES;
     const list = [...this.players.values()];
@@ -554,18 +591,24 @@ export class World {
     v.status = null;
     v.statusLeft = 0;
     v.trapTook = 0;
-    // Bounty Brawl (T19): the purse comes out of the victim's bounty and the body drops coins
-    const pay = a && a.id !== v.id ? koPurse(v.bounty) : 0;
+    // Bounty Brawl (T19): the purse comes out of the victim's bounty and the body drops coins.
+    // Treasure Tide scores carried doubloons instead, so the purse stays out of it (T27).
+    const pay = !this.treasure && a && a.id !== v.id ? koPurse(v.bounty) : 0;
     if (a) a.kos++;
-    if (a && a.id !== v.id) {
+    if (a && a.id !== v.id && !this.treasure) {
       a.gold += pay;
       a.bounty = bountyAfterKO(a.bounty, bountyMulFor(a));
     }
+    // Treasure Tide (T27): the carried pile spills on the deck — the whole point of the mode
+    const spilled = Math.min(DROP_MAX, Math.max(0, v.carry));
     // faction passives see the KO before the victim's stats reset (EVOLVE / PLUNDER)
     if (a) onKO(a, v, this.events);
     resetOnDeath(v);
     v.bounty = BOUNTY_START;
-    this.dropCoins(v, KO_COINS);
+    v.carry = 0;
+    if (this.treasure) {
+      if (spilled > 0) this.dropGold(v.x, v.y, spilled, Math.max(30, v.r + 20));
+    } else this.dropCoins(v, KO_COINS);
     this.events.push({ k: 'ko', a: attacker, v: v.id, pay });
   }
 
@@ -680,7 +723,9 @@ export class World {
       p.deaths = 0;
       p.bounty = BOUNTY_START;
       p.gold = 0;
+      p.carry = 0;
     }
+    this.treasure?.reset();
   }
 
   snapshotFor(viewerId: number): SnapMsg {
@@ -702,6 +747,7 @@ export class World {
         cd: Math.round(p.spcCd * 10) / 10,
         ev: p.evolved ? 1 : undefined,
         tm: p.team ?? undefined,
+        ca: this.treasure && p.carry > 0 ? p.carry : undefined,
       });
     }
     return {
@@ -711,6 +757,7 @@ export class World {
       tide: this.tide.info(),
       chests: this.chests.map((c) => ({ id: c.id, x: Math.round(c.x), y: Math.round(c.y), hp: c.hp, mhp: c.mhp })),
       picks: this.picks.map((k) => ({ id: k.id, x: Math.round(k.x), y: Math.round(k.y), k: k.kind })),
+      tr: this.treasure ? this.treasure.info() : undefined,
       walls: this.walls.length
         ? this.walls.map((w) => ({
           id: w.id, x: Math.round(w.x), y: Math.round(w.y), w: w.w, h: w.h,

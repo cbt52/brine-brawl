@@ -110,6 +110,8 @@ export interface SnapPlayer {
   ev?: number;
   /** crew 0/1 when the match runs teams (T26); absent in a free-for-all */
   tm?: number;
+  /** doubloons carried on the body in Treasure Tide (T27) */
+  ca?: number;
   /** special cooldown remaining in seconds */
   cd: number;
 }
@@ -143,6 +145,17 @@ export interface SnapChest {
 }
 
 export type PickupKind = 'heal' | 'ult' | 'gold';
+
+/** Treasure Tide (T27): crew coin totals at the sunken chest plus the escape countdown. */
+export interface TreasureInfo {
+  /** coins carried by crew A / crew B */
+  a: number;
+  b: number;
+  /** seconds left on the escape countdown (0 = none running) */
+  cd: number;
+  /** crew the countdown belongs to, null when idle */
+  cdTeam: 0 | 1 | null;
+}
 
 /** A temporary stone wall (Brak's Stone Wall, T22): blocks bodies and shots. */
 export interface SnapWall {
@@ -203,6 +216,8 @@ export interface SnapMsg {
   picks?: SnapPickup[];
   /** standing stone walls (T22) */
   walls?: SnapWall[];
+  /** Treasure Tide crew totals + escape countdown (T27) */
+  tr?: TreasureInfo;
   /** match phase + timer (added by the room) */
   m?: MatchInfo;
 }

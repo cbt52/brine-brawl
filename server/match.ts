@@ -94,6 +94,14 @@ export class Match {
     this.timer = this.cfg.countdownSec;
   }
 
+  /** End a running match early (Treasure Tide escape countdown ran out, T27). */
+  finish(): MatchEvent {
+    if (this.phase !== 'playing') return null;
+    this.phase = 'results';
+    this.timer = this.cfg.resultsSec;
+    return 'end';
+  }
+
   info(): MatchInfo {
     const info: MatchInfo = { st: this.phase, t: Math.max(0, Math.ceil(this.timer)), r: this.round };
     if (this.phase === 'results') info.res = this.ranking;

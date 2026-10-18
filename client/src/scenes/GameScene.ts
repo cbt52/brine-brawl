@@ -147,7 +147,7 @@ export class GameScene extends Phaser.Scene {
 
   /** HUD lives in its own scene (screen space) — just feed it the current view. */
   private updateHud(view: SnapPlayer[]): void {
-    this.hud.setMatch(this.net.last?.m, view, this.net.id, this.net.ping, this.net.last?.tide);
+    this.hud.setMatch(this.net.last?.m, view, this.net.id, this.net.ping, this.net.last?.tide, this.net.last?.tr);
     syncResults(this.net.last?.m);
   }
 
@@ -247,6 +247,7 @@ export class GameScene extends Phaser.Scene {
       }
       if (p.st && !p.dn) this.drawStatus(g, p, nowMs);
       if (p.ev && !p.dn) this.drawEvolved(g, p, nowMs);
+      if (p.ca && !p.dn) this.drawCarry(g, p, nowMs);
       const arm = this.armUntil.get(p.id);
       if (!arm) continue;
       if (nowMs >= arm.until) { this.armUntil.delete(p.id); continue; }
@@ -283,6 +284,11 @@ export class GameScene extends Phaser.Scene {
    * everyone can see who is worth hunting.
    */
   private drawCrown(g: Phaser.GameObjects.Graphics, view: SnapPlayer[], nowMs: number): void {
+    // Treasure Tide (T27) has its own marker: the carried coin pile, not a bounty crown
+    if (this.net.last?.m?.mode === 'treasure') {
+      this.wantedText.setVisible(false);
+      return;
+    }
     let leader: SnapPlayer | null = null;
     for (const p of view) {
       if (p.dn) continue;
@@ -313,6 +319,23 @@ export class GameScene extends Phaser.Scene {
     g.fillStyle(0x2ec4b6, 1).fillCircle(x - w * 0.3, y - h * 0.12, 1.9);
     g.fillStyle(0x2ec4b6, 1).fillCircle(x + w * 0.3, y - h * 0.12, 1.9);
     this.wantedText.setPosition(x, y - h - 7).setVisible(true);
+  }
+
+  /**
+   * Treasure Tide (T27): carried doubloons ride above the carrier's head (one coin per doubloon, up
+   * to three) so everyone can see who is worth chasing — and whose pile spills on a KO.
+   */
+  private drawCarry(g: Phaser.GameObjects.Graphics, p: SnapPlayer, nowMs: number): void {
+    const r = getFighter(p.f).radius;
+    const top = (this.rigs.get(p.id)?.headTopY ?? p.y - r - 40) - 2;
+    const n = Math.min(3, p.ca ?? 0);
+    const x = p.x + r * 1.0;
+    const bob = Math.sin(nowMs / 300 + p.id) * 2;
+    for (let i = 0; i < n; i++) {
+      const y = top - i * 9 + bob;
+      g.fillStyle(0xffd23f, 1).fillCircle(x, y, 6);
+      g.lineStyle(2, 0x8a5a34, 1).strokeCircle(x, y, 6);
+    }
   }
 
   /**

@@ -4,6 +4,7 @@ import { pushOutRect } from './collide.ts';
 import { abilityReach } from './abilities.ts';
 import { canSee } from './visibility.ts';
 import { sameTeam } from './teams.ts';
+import { SPOT } from './treasure.ts';
 import type { SimInput, SimPlayer, World } from './world.ts';
 
 export type BotDifficulty = 'easy' | 'normal';
@@ -22,7 +23,7 @@ const FLEE_FRAC = 0.3;
 const LOOT_RANGE = 520;
 const RAD = Math.PI / 180;
 
-export type BotState = 'wander' | 'chase' | 'kite' | 'flee' | 'loot';
+export type BotState = 'wander' | 'chase' | 'kite' | 'flee' | 'loot' | 'carry' | 'collect' | 'escort';
 
 function blocked(x: number, y: number, r: number): boolean {
   if (x < r || y < r || x > WORLD_W - r || y > WORLD_H - r) return true;
@@ -90,8 +91,10 @@ export class BotBrain {
       if (o.id === me.id || o.down) continue;
       if (sameTeam(me, o)) continue; // teammates are never targets (T26)
       if (!canSee(me, o)) continue; // kelp hides targets from bots too
+      // Treasure Tide (T27): hunt whoever is holding the loot, even past a closer brawler
       const d = Math.hypot(o.x - me.x, o.y - me.y);
-      if (d < bd) { bd = d; best = o; }
+      const score = world.mode === 'treasure' && o.carry > 0 ? d * 0.6 : d;
+      if (score < bd) { bd = score; best = o; }
     }
     if (!best) { this.seen = null; return; }
     if (this.seen && this.seen.id === best.id) {
@@ -101,15 +104,63 @@ export class BotBrain {
   }
 
   /** Nearest living teammate inside `range` (a bot regroups when there is nothing to fight). */
-  private nearestAlly(world: World, me: SimPlayer, range: number): SimPlayer | null {
+  private nearestAlly(world: World, me: SimPlayer, range: number, loaded = false): SimPlayer | null {
     let best: SimPlayer | null = null;
     let bd = range;
     for (const o of world.players.values()) {
       if (o.id === me.id || o.down || !sameTeam(me, o)) continue;
+      if (loaded && o.carry <= 0) continue;
       const d = Math.hypot(o.x - me.x, o.y - me.y);
       if (d < bd) { bd = d; best = o; }
     }
     return best;
+  }
+
+  /**
+   * Treasure Tide roles (T27): a carrier runs for cover with the loot, an empty-handed bot grabs the
+   * nearest floating doubloon, and with nothing to grab it escorts the crew's carrier.
+   */
+  private treasureGoal(
+    world: World, me: SimPlayer, foe: { x: number; y: number } | null, shotRange: number,
+  ): { heading: number; move: number; aim: number; fire: boolean; state: BotState; dist: number } | null {
+    const foeDist = foe ? Math.hypot(foe.x - me.x, foe.y - me.y) : Infinity;
+    const toFoe = foe ? Math.atan2(foe.y - me.y, foe.x - me.x) : me.aim;
+    const shoot = !!foe && me.ammo > 0 && foeDist < shotRange * 0.9;
+    if (me.carry > 0) {
+      // run the pile away from the enemy: home is the spawn that is farthest from them
+      let far = SPAWNS[0];
+      let fd = -1;
+      for (const s of SPAWNS) {
+        const d = foe ? Math.hypot(s.x - foe.x, s.y - foe.y) : Math.hypot(s.x - SPOT.x, s.y - SPOT.y);
+        if (d > fd) { fd = d; far = s; }
+      }
+      return {
+        heading: Math.atan2(far.y - me.y, far.x - me.x), move: 1,
+        aim: foeDist < shotRange ? toFoe : me.aim, fire: shoot, state: 'carry', dist: foeDist,
+      };
+    }
+    // grab the nearest doubloon on the water (the sunken chest drops them in the shallows)
+    let coin: { x: number; y: number } | null = null;
+    let cd = LOOT_RANGE * 1.6;
+    for (const pk of world.picks) {
+      if (pk.kind !== 'gold') continue;
+      const d = Math.hypot(pk.x - me.x, pk.y - me.y);
+      if (d < cd) { cd = d; coin = pk; }
+    }
+    if (coin) {
+      const heading = Math.atan2(coin.y - me.y, coin.x - me.x);
+      return { heading, move: 1, aim: shoot ? toFoe : heading, fire: shoot, state: 'collect', dist: foeDist };
+    }
+    // nothing to grab: stay with whoever is carrying so the pile survives the trip
+    const carrier = this.nearestAlly(world, me, SEE_RANGE, true);
+    if (carrier) {
+      const d = Math.hypot(carrier.x - me.x, carrier.y - me.y);
+      return {
+        heading: Math.atan2(carrier.y - me.y, carrier.x - me.x), move: d > 160 ? 0.8 : 0,
+        aim: shoot ? toFoe : me.aim, fire: shoot, state: 'escort', dist: foeDist,
+      };
+    }
+    return null;
   }
 
   think(world: World, dt: number): SimInput {
@@ -136,7 +187,18 @@ export class BotBrain {
     // a melee kit that holds the ranged stand-off never swings: prefer to fight inside its own reach
     const prefRange = prefRangeFor(atk.kind, shotRange);
 
-    if (!t) {
+    // Treasure Tide (T27): carrier / collector / escort beats plain brawling
+    const role = world.mode === 'treasure' ? this.treasureGoal(world, me, t, shotRange) : null;
+    if (role) {
+      this.state = role.state;
+      heading = role.heading;
+      move = role.move;
+      aim = role.aim;
+      fire = role.fire;
+      dist = role.dist;
+      // chasing a doubloon into the shallows is the point of the mode, so no water detour there
+      looting = role.state === 'collect';
+    } else if (!t) {
       this.state = 'wander';
       // nothing to fight: regroup with the crew instead of drifting alone (T26)
       const ally = this.nearestAlly(world, me, SEE_RANGE);
@@ -182,7 +244,7 @@ export class BotBrain {
     }
 
     // low-tide treasure: with no fight close by, go crack a chest open
-    if (world.chests.length && dist > LOOT_RANGE) {
+    if (!role && world.chests.length && dist > LOOT_RANGE) {
       let chest = world.chests[0];
       let bd = Infinity;
       for (const c of world.chests) {

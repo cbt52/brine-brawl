@@ -1,5 +1,7 @@
 import Phaser from 'phaser';
-import type { MatchInfo, SimEvent, SnapPlayer, TideInfo } from '../../../shared/protocol.ts';
+import type { MatchInfo, SimEvent, SnapPlayer, TideInfo, TreasureInfo } from '../../../shared/protocol.ts';
+import { TEAM_COLORS } from '../../../shared/sim/teams.ts';
+import { WIN_COINS } from '../../../shared/sim/treasure.ts';
 
 const FEED_MAX = 4;
 const BRAWL_MS = 900;
@@ -38,6 +40,10 @@ export class HudScene extends Phaser.Scene {
   /** rising-tide meter (dock wall clock + flood bar) */
   private tideGfx!: Phaser.GameObjects.Graphics;
   private tideText!: Phaser.GameObjects.Text;
+  /** Treasure Tide crew coin totals + escape countdown (T27) */
+  private trGfx!: Phaser.GameObjects.Graphics;
+  private trText!: Phaser.GameObjects.Text;
+  private escapeText!: Phaser.GameObjects.Text;
 
   constructor() {
     super({ key: 'hud' });
@@ -54,6 +60,9 @@ export class HudScene extends Phaser.Scene {
     this.sbText = this.txt(18, { align: 'left', lineSpacing: 6 }).setOrigin(0.5);
     this.tideGfx = this.add.graphics().setDepth(9);
     this.tideText = this.txt(17).setOrigin(0.5, 0).setVisible(false);
+    this.trGfx = this.add.graphics().setDepth(9);
+    this.trText = this.txt(16).setOrigin(0.5, 0).setVisible(false);
+    this.escapeText = this.txt(26).setOrigin(0.5, 0).setAlpha(0);
     this.layout();
     this.ensureVignette();
     this.scale.on('resize', this.layout);
@@ -100,6 +109,7 @@ export class HudScene extends Phaser.Scene {
     this.feedText.setPosition(w - 12, 54);
     this.pingText.setPosition(12, 64); // under the KO/ability readout, clear of the ☰ buttons
     this.cdText.setPosition(w / 2, h / 2 - 30);
+    this.escapeText.setPosition(w / 2, 48);
     this.waitText.setPosition(w / 2, h / 2 + 60);
     this.sbText.setPosition(w / 2, h / 2);
     this.vignette?.setDisplaySize(w, h);
@@ -176,13 +186,65 @@ export class HudScene extends Phaser.Scene {
       .setVisible(true);
   }
 
+  /**
+   * Treasure Tide (T27): crew coin totals at the sunken chest plus the escape countdown. Coins are
+   * carried, so the bars swing both ways — a KO hands the pile back to the other crew.
+   */
+  private drawTreasure(tr: TreasureInfo | undefined, mode: string | undefined): void {
+    const g = this.trGfx;
+    g.clear();
+    if (!tr || mode !== 'treasure') {
+      this.trText.setVisible(false);
+      this.escapeText.setAlpha(0);
+      return;
+    }
+    const x = 12;
+    const y = 152;
+    const w = 214;
+    const h = 50;
+    const running = tr.cd > 0;
+    g.fillStyle(0x0d1a26, 0.82).fillRoundedRect(x, y, w, h, 10);
+    g.lineStyle(2, running ? 0xffd23f : 0xdff7ff, running ? 0.8 : 0.45).strokeRoundedRect(x, y, w, h, 10);
+    const bar = (row: number, coins: number, color: number, hot: boolean) => {
+      const by = y + 26 + row * 14;
+      const frac = Math.max(0, Math.min(1, coins / WIN_COINS));
+      g.fillStyle(0x123243, 1).fillRoundedRect(x + 12, by, w - 24, 10, 5);
+      if (frac > 0.01) {
+        g.fillStyle(color, hot ? 1 : 0.85).fillRoundedRect(x + 12, by, (w - 24) * frac, 10, 5);
+      }
+      g.lineStyle(1.5, 0x1b1b2f, 0.7).strokeRoundedRect(x + 12, by, w - 24, 10, 5);
+    };
+    bar(0, tr.a, TEAM_COLORS[0], tr.cdTeam === 0);
+    bar(1, tr.b, TEAM_COLORS[1], tr.cdTeam === 1);
+    this.trText
+      .setText(`A ${tr.a} · B ${tr.b} 🪙  ·  ${WIN_COINS} to escape`)
+      .setPosition(x + w / 2, y + 3)
+      .setVisible(true);
+    if (!running) {
+      this.escapeText.setAlpha(0);
+      return;
+    }
+    const crew = tr.cdTeam === 1 ? 'B' : 'A';
+    const blink = Math.floor(performance.now() / 300) % 2 === 0;
+    this.escapeText
+      .setText(`CREW ${crew} ESCAPES IN ${tr.cd}s`)
+      .setColor(blink ? '#ffd23f' : '#fff8d8')
+      .setAlpha(1);
+  }
+
   /** Called every frame by the game scene with the interpolated view. */
-  setMatch(m: MatchInfo | undefined, view: SnapPlayer[], selfId: number, ping = 0, tide?: TideInfo): void {
+  setMatch(
+    m: MatchInfo | undefined, view: SnapPlayer[], selfId: number, ping = 0, tide?: TideInfo, tr?: TreasureInfo,
+  ): void {
     if (!this.koText) return; // scene still booting
     this.drawTide(tide);
+    this.drawTreasure(tr, m?.mode);
     const me = view.find((p) => p.id === selfId);
-    this.koText.setText(`KOs ${me?.k ?? 0}  ·  KO'd ${me?.d ?? 0}  ·  ${me?.b ?? 0} 🪙`);
-    this.pingText.setVisible(ping > 0);
+    if (m?.mode === 'treasure') {
+      this.koText.setText(`KOs ${me?.k ?? 0}  ·  KO'd ${me?.d ?? 0}  ·  carrying ${me?.ca ?? 0} 🪙`);
+    } else {
+      this.koText.setText(`KOs ${me?.k ?? 0}  ·  KO'd ${me?.d ?? 0}  ·  ${me?.b ?? 0} 🪙`);
+    }    this.pingText.setVisible(ping > 0);
     if (ping > 0) this.pingText.setText(`${ping} ms`).setColor(ping < 60 ? '#b8ffb0' : ping < 120 ? '#ffd23f' : '#ff8f8f');
     if (me) this.setAbilities(me);
     else this.abText.setText('');

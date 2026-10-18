@@ -113,3 +113,25 @@ describe('rankPlayers', () => {
     expect(rows.map((r) => r.n)).toEqual(['Abe', 'Zed']);
   });
 });
+
+describe('early finish (Treasure Tide, T27)', () => {
+  it('ends a running match on demand and goes straight to results', () => {
+    const m = new Match();
+    run(m, COUNTDOWN_SEC + 1, 3);
+    expect(m.phase).toBe('playing');
+    expect(m.finish()).toBe('end');
+    expect(m.phase).toBe('results');
+    expect(m.timer).toBe(RESULTS_SEC);
+    // a second finish is a no-op (the room may see the win twice)
+    expect(m.finish()).toBe(null);
+  });
+
+  it('does nothing while the match is still counting down', () => {
+    const m = new Match();
+    expect(m.finish()).toBe(null);
+    expect(m.phase).toBe('waiting');
+    run(m, 1, 3);
+    expect(m.phase).toBe('countdown');
+    expect(m.finish()).toBe(null);
+  });
+});
