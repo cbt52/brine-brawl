@@ -27,11 +27,14 @@ const prefRangeFor = (kind: string, reach: number): number =>
   kind === 'projectile' ? Math.min(PREF_RANGE, reach * 0.8) : Math.max(110, reach * 0.75);
 const SEE_RANGE = 1100;
 const FLEE_FRAC = 0.3;
+/** Purrl (backlog #12): a bot below this share of its HP walks to the snail when it is this close. */
+const SNAIL_HURT_FRAC = 0.6;
+const SNAIL_RANGE = 480;
 /** Bots head for a chest when no fight is closer than this. */
 const LOOT_RANGE = 520;
 const RAD = Math.PI / 180;
 
-export type BotState = 'wander' | 'chase' | 'kite' | 'flee' | 'loot' | 'carry' | 'collect' | 'escort' | 'ring';
+export type BotState = 'wander' | 'chase' | 'kite' | 'flee' | 'loot' | 'carry' | 'collect' | 'escort' | 'ring' | 'snail';
 
 function blocked(x: number, y: number, r: number): boolean {
   if (x < r || y < r || x > WORLD_W - r || y > WORLD_H - r) return true;
@@ -268,6 +271,15 @@ export class BotBrain {
         fire = me.ammo > 0 && bd < shotRange * 0.8;
         dist = bd;
       }
+    }
+
+    // Purrl (backlog #12): hurt, no enemy in sight, snail in reach — walk over for the once-per-life heal
+    const snailDist = Math.hypot(world.purrl.x - me.x, world.purrl.y - me.y);
+    if (!role && !looting && !me.purrlFed && me.hp < me.mhp * SNAIL_HURT_FRAC && snailDist < SNAIL_RANGE
+      && this.state === 'wander') {
+      this.state = 'snail';
+      heading = Math.atan2(world.purrl.y - me.y, world.purrl.x - me.x);
+      move = 1;
     }
 
     // Showdown (backlog #6): the closing ring beats every other goal — turn back before the edge hurts
