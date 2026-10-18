@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
-import type { MatchInfo, SimEvent, SnapPlayer, TideInfo, TreasureInfo } from '../../../shared/protocol.ts';
+import type { MatchInfo, SimEvent, SnapPlayer, TideInfo, TreasureInfo, Weather } from '../../../shared/protocol.ts';
 import { TEAM_COLORS } from '../../../shared/sim/teams.ts';
 import { WIN_COINS } from '../../../shared/sim/treasure.ts';
+import { WEATHER_NAMES } from '../../../shared/sim/weather.ts';
 
 const FEED_MAX = 4;
 const BRAWL_MS = 900;
@@ -40,6 +41,8 @@ export class HudScene extends Phaser.Scene {
   /** rising-tide meter (dock wall clock + flood bar) */
   private tideGfx!: Phaser.GameObjects.Graphics;
   private tideText!: Phaser.GameObjects.Text;
+  /** Weird Weather tag under the tide meter (backlog #4); hidden in calm rounds */
+  private weatherText!: Phaser.GameObjects.Text;
   /** Treasure Tide crew coin totals + escape countdown (T27) */
   private trGfx!: Phaser.GameObjects.Graphics;
   private trText!: Phaser.GameObjects.Text;
@@ -62,6 +65,7 @@ export class HudScene extends Phaser.Scene {
     this.sbText = this.txt(18, { align: 'left', lineSpacing: 6 }).setOrigin(0.5);
     this.tideGfx = this.add.graphics().setDepth(9);
     this.tideText = this.txt(17).setOrigin(0.5, 0).setVisible(false);
+    this.weatherText = this.txt(15).setOrigin(0.5, 0).setPosition(119, 152).setColor('#ffd23f').setVisible(false);
     this.trGfx = this.add.graphics().setDepth(9);
     this.trText = this.txt(16).setOrigin(0.5, 0).setVisible(false);
     this.escapeText = this.txt(26).setOrigin(0.5, 0).setAlpha(0);
@@ -163,6 +167,15 @@ export class HudScene extends Phaser.Scene {
     if (this.feed.length > FEED_MAX) this.feed.splice(0, this.feed.length - FEED_MAX);
   }
 
+  /** Weird Weather tag (backlog #4): names the round's modifier under the tide meter. */
+  private drawWeather(wx: Weather | undefined): void {
+    if (!wx || wx === 'clear') {
+      this.weatherText.setVisible(false);
+      return;
+    }
+    this.weatherText.setText(`WEIRD WEATHER · ${WEATHER_NAMES[wx]}`).setVisible(true);
+  }
+
   /** Tide meter: phase label, countdown to the next change and a flood bar (T18). */
   private drawTide(tide: TideInfo | undefined): void {
     const g = this.tideGfx;
@@ -251,6 +264,7 @@ export class HudScene extends Phaser.Scene {
   ): void {
     if (!this.koText) return; // scene still booting
     this.drawTide(tide);
+    this.drawWeather(m?.wx);
     this.drawTreasure(tr, m?.mode);
     const me = view.find((p) => p.id === selfId);
     if (m?.mode === 'treasure') {

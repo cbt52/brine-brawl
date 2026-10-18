@@ -36,6 +36,9 @@ export type MatchPhase = 'waiting' | 'countdown' | 'playing' | 'results';
 /** Room mode (T26): Bounty Brawl or Treasure Tide (the chest objective arrives in T27). */
 export type RoomMode = 'bounty' | 'treasure';
 
+/** Weird Weather (backlog #4): the modifier a round rolls when it starts. */
+export type Weather = 'clear' | 'double-tide';
+
 /** One scoreboard row (sent in the results phase). */
 export interface ScoreRow {
   id: number;
@@ -66,6 +69,8 @@ export interface MatchInfo {
   ros?: ScoreRow[];
   /** room mode (bounty / treasure) — HUD + scoreboard label */
   mode?: RoomMode;
+  /** this round's Weird Weather modifier (backlog #4) — HUD tag */
+  wx?: Weather;
 }
 
 export interface DbgMsg {

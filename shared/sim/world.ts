@@ -1,7 +1,7 @@
 import { TICK_HZ, WORLD_W, WORLD_H } from '../constants.ts';
 import { OBSTACLES, SPAWNS } from '../arena/docks.ts';
 import type { Rect } from '../arena/docks.ts';
-import type { AbilitySlot, PickupKind, RoomMode, SimEvent, SnapMsg, SnapPlayer } from '../protocol.ts';
+import type { AbilitySlot, PickupKind, RoomMode, SimEvent, SnapMsg, SnapPlayer, Weather } from '../protocol.ts';
 import { getFighter } from '../fighters/index.ts';
 import { statusMask, TRAP_BREAK_DMG, type FighterDef, type StatusKind } from '../fighters/types.ts';
 import { pushOutRect, resolveWalls, separate } from './collide.ts';
@@ -22,6 +22,7 @@ import {
   CHEST_HP, CHEST_RADIUS, CHEST_SPOTS, PICKUP_HEAL, PICKUP_RADIUS, PICKUP_SEC, PICKUP_ULT_FRAC,
   Tide, inWater, pickupFor, WATER_SLOW, WATER_WET_SEC,
 } from './tide.ts';
+import { tideRate } from './weather.ts';
 import { COIN_SEC, DROP_MAX, SPOT, Treasure, teamTotals } from './treasure.ts';
 import {
   COMBO_BONUS, COMBO_BURST_RADIUS, COMBO_WINDOW_SEC, comboName, comboPartner, type UltHit,
@@ -188,6 +189,8 @@ export class World {
   events: SimEvent[] = [];
   /** rising-tide clock (design §2.10) */
   tide = new Tide();
+  /** this round's Weird Weather modifier (backlog #4); the room rolls it at each round start */
+  weather: Weather = 'clear';
   /** room mode (T26/T27): Bounty Brawl or Treasure Tide */
   mode: RoomMode = 'bounty';
   /** Treasure Tide coin economy (T27); `null` in Bounty Brawl */
@@ -225,6 +228,11 @@ export class World {
 
   removePlayer(id: number): void {
     this.players.delete(id);
+  }
+
+  /** Set the round's Weird Weather modifier (backlog #4). */
+  setWeather(w: Weather): void {
+    this.weather = w;
   }
 
   /** Pick the room mode; Treasure Tide grows its own coin/countdown bookkeeping. */
@@ -290,7 +298,7 @@ export class World {
    * swallowed as it rises again; rewards already on the deck stay until picked up or sunk.
    */
   private stepTide(dt: number): void {
-    const entered = this.tide.step(dt);
+    const entered = this.tide.step(dt * tideRate(this.weather));
     if (entered === 'rising') this.chests = []; // the flood swallows whatever is left
     // stock the pools as soon as the tide is low — the round may start mid-low, and that is when the
     // treasure is on the sand (§2.10); one seeding per low tide, so a picked-clean pool stays empty

@@ -8,6 +8,7 @@ import { randomFighterId, resolveFighterId } from '../shared/fighters/index.ts';
 import { Match, rankPlayers } from './match.ts';
 import { emoteIndex, emoteReady } from '../shared/emotes.ts';
 import { sanitizeSkin } from '../shared/skins.ts';
+import { pickWeather } from '../shared/sim/weather.ts';
 
 const ROOM_RE = /^[a-z0-9-]{1,24}$/;
 const ADJ = ['Salty', 'Soggy', 'Crispy', 'Wobbly', 'Grumpy', 'Sneaky', 'Bouncy', 'Dizzy'];
@@ -106,7 +107,11 @@ export class Room {
 
   private stepMatch(dt: number): void {
     const ev = this.match.update(dt, this.world.players.size);
-    if (ev === 'start') this.world.resetScores();
+    if (ev === 'start') {
+      this.world.resetScores();
+      // Weird Weather (backlog #4): each round rolls its own modifier
+      this.world.setWeather(pickWeather(Math.random()));
+    }
     else if (ev === 'end') this.match.ranking = this.roster();
     // Treasure Tide (T27): a finished escape countdown ends the round right there
     if (this.match.phase === 'playing' && this.world.treasure?.won != null) {
@@ -244,6 +249,7 @@ export class RoomManager {
       // unfiltered roster: the per-viewer snapshot list hides fighters behind kelp
       info.ros = r.roster();
       info.mode = r.mode;
+      info.wx = r.world.weather;
       for (const c of r.clients.values()) {
         if (c.ws.readyState !== 1) continue;
         const snap = r.world.snapshotFor(c.id);
