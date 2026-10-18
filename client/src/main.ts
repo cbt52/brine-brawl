@@ -9,6 +9,7 @@ import { HudScene } from './scenes/HudScene.ts';
 import { showLobby } from './ui/lobby.ts';
 import { savedFighter } from './ui/select.ts';
 import { mountMenu, showInvite } from './ui/menu.ts';
+import { mountEmotes } from './ui/emotes.ts';
 
 const params = new URLSearchParams(location.search);
 const net = new Net();
@@ -54,6 +55,9 @@ const game = new Phaser.Game({
   scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%' },
   scene: [new GameScene(net, VIEW_H, fxOpts), new HudScene()],
 });
+
+// emote stickers (T99): the wheel only sends; the bubble is drawn in the world scene
+mountEmotes((m) => net.send(m));
 
 declare global {
   interface Window {

@@ -23,6 +23,7 @@ import { Sfx } from '../audio/sfx.ts';
 import { Shanty } from '../audio/music.ts';
 import { cueForEvent } from '../audio/map.ts';
 import { tideLevel } from '../../../shared/sim/tide.ts';
+import { EMOTES } from '../../../shared/emotes.ts';
 import type { PickupKind, SnapSummon, SnapWall } from '../../../shared/protocol.ts';
 
 const INTERP_DELAY_MS = 100;
@@ -112,6 +113,32 @@ export class GameScene extends Phaser.Scene {
 
   private applyZoom(): void {
     this.cameras.main.setZoom(this.scale.height / this.viewH);
+  }
+
+  /**
+   * Emote sticker (T99): a coloured bubble with the sticker label pops above the fighter and
+   * drifts up while it fades. Purely cosmetic — the server only relays the event.
+   */
+  private showEmote(id: number, e: number): void {
+    const def = EMOTES[e];
+    const rig = this.rigs.get(id);
+    if (!def || !rig) return;
+    const label = this.add
+      .text(0, 0, def.label, { fontFamily: '"Lilita One", system-ui, sans-serif', fontSize: '18px', color: '#1b1b2f' })
+      .setOrigin(0.5);
+    const w = Math.max(48, Math.ceil(label.width) + 20);
+    const h = Math.ceil(label.height) + 12;
+    const g = this.add.graphics();
+    g.fillStyle(0x1b1b2f, 1).fillRoundedRect(-w / 2 - 3, -h / 2 - 3, w + 6, h + 6, 12);
+    g.fillStyle(def.color, 1).fillRoundedRect(-w / 2, -h / 2, w, h, 10);
+    // little tail, so the bubble points at the fighter below it
+    g.fillTriangle(-7, h / 2 - 2, 7, h / 2 - 2, 0, h / 2 + 9);
+    const bubble = this.add.container(rig.x, rig.headTopY - 12 - h / 2, [g, label]).setDepth(42).setScale(0.6);
+    this.tweens.add({ targets: bubble, scale: 1, duration: 130, ease: 'Back.out' });
+    this.tweens.add({
+      targets: bubble, y: bubble.y - 26, alpha: 0, delay: 900, duration: 600,
+      onComplete: () => bubble.destroy(),
+    });
   }
 
   private onShakeSetting = (e: CustomEvent<boolean>): void => {
@@ -619,6 +646,8 @@ export class GameScene extends Phaser.Scene {
         const dest = e.a !== undefined ? this.rigs.get(e.a) : undefined;
         this.fx.passive(e.p, who?.x ?? e.x, who?.y ?? e.y, dest ? { x: dest.x, y: dest.y } : undefined);
         if (e.p === 'toon') who?.pancake();
+      } else if (e.k === 'emote') {
+        this.showEmote(e.id, e.e);
       }
     }
     this.drawLoot(nowMs);

@@ -455,17 +455,17 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 
 ---
 ## 5. IMPROVEMENT BACKLOG (ordered; T99 takes from the top; user feedback goes first)
-1. Emote wheel (4 sticker emotes: "Arr!", "Bloop", "GG", 😂-style original stickers).
-2. Purrl the meowing sea snail: wanders the beach, touching it heals +10 once per life.
-3. Second arena "Taffy Galleon": rocking ship deck, cannon hazard that fires across lanes.
-4. Bot difficulty selector (easy / normal / sharky) in the lobby.
-5. Skins: 2 palette swaps per fighter (data-driven SVG color replacement).
-6. "Weird Weather" match modifiers: jellyfish rain, bubble storm, double tide.
-7. Kill-cam: 2 s replay of the last KO from the snapshot buffer.
-8. Showdown battle-royale mode where the tide permanently rises and shrinks the island.
-9. Tutorial overlay for first-time players (3 tips, dismissible).
-10. Colorblind-friendly team outlines and status shapes.
-11. Local stats page (matches, favorite fighter, best bounty) in localStorage.
+1. Purrl the meowing sea snail: wanders the beach, touching it heals +10 once per life.
+2. Second arena "Taffy Galleon": rocking ship deck, cannon hazard that fires across lanes.
+3. Bot difficulty selector (easy / normal / sharky) in the lobby.
+4. Skins: 2 palette swaps per fighter (data-driven SVG color replacement).
+5. "Weird Weather" match modifiers: jellyfish rain, bubble storm, double tide.
+6. Kill-cam: 2 s replay of the last KO from the snapshot buffer.
+7. Showdown battle-royale mode where the tide permanently rises and shrinks the island.
+8. Tutorial overlay for first-time players (3 tips, dismissible).
+9. Colorblind-friendly team outlines and status shapes.
+10. Local stats page (matches, favorite fighter, best bounty) in localStorage.
+11. Bots answer: a bot that KOs you sends a sticker back over the T99 emote channel (one in three KOs).
 12. Optional ONLY if the user asks: ComfyUI portraits (127.0.0.1:8188, 2–7 min/img, 16 GB RAM, never while the user is using it).
 
 ---
@@ -509,3 +509,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T31 ✅ 2026-10-18 — Nova (Mist Orb/Storm Cloud/`strikes`-Lightning Chart), Lenny (Fib Shot/Decoy via `summon`/Big Fib-Lob), Doc Fawnsworth (`allyHeal`-Dart, Grow Form, Field Surgery); `shared/sim/summons.ts`-Primitive (decoy/turret, Snapshot `sum[]`, Client-Draw + Heil-FX); 15 Tests, check 466+shot grün
 - T32 ✅ 2026-10-18 — Lumpy (Flop Slap/Rock Nap-Immunität/Big Nap Quake), Squall Mopefin (Sour Note/Ink Cloud via neuem `AoeAbility.hides`/Grand Recital), Teeny Krill (Laser Pew/Mini-Turret-Summon/Mech-Max-Pierce); 10 Tests, check 476+shot grün
 - T33 ✅ 2026-10-18 — Roster-Politur: Fraktions-Tabs + 🎲 Random + Bios + Scroll-Grid, Balance-Vollpass 18→0 Outliers (alle 24 in 40–60 %), Galerie-Textband fix, PWA-Manifest+Icons+SW; CP8, 483 Tests+e2e 34/34+healthz grün
+- T99 ✅ 2026-10-18 — Emote-Rad: 4 Sticker (`shared/emotes.ts`, Index + 1,2 s Cooldown im Room), DOM-Rad oben rechts (Taste 1–4/V), Blase über dem Kämpfer; 4 Unit + 4 e2e-Tests, check 488 grün, Shot ok

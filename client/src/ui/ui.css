@@ -110,3 +110,23 @@ body.in-lobby #rotate { display: none; }
   .card .moves, .card .passive { display: none; }
   .cards { grid-template-columns: repeat(auto-fit, minmax(120px, 140px)); max-height: min(58vh, 360px); }
 }
+
+/* emote wheel (T99): round button next to the trophy/menu row, four stickers fan out leftwards */
+#emote-wheel { position: fixed; z-index: 6; top: calc(6px + env(safe-area-inset-top));
+  right: calc(132px + env(safe-area-inset-right)); display: flex; flex-direction: row-reverse;
+  align-items: center; gap: 8px; font-family: 'Lilita One', system-ui, sans-serif; }
+#emote-wheel .emote-btn { width: 36px; height: 36px; flex: 0 0 auto; border-radius: 50%; border: 2px solid #fff6;
+  background: #0008; color: #ffc93c; font-size: 20px; line-height: 1; padding: 0;
+  -webkit-tap-highlight-color: transparent; }
+#emote-wheel .emote-list { display: flex; gap: 6px; padding: 4px; border-radius: 14px;
+  background: #0e2a3ad9; border: 2px solid #ffffff2e; }
+#emote-wheel .emote-list[hidden] { display: none; }
+#emote-wheel .emote-pick { width: 64px; height: 34px; border-radius: 10px; border: 3px solid #1b1b2f;
+  background: var(--c); color: #1b1b2f; font: inherit; font-size: 13px; box-shadow: 0 3px 0 #1b1b2f;
+  -webkit-tap-highlight-color: transparent; }
+#emote-wheel .emote-pick:active { transform: translateY(2px); box-shadow: 0 1px 0 #1b1b2f; }
+#emote-wheel.cool .emote-btn, #emote-wheel.cool .emote-pick { opacity: .45; }
+@media (max-width: 720px) {
+  #emote-wheel { right: calc(128px + env(safe-area-inset-right)); gap: 6px; }
+  #emote-wheel .emote-pick { width: 52px; height: 32px; font-size: 11px; }
+}

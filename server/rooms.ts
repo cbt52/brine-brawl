@@ -6,6 +6,7 @@ import { BotBrain } from '../shared/sim/bot.ts';
 import { autoTeams, type Team } from '../shared/sim/teams.ts';
 import { randomFighterId, resolveFighterId } from '../shared/fighters/index.ts';
 import { Match, rankPlayers } from './match.ts';
+import { emoteIndex, emoteReady } from '../shared/emotes.ts';
 
 const ROOM_RE = /^[a-z0-9-]{1,24}$/;
 const ADJ = ['Salty', 'Soggy', 'Crispy', 'Wobbly', 'Grumpy', 'Sneaky', 'Bouncy', 'Dizzy'];
@@ -44,6 +45,8 @@ export class Room {
   bots = new Map<number, BotBrain>();
   wantBots = 0;
   private nextBot = 1000;
+  /** last emote timestamp per client, so nobody can spam the room (T99) */
+  private emoteAt = new Map<number, number>();
   acc = 0;
   last = Date.now();
   constructor(public id: string, mode: RoomMode = 'bounty') {
@@ -132,6 +135,11 @@ export class Room {
     return this.match.rematch() === 'countdown';
   }
 
+  /** Drop per-client bookkeeping when somebody leaves the room. */
+  dropClient(id: number): void {
+    this.emoteAt.delete(id);
+  }
+
   /** Fighter change from the in-game menu: takes effect on the client's next respawn. */
   setFighter(c: Client, fighter: unknown): void {
     const id = resolveFighterId(fighter);
@@ -145,6 +153,20 @@ export class Room {
       seq: n(i.seq), mx: n(i.mx), my: n(i.my), ax: n(i.ax), ay: n(i.ay),
       atk: !!i.atk, spc: !!i.spc, ult: !!i.ult,
     });
+  }
+
+  /**
+   * Emote sticker (T99): validate the index and the per-player cooldown, then let the world queue
+   * the event for the next snapshot. Returns false when the request was rejected.
+   */
+  emote(c: Client, raw: unknown, now = Date.now()): boolean {
+    const e = emoteIndex(raw);
+    if (e < 0 || !this.world.players.has(c.id)) return false;
+    const last = this.emoteAt.get(c.id);
+    if (last !== undefined && !emoteReady(last, now)) return false;
+    this.emoteAt.set(c.id, now);
+    this.world.emote(c.id, e);
+    return true;
   }
 }
 
@@ -193,6 +215,7 @@ export class RoomManager {
 
   leave(room: Room, client: Client): void {
     room.clients.delete(client.id);
+    room.dropClient(client.id);
     room.world.removePlayer(client.id);
     if (room.clients.size === 0) {
       room.emptySince = Date.now();

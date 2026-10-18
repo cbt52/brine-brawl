@@ -838,6 +838,15 @@ export class World {
   }
 
   /**
+   * Emote sticker (T99): purely cosmetic, so it never touches the sim state — it rides along as
+   * a snapshot event and every client draws the bubble above that fighter.
+   */
+  emote(id: number, e: number): void {
+    if (!this.players.has(id)) return;
+    this.events.push({ k: 'emote', id, e });
+  }
+
+  /**
    * New round: clear the scoreboard once the bounty went. The coin stash resets too, so both
    * results screens talk about this round only; positions, HP and live projectiles stay.
    */

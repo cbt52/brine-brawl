@@ -81,12 +81,19 @@ export interface PickMsg {
   fighter: string;
 }
 
+/** Send an emote sticker (T99); `e` is an index into shared/emotes.ts EMOTES. */
+export interface EmoteMsg {
+  t: 'emote';
+  e: number;
+}
+
 export type C2S =
   | JoinMsg
   | InputMsg
   | DbgMsg
   | BotsMsg
   | PickMsg
+  | EmoteMsg
   /** start the next round right away (results screen "Rematch", T28) */
   | { t: 'rematch' }
   | { t: 'ping'; ts?: number };
@@ -222,7 +229,9 @@ export type SimEvent =
   /** a teammate was patched up (Remedy Dart, Field Surgery; T31) */
   | { k: 'heal'; v: number; n: number; x: number; y: number }
   /** two teammates' ults paired up into a Crew Combo (T28) */
-  | { k: 'combo'; a: number; b: number; v: number; n: string; x: number; y: number };
+  | { k: 'combo'; a: number; b: number; v: number; n: string; x: number; y: number }
+  /** somebody sent a sticker (T99); `e` is an index into EMOTES (shared/emotes.ts) */
+  | { k: 'emote'; id: number; e: number };
 
 export interface SnapMsg {
   t: 'snap';
