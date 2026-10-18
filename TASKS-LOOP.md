@@ -457,7 +457,6 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 ## 5. IMPROVEMENT BACKLOG (ordered; T99 takes from the top; user feedback goes first)
 11. Optional ONLY if the user asks: ComfyUI portraits (127.0.0.1:8188, 2–7 min/img, 16 GB RAM, never while the user is using it).
 
-37. Streak sticker that cannot be blocked: the streak greeting shares the emote cooldown, so a human who sent a sticker up to 1.2 s before their third KO loses it silently. Let streak stickers skip the wheel cooldown (own 1.2 s clock) so a third KO always speaks.
 38. Purrl chime: the snail's patch-up has no sound, so add a soft bubble chime for the `purrl` event in `client/src/audio/map.ts` (the heal ring and pop are visual only), kept quiet so it does not drown out hits.
 39. Cannon hit cause: a volley's `hit` event carries attacker -1, the same as burn and edge damage, so the client cannot tell a cannon hit from a burn tick. Give cannon damage its own slot or cause in the event and a short thud in `client/src/audio/map.ts`, so the bar's hit reads as a cannon hit.
 40. Knockback vs stone walls: `shove()` in `shared/sim/abilities.ts` resolves only the arena scenery, so a melee or AoE knockback can shove a fighter into a Brak slab (dashes and burrows already stop at slabs). Resolve shoves against the stone walls too, plus a walls test "a knockback does not push through the slab".
@@ -476,6 +475,7 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 52. Bounty coins have no tip: #34 keeps Bounty Brawl (the default) at three tips, so the KO purse and the crown are never explained. Find a one-line home for it (crown label or stats page) rather than a fourth card.
 53. Killcam flake, root cause open: #35 made `KillCam.playing(now)` judge the replay on its clock (`replaying` no longer waits for the next `GameScene.update`), but the render-loop stall was never reproduced (0 failures in 24 runs). If the killcam e2e flakes again, log `game.loop.actualFps` and the time of the last `GameScene.update` next to the failure to see whether the loop stopped.
 54. Best-run tag: when a round's best KO run beats the saved `bestRun`, the results poster shows a "New best run" tag like the bounty tag (`newBestFor` in `client/src/ui/stats.ts`, a `bestRunKey` next to `bestKey`), so a streak record is celebrated the same way.
+55. Emote cooldown ring: the wheel greys out for `EMOTE_COOLDOWN_MS` (1.2 s) but shows no timer, so players cannot tell when the next sticker is ready. Draw a thin ring on each wheel button that fills over the cooldown (`client/src/ui/` emote wheel, driven by the same clock as `emoteReady`), with a unit test on the fill fraction helper.
 
 ---
 
@@ -519,3 +519,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T99 ✅ 2026-10-18 — Mode tip (backlog #34): `tutorialTips(touch, mode)`, Treasure/Showdown get a 4th card (Bounty stays 3); wired in main/menu; 3 unit + 2 e2e tutorial, check 766 grün, shot ok → §5 #52 (bounty coins)
 - T99 ✅ 2026-10-18 — Killcam flake (backlog #35): `KillCam.playing(now)` judges the replay on its clock, `replaying` uses it; the stall did not reproduce (16/16 + 8/8 e2e), so the root cause is open → §5 #53; 1 unit, check 768 grün, killcam e2e 8/8 grün
 - T99 ✅ 2026-10-18 — Best KO run (backlog #36): `run`/`bestRun` per fighter in the sim (KOs since last death, reset on death and round), `ScoreRow.run` in the ranking, pirate log "Best run" row; 5 new unit tests, check 772 grün → §5 #54
+- T99 ✅ 2026-10-18 — Streak sticker never silenced (backlog #37): streak stickers skip the wheel cooldown and don't start it (`answerStreak` calls `world.emote` directly; once-per-round `streakSent` is the limit); 1 unit test rewritten, check 772 grün → §5 #55

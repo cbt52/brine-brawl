@@ -160,21 +160,24 @@ describe('streak stickers (backlog #24)', () => {
     expect(room.world.snapshotFor(2).ev.filter((e) => e.k === 'emote')).toHaveLength(0);
   });
 
-  it('skips the sticker when the cooldown is busy, and ignores self-KOs', () => {
+  it('speaks even while the wheel cooldown is busy, and leaves that cooldown alone', () => {
     const room = new Room('streak-busy');
     const a = room.world.addPlayer(1, 'A', 'default');
     room.world.addPlayer(2, 'B', 'default');
     room.clients.set(1, fakeClient(1));
     room.clients.set(2, fakeClient(2));
 
-    // a sticker went out a moment ago, so the streak stays quiet (no retry later)
+    // a sticker went out a moment ago; the third KO still gets its greeting (backlog #37)
     room.emote(fakeClient(1), idx('gg'), 10_000);
     a.kos = 3;
     room.world.clearEvents();
     room.answerKos([{ k: 'ko', a: 1, v: 2 }], 10_000 + EMOTE_COOLDOWN_MS - 1, () => 0);
-    expect(room.world.snapshotFor(2).ev).toHaveLength(0);
+    expect(room.world.snapshotFor(2).ev.filter((e) => e.k === 'emote')).toEqual([{ k: 'emote', id: 1, e: 0 }]);
+    // the greeting did not restart the wheel cooldown, so the player's next sticker is ready on time
+    expect(room.emote(fakeClient(1), idx('bloop'), 10_000 + EMOTE_COOLDOWN_MS)).toBe(true);
 
     // a fighter who KOs themself never earns a streak sticker
+    room.world.clearEvents();
     const b = room.world.players.get(2)!;
     b.kos = 3;
     room.answerKos([{ k: 'ko', a: 2, v: 2 }], 60_000, () => 0);

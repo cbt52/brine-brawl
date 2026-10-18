@@ -256,19 +256,23 @@ export class Room {
   answerKos(events: readonly SimEvent[], now: number, rng: () => number = Math.random): void {
     for (const ev of events) {
       if (ev.k !== 'ko') continue;
-      if (ev.a !== ev.v) this.answerStreak(ev.a, now, rng);
+      if (ev.a !== ev.v) this.answerStreak(ev.a, rng);
       if (!this.bots.has(ev.a) || !this.clients.has(ev.v)) continue;
       const e = botKoSticker(rng);
       if (e !== null) this.relayEmote(ev.a, e, now);
     }
   }
 
-  /** Backlog #24: a fighter with STREAK_KOS KOs this round gets one sticker; a busy cooldown skips it. */
-  private answerStreak(id: number, now: number, rng: () => number): void {
+  /**
+   * Backlog #24: a fighter with STREAK_KOS KOs this round gets one sticker.
+   * Backlog #37: it skips the wheel cooldown and does not start it, so a sticker sent just before
+   * the third KO cannot silence the greeting. The once-per-round `streakSent` set is its rate limit.
+   */
+  private answerStreak(id: number, rng: () => number): void {
     const p = this.world.players.get(id);
     if (!p || p.kos < STREAK_KOS || this.streakSent.has(id)) return;
     this.streakSent.add(id);
-    this.relayEmote(id, streakSticker(rng), now);
+    this.world.emote(id, streakSticker(rng));
   }
 }
 
