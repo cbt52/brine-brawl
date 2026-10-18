@@ -26,7 +26,7 @@ archetype cues beyond "friendly sailor".
 
 | id | matched cues | to stay legal |
 |---|---|---|
-| `mira` | hooded parka silhouette · beaded braid · ribbon of water around the hands | teal wave trim on the hood; shell beads; ribbon is a whip, not a staff |
+| `mira` | hooded parka silhouette · beaded braid · ribbon of water around the hands | teal wave trim on the hood; shell beads; ribbon is a whip, not a staff (3D: hood up with a scalloped teal rim and wavy hem, side braid with tan shell beads, a wavy ring of water round each hand; no blush) |
 | `pip` | small kid in an oversized poncho · wild curls · flying kite on the back | sky-blue poncho, teal paper kite; no glider and no arrows |
 | `brak` | stocky build · huge gauntlets · fur-trimmed hat | granite gauntlets, teal sash, layered fur hat without horns |
 | `ashka` | spiky hair · waist sash · trailing ember ribbons | orange ember hair, teal collar as the faction accent; no flame crown |

@@ -3,7 +3,8 @@
 Each part = its primitives joined into one mesh, optionally voxel-remeshed and subdivided
 (vinyl-toy look), coloured with one toon material and wrapped in an inverted-hull outline.
 Parts hang under a root empty that the renderer turns per direction.
-Prim `size` is the full bounding box (x, y, z) of the primitive; `at` is its centre, relative to
+Prim `size` is the full bounding box (x, y, z) of the primitive (a `torus` ring lies in xy with
+z = tube diameter); `at` is its centre, relative to
 the part's `pivot` (model space, default origin). A part may carry a `rot` (degrees) about its
 pivot; the puppet animation (T36) turns parts about the same pivots.
 Spec `features` expand into extra parts (`features.py`); the `face` is unlit decals (`face.py`).
@@ -45,6 +46,32 @@ def _box(bm):
     bmesh.ops.create_cube(bm, size=1.0)
 
 
+def _torus(bm, size, waves=None, u=48, v=12):
+    """Ring in the xy plane: `size` = full box, z = tube diameter (the ring may be elliptical).
+    `waves` = [count, amp, radial?] ripples the ring `count` times, `amp` px up and down (z) and
+    `radial` px in and out: a scalloped wave trim."""
+    sx, sy, sz = size
+    r = sz / 2
+    rx, ry = max(r, sx / 2 - r), max(r, sy / 2 - r)
+    n, amp, rad = (list(waves) + [0])[:3] if waves else (0, 0, 0)
+    grid = []
+    for i in range(u):
+        th = 2 * math.pi * i / u
+        wz = amp * math.sin(n * th)
+        wr = rad * math.cos(n * th)
+        row = []
+        for j in range(v):
+            ph = 2 * math.pi * j / v
+            row.append(bm.verts.new(((rx + wr + r * math.cos(ph)) * math.cos(th),
+                                     (ry + wr + r * math.cos(ph)) * math.sin(th), r * math.sin(ph) + wz)))
+        grid.append(row)
+    for i in range(u):
+        for j in range(v):
+            a, b = grid[i], grid[(i + 1) % u]
+            bm.faces.new((a[j], b[j], b[(j + 1) % v], a[(j + 1) % v]))
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces)
+
+
 def prim_bmesh(prim, scale):
     """One primitive as a bmesh, already placed in model space."""
     bm = bmesh.new()
@@ -52,6 +79,8 @@ def prim_bmesh(prim, scale):
     size = prim['size']
     if kind == 'capsule':
         _capsule(bm, size)
+    elif kind == 'torus':
+        _torus(bm, size, prim.get('waves'))
     else:
         {'sphere': _sphere, 'cone': _cone, 'box': _box, 'cylinder': lambda b: _cone(b, 0.5)}[kind](bm)
         bmesh.ops.scale(bm, vec=Vector(size), verts=bm.verts)

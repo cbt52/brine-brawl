@@ -70,7 +70,7 @@ describe('validateSpec', () => {
     s.pal.trim = 'gold';
     s.dirs = 6;
     s.parts[1].parent = 'nope';
-    s.parts[2].prims[0].type = 'torus';
+    s.parts[2].prims[0].type = 'pyramid';
     s.parts[2].prims[0].size = [1, 0, 1];
     s.anim.style = 'dance';
     const errs = validateSpec(s).join('\n');
@@ -104,10 +104,20 @@ describe('validateSpec', () => {
     expect(errs).toMatch(/features\[2\] adds part "tail"/);
     expect(errs).toMatch(/face\.part/);
   });
+
+  it('accepts torus rings with waves and rejects a tube as wide as the ring', () => {
+    const s = selftest();
+    s.parts[0].prims.push({ type: 'torus', at: [0, 0, 10], size: [40, 40, 6], waves: [7, 1.5, 1] });
+    expect(validateSpec(s)).toEqual([]);
+    s.parts[0].prims.push({ type: 'torus', at: [0, 0, 10], size: [10, 10, 12], waves: [1.5, 'x'] });
+    const errs = validateSpec(s).join('\n');
+    expect(errs).toMatch(/tube/);
+    expect(errs).toMatch(/waves/);
+  });
 });
 
 describe('fighter specs', () => {
-  const ids = ['voltbun'];
+  const ids = ['voltbun', 'mira'];
   const spec = (id: string) => JSON.parse(readFileSync(`scripts/blender/specs/${id}.json`, 'utf8'));
 
   it.each(ids)('%s is valid', (id) => {
@@ -120,8 +130,9 @@ describe('fighter specs', () => {
     expect(spec(id).pal).toEqual(model!.pal);
   });
 
-  it('paints every palette colour, the faction gold included', () => {
-    expect(specColours(spec('voltbun')).map(([k]) => k).sort()).toEqual(['body', 'detail', 'prop', 'trim']);
+  it.each(ids)('%s paints every palette colour (the faction accent included)', (id) => {
+    const keys = specColours(spec(id)).map(([k]) => k);
+    for (const k of ['body', 'detail', 'prop', 'trim']) expect(keys).toContain(k);
   });
 });
 

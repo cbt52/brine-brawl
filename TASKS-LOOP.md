@@ -522,7 +522,8 @@ Rules for every task:
     - Fighters without a sheet are unchanged.
   - Test: `npm run check && npm run e2e && npm run shot -- --name T37 --path /gallery.html --query "" && npm run shot -- --name T37m --device "iPhone 13" --query "room=shot&fighter=voltbun&bots=3&botf=voltbun"`
 
-- [ ] **T38 — Mira Tidecaller (model + anims + atlas)**
+- [x] **T38 — Mira Tidecaller (model + anims + atlas)**
+  - Note: new `torus` prim in `build.py` (ring in xy, z = tube Ø, `waves: [count, amp, radial?]` for scalloped trims; validated in `spec3d.mjs`). Spec `mira.json` (plain parts, no new features): bell parka (2 spheres, detail) + wavy trim hem torus, hood UP behind a bigger head (hood centre pushed back y+13 so its hull clears the face) with a radially scalloped trim rim torus, hair `#4A3442` as 2 small bang blobs + 3-blob side braid with tan shell beads (prop), tan boots, sleeves + skin hands, a wavy trim ring round each hand. Cycle 1: bangs read as a dark visor, `grin` brows looked angry, rim/ribbons invisible → smaller/higher bangs, `calm` brows, head 52×48×48, rim pushed forward, ribbon tube 5. Result: 1016×~590 atlas, ~158 KB, S 100 px, bottoms all y=113, width 62–97, 26 s render. Grey 48 px row: hood dome + braid, no ears → distinct from Voltbun. Open look issues: teal-on-teal (detail vs trim) is low contrast, the bangs still read a bit like goggles at 48 px, N/NE is a plain hood blob. e2e `sheets.spec` now pins `botf=mira,brak` (brak = the SVG fighter).
   - Do:
     - Write the spec per §4: shell-bead braid, teal parka with wave trim, water ribbon around the hands. Human chibi: big head, hair as merged blobs.
     - Add her to `SHEET_IDS` and add a LIKENESS row.
@@ -800,3 +801,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T35 ✅ 2026-10-18 — Voltbun 3D stills: spec + earsLong/tailBattery/face(hurt), part pivots, gold collar, HSV toon shadow; S 100 px, E 106 / bottoms 115–118 → T36
 - T36 ✅ 2026-10-18 — puppet.py (biped/blob/hover, ground snap) + Voltbun atlas 70 frames 1022×525 157 KB indexed, feet y=113 all; check 813 grün
 - T37 ✅ 2026-10-18 — rig plays Voltbun sheet (8 facings, hysteresis, hurt frame, lazy skin atlases), botf, y-sort; check 824 + e2e 34 grün
+- T38 ✅ 2026-10-18 — Mira atlas (torus prim + waves, hood/rim/braid/ribbons), 70 frames ~158 KB, feet y=113; check 831 grün

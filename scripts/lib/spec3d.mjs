@@ -3,7 +3,7 @@
  * Pure: returns a list of problems, empty when the spec is fine.
  */
 export const PAL_KEYS = ['body', 'detail', 'trim', 'prop'];
-export const PRIM_TYPES = ['sphere', 'capsule', 'cone', 'box', 'cylinder'];
+export const PRIM_TYPES = ['sphere', 'capsule', 'cone', 'box', 'cylinder', 'torus'];
 export const ANIM_STYLES = ['biped', 'blob', 'hover'];
 /** Puppet animations and their frame counts (`scripts/blender/lib/puppet.py` ANIMS). */
 export const ANIMS = [['idle', 4], ['run', 6], ['attack', 3], ['hurt', 1]];
@@ -57,6 +57,13 @@ export function validateSpec(spec) {
       if (!isVec3(q?.at)) errs.push(`${pat}.at must be [x, y, z]`);
       if (!isVec3(q?.size) || q.size.some((s) => s <= 0)) errs.push(`${pat}.size must be 3 positive numbers`);
       if (q?.rot !== undefined && !isVec3(q.rot)) errs.push(`${pat}.rot must be [x, y, z] degrees`);
+      if (q?.type === 'torus' && isVec3(q.size) && q.size[2] >= Math.min(q.size[0], q.size[1])) {
+        errs.push(`${pat}.size z (tube) must be smaller than the ring`);
+      }
+      const w = q?.waves;
+      if (w !== undefined && !(Array.isArray(w) && (w.length === 2 || w.length === 3) && Number.isInteger(w[0]) && w.slice(1).every(isNum))) {
+        errs.push(`${pat}.waves must be [count, amp, radial?]`);
+      }
     });
     if (typeof p?.name === 'string') seen.add(p.name);
   });
