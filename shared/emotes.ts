@@ -49,3 +49,11 @@ export function botKoSticker(rng: () => number): number | null {
   const id = BOT_KO_STICKERS[Math.floor(rng() * BOT_KO_STICKERS.length)];
   return EMOTES.findIndex((e) => e.id === id);
 }
+
+/** Backlog #24: the KO count in one round that earns the room's streak sticker. */
+export const STREAK_KOS = 3;
+
+/** Sticker index the room sends for a streak: any of the four, picked by `rng`. */
+export function streakSticker(rng: () => number): number {
+  return Math.min(EMOTES.length - 1, Math.floor(rng() * EMOTES.length));
+}

@@ -6,7 +6,7 @@ import { BotBrain, sanitizeBotLevel, type BotDifficulty } from '../shared/sim/bo
 import { autoTeams, type Team } from '../shared/sim/teams.ts';
 import { randomFighterId, resolveFighterId } from '../shared/fighters/index.ts';
 import { Match, READY_HOLD_SEC, rankPlayers } from './match.ts';
-import { botKoSticker, emoteIndex, emoteReady } from '../shared/emotes.ts';
+import { botKoSticker, emoteIndex, emoteReady, STREAK_KOS, streakSticker } from '../shared/emotes.ts';
 import { sanitizeSkin } from '../shared/skins.ts';
 import { pickWeather } from '../shared/sim/weather.ts';
 
@@ -53,6 +53,8 @@ export class Room {
   private emoteAt = new Map<number, number>();
   /** humans who tapped Ready on this results screen (backlog #15), cleared when the round moves on */
   private readyIds = new Set<number>();
+  /** fighters who already got their streak sticker this round (backlog #24) */
+  private streakSent = new Set<number>();
   acc = 0;
   last = Date.now();
   constructor(public id: string, mode: RoomMode = 'bounty') {
@@ -119,6 +121,7 @@ export class Room {
     const ev = this.match.update(dt, this.world.players.size);
     if (ev === 'start') {
       this.world.resetScores();
+      this.streakSent.clear();
       // Weird Weather (backlog #4): each round rolls its own modifier
       this.world.setWeather(pickWeather(Math.random(), this.mode));
     }
@@ -220,13 +223,24 @@ export class Room {
   /**
    * Backlog #10: a bot that scores a KO on a human answers with a sticker, one time in three.
    * It goes through the same cooldown, so a bot on cooldown just stays quiet.
+   * Backlog #24: the third KO of a round earns the room's sticker for that fighter, once per round.
    */
   answerKos(events: readonly SimEvent[], now: number, rng: () => number = Math.random): void {
     for (const ev of events) {
-      if (ev.k !== 'ko' || !this.bots.has(ev.a) || !this.clients.has(ev.v)) continue;
+      if (ev.k !== 'ko') continue;
+      if (ev.a !== ev.v) this.answerStreak(ev.a, now, rng);
+      if (!this.bots.has(ev.a) || !this.clients.has(ev.v)) continue;
       const e = botKoSticker(rng);
       if (e !== null) this.relayEmote(ev.a, e, now);
     }
+  }
+
+  /** Backlog #24: a fighter with STREAK_KOS KOs this round gets one sticker; a busy cooldown skips it. */
+  private answerStreak(id: number, now: number, rng: () => number): void {
+    const p = this.world.players.get(id);
+    if (!p || p.kos < STREAK_KOS || this.streakSent.has(id)) return;
+    this.streakSent.add(id);
+    this.relayEmote(id, streakSticker(rng), now);
   }
 }
 

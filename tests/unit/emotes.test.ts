@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
-  EMOTES, EMOTE_COOLDOWN_MS, EMOTE_MAX_LABEL, BOT_KO_CHANCE, botKoSticker, emoteIndex, emoteReady,
+  EMOTES, EMOTE_COOLDOWN_MS, EMOTE_MAX_LABEL, BOT_KO_CHANCE, STREAK_KOS, botKoSticker, emoteIndex, emoteReady,
+  streakSticker,
 } from '../../shared/emotes.ts';
 import { BotBrain } from '../../shared/sim/bot.ts';
 import { Room, type Client } from '../../server/rooms.ts';
@@ -119,5 +120,64 @@ describe('bot KO stickers (backlog #10)', () => {
     // a human KO, and a bot KO on another bot, never quip
     room.answerKos([{ k: 'ko', a: 1, v: 1001 }, { k: 'ko', a: 1001, v: 1001 }], 40_000, () => 0);
     expect(room.world.snapshotFor(1).ev.filter((e) => e.k === 'emote')).toHaveLength(0);
+  });
+});
+
+describe('streak stickers (backlog #24)', () => {
+  const idx = (id: string) => EMOTES.findIndex((e) => e.id === id);
+
+  it('turns three KOs in a round into a sticker, any of the four', () => {
+    expect(STREAK_KOS).toBe(3);
+    expect(streakSticker(() => 0)).toBe(0);
+    expect(streakSticker(() => 0.5)).toBe(2);
+    // a roll of 0.999… still lands on the last sticker, never past it
+    expect(streakSticker(() => 0.999999)).toBe(EMOTES.length - 1);
+    expect(streakSticker(() => 1)).toBe(EMOTES.length - 1);
+  });
+
+  it('greets the third KO once per round, for humans and bots alike', () => {
+    const room = new Room('streak');
+    const a = room.world.addPlayer(1, 'A', 'default');
+    room.world.addPlayer(2, 'B', 'default');
+    room.clients.set(1, fakeClient(1));
+    room.clients.set(2, fakeClient(2));
+    const ko = { k: 'ko' as const, a: 1, v: 2 };
+
+    // two KOs: still quiet
+    a.kos = 2;
+    room.answerKos([ko], 10_000, () => 0);
+    expect(room.world.snapshotFor(2).ev.filter((e) => e.k === 'emote')).toHaveLength(0);
+
+    // the third KO: one sticker from the room, drawn from the four
+    a.kos = 3;
+    room.answerKos([ko], 20_000, () => 0.5);
+    expect(room.world.snapshotFor(2).ev.filter((e) => e.k === 'emote')).toEqual([{ k: 'emote', id: 1, e: 2 }]);
+
+    // a fourth KO after the cooldown: the round already had its streak sticker
+    room.world.clearEvents();
+    a.kos = 4;
+    room.answerKos([ko], 30_000, () => 0.5);
+    expect(room.world.snapshotFor(2).ev.filter((e) => e.k === 'emote')).toHaveLength(0);
+  });
+
+  it('skips the sticker when the cooldown is busy, and ignores self-KOs', () => {
+    const room = new Room('streak-busy');
+    const a = room.world.addPlayer(1, 'A', 'default');
+    room.world.addPlayer(2, 'B', 'default');
+    room.clients.set(1, fakeClient(1));
+    room.clients.set(2, fakeClient(2));
+
+    // a sticker went out a moment ago, so the streak stays quiet (no retry later)
+    room.emote(fakeClient(1), idx('gg'), 10_000);
+    a.kos = 3;
+    room.world.clearEvents();
+    room.answerKos([{ k: 'ko', a: 1, v: 2 }], 10_000 + EMOTE_COOLDOWN_MS - 1, () => 0);
+    expect(room.world.snapshotFor(2).ev).toHaveLength(0);
+
+    // a fighter who KOs themself never earns a streak sticker
+    const b = room.world.players.get(2)!;
+    b.kos = 3;
+    room.answerKos([{ k: 'ko', a: 2, v: 2 }], 60_000, () => 0);
+    expect(room.world.snapshotFor(2).ev).toHaveLength(0);
   });
 });
