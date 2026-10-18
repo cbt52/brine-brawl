@@ -103,14 +103,14 @@ export class BotBrain {
   private perceive(world: World, me: SimPlayer, dt: number): void {
     this.reactT -= dt;
     const cur = this.seen ? world.players.get(this.seen.id) : undefined;
-    if (this.reactT > 0 && cur && !cur.down && canSee(me, cur) && !sameTeam(me, cur)) return;
+    if (this.reactT > 0 && cur && !cur.down && canSee(me, cur, [], world.arena.bushes) && !sameTeam(me, cur)) return;
     this.reactT = this.prm.react;
     let best: SimPlayer | null = null;
     let bd = SEE_RANGE;
     for (const o of world.players.values()) {
       if (o.id === me.id || o.down) continue;
       if (sameTeam(me, o)) continue; // teammates are never targets (T26)
-      if (!canSee(me, o)) continue; // kelp hides targets from bots too
+      if (!canSee(me, o, [], world.arena.bushes)) continue; // kelp hides targets from bots too
       // Treasure Tide (T27): hunt whoever is holding the loot, even past a closer brawler
       const d = Math.hypot(o.x - me.x, o.y - me.y);
       const score = world.mode === 'treasure' && o.carry > 0 ? d * 0.6 : d;

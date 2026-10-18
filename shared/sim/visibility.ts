@@ -1,4 +1,4 @@
-import { BUSHES } from '../arena/docks.ts';
+import { BUSHES, type Rect } from '../arena/docks.ts';
 
 /** Anything that hides like kelp (a bush rect already lives in `BUSHES`; steam is a circle). */
 export interface HideCircle {
@@ -20,9 +20,9 @@ export interface Body {
   revealT?: number;
 }
 
-/** True when the point lies inside any kelp bush rect. */
-export function inBush(x: number, y: number): boolean {
-  for (const b of BUSHES) {
+/** True when the point lies inside any kelp bush rect (the docks kelp unless a World plays another layout). */
+export function inBush(x: number, y: number, bushes: readonly Rect[] = BUSHES): boolean {
+  for (const b of bushes) {
     if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) return true;
   }
   return false;
@@ -33,10 +33,12 @@ export function inBush(x: number, y: number): boolean {
  * You always see yourself; a hidden fighter is otherwise revealed by attacking (1 s) or by
  * standing within `BUSH_SEE_RANGE`.
  */
-export function canSee(viewer: Body, target: Body, hides: readonly HideCircle[] = []): boolean {
+export function canSee(
+  viewer: Body, target: Body, hides: readonly HideCircle[] = [], bushes: readonly Rect[] = BUSHES,
+): boolean {
   if (viewer.id === target.id) return true;
   if ((target.revealT ?? 0) > 0) return true;
-  if (!inBush(target.x, target.y) && !inHides(target, hides)) return true;
+  if (!inBush(target.x, target.y, bushes) && !inHides(target, hides)) return true;
   return Math.hypot(target.x - viewer.x, target.y - viewer.y) <= BUSH_SEE_RANGE;
 }
 

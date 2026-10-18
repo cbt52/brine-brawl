@@ -317,6 +317,7 @@ export class RoomManager {
       info.mode = r.mode;
       info.wx = r.world.weather;
       info.bl = r.botLevel;
+      info.ar = r.world.arena.id;
       if (r.mode === 'showdown') info.sd = Math.round(r.world.roundT * 10) / 10;
       for (const c of r.clients.values()) {
         if (c.ws.readyState !== 1) continue;

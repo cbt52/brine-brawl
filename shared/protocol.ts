@@ -1,3 +1,5 @@
+import type { ArenaId } from './arena/arena.ts';
+
 export const PROTOCOL_VERSION = 1;
 
 export interface InputMsg {
@@ -77,6 +79,8 @@ export interface MatchInfo {
   sd?: number;
   /** bot level of this room (backlog #14): easy / normal / sharky — the ☰ menu highlights it */
   bl?: string;
+  /** the layout this match plays on (backlog #26): scenery, pools and kelp for prediction + draw */
+  ar?: ArenaId;
 }
 
 export interface DbgMsg {

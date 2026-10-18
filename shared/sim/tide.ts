@@ -57,27 +57,30 @@ export function tideLevel(phase: TidePhase, left: number): number {
   }
 }
 
-/** Water rects for a flood level: the pools shrink towards their centre as the tide goes out. */
-export function waterRects(level: number): Rect[] {
+/**
+ * Water rects for a flood level: the pools shrink towards their centre as the tide goes out.
+ * `pools` is the arena's flood pools (the docks shallows unless a World plays another layout).
+ */
+export function waterRects(level: number, pools: readonly Rect[] = SHALLOWS): Rect[] {
   const l = Math.max(0, Math.min(1, level));
-  return SHALLOWS.map((s) => {
+  return pools.map((s) => {
     const inset = (1 - l) * INSET_FRAC * Math.min(s.w, s.h);
     return { x: s.x + inset, y: s.y + inset, w: s.w - inset * 2, h: s.h - inset * 2 };
   });
 }
 
 /** True when the point is inside flooded water at `level`. */
-export function inWater(x: number, y: number, level: number): boolean {
+export function inWater(x: number, y: number, level: number, pools: readonly Rect[] = SHALLOWS): boolean {
   if (level <= 0) return false;
-  for (const r of waterRects(level)) {
+  for (const r of waterRects(level, pools)) {
     if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) return true;
   }
   return false;
 }
 
 /** Speed multiplier for a body position (1 = dry land, `WATER_SLOW` = flooded). */
-export function waterSpeedMul(x: number, y: number, level: number): number {
-  return inWater(x, y, level) ? WATER_SLOW : 1;
+export function waterSpeedMul(x: number, y: number, level: number, pools: readonly Rect[] = SHALLOWS): number {
+  return inWater(x, y, level, pools) ? WATER_SLOW : 1;
 }
 
 const NEXT: Record<TidePhase, TidePhase> = {

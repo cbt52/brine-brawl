@@ -1,5 +1,6 @@
 import { TICK_HZ } from '../../../shared/constants.ts';
 import type { Rect } from '../../../shared/arena/docks.ts';
+import { DOCKS_ARENA, type Arena } from '../../../shared/arena/arena.ts';
 import { BASE_SPEED, stepMove } from '../../../shared/sim/world.ts';
 import { waterSpeedMul } from '../../../shared/sim/tide.ts';
 import { getFighter } from '../../../shared/fighters/index.ts';
@@ -54,7 +55,8 @@ export function pruneStale(pending: readonly PredInput[], now: number, maxAge = 
 
 /** Run pending inputs from an authoritative position (one shared movement step each).
  * `extra` holds dynamic obstacles (stone walls), so a wall prediction agrees with the server;
- * `bubbles` does the same for the bubble storm (backlog #17). */
+ * `bubbles` does the same for the bubble storm (backlog #17); `area` is the match's arena (its
+ * scenery and flood pools; the docks unless the match plays another layout). */
 export function replay(
   from: Pos,
   r: number,
@@ -63,9 +65,12 @@ export function replay(
   waterLevel = 0,
   extra?: readonly Rect[],
   bubbles?: readonly Bubble[],
+  area: Arena = DOCKS_ARENA,
 ): Pos {
   const p = { x: from.x, y: from.y, r };
-  for (const i of pending) stepMove(p, i.mx, i.my, speed * waterSpeedMul(p.x, p.y, waterLevel), DT, extra, bubbles);
+  for (const i of pending) {
+    stepMove(p, i.mx, i.my, speed * waterSpeedMul(p.x, p.y, waterLevel, area.shallows), DT, extra, bubbles, area.obstacles);
+  }
   return { x: p.x, y: p.y };
 }
 
@@ -92,6 +97,8 @@ export class Predictor {
   private walls: readonly Rect[] = [];
   /** bubbles from the last snapshot (bubble storm, backlog #17), so the carry and slow are predicted */
   private bubbles: readonly Bubble[] = [];
+  /** the match's arena: scenery and flood pools the replay collides with (backlog #26) */
+  private area: Arena = DOCKS_ARENA;
   pending: PredInput[] = [];
 
   /** Start predicting a body (on welcome / first snapshot). */
@@ -115,6 +122,11 @@ export class Predictor {
     this.walls = rects;
   }
 
+  /** Feed the match's arena (from MatchInfo `ar`), so the replay blocks on its scenery and pools. */
+  setArena(area: Arena): void {
+    this.area = area;
+  }
+
   /** Feed the bubbles of the last snapshot (empty outside a bubble storm). */
   setBubbles(list: readonly Bubble[]): void {
     this.bubbles = list;
@@ -125,7 +137,10 @@ export class Predictor {
     this.pending.push(i.at === undefined ? { ...i, at: now } : i);
     if (this.pending.length > 240) this.pending.shift();
     const body = { x: this.pos.x, y: this.pos.y, r: this.r };
-    stepMove(body, i.mx, i.my, this.speed * waterSpeedMul(body.x, body.y, this.waterLevel), dt, this.walls, this.bubbles);
+    stepMove(
+      body, i.mx, i.my, this.speed * waterSpeedMul(body.x, body.y, this.waterLevel, this.area.shallows), dt,
+      this.walls, this.bubbles, this.area.obstacles,
+    );
     this.pos = { x: body.x, y: body.y };
   }
 
@@ -139,7 +154,7 @@ export class Predictor {
     this.speed = speedOf(fighter);
     this.r = r;
     this.pending = pruneStale(prunePending(this.pending, ack), nowMs());
-    const target = replay(server, r, this.pending, this.speed, this.waterLevel, this.walls, this.bubbles);
+    const target = replay(server, r, this.pending, this.speed, this.waterLevel, this.walls, this.bubbles, this.area);
     const seen = this.visual();
     this.pos = target;
     if (down || Math.hypot(seen.x - target.x, seen.y - target.y) > SNAP_DIST) {

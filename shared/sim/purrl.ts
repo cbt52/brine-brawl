@@ -1,5 +1,6 @@
 import { WORLD_W, WORLD_H } from '../constants.ts';
-import { OBSTACLES, SHALLOWS } from '../arena/docks.ts';
+import { DOCKS_ARENA, type Arena } from '../arena/arena.ts';
+import type { Rect } from '../arena/docks.ts';
 
 /**
  * Purrl (backlog #1): a sea snail that wanders the sand. The first hurt fighter it bumps into is
@@ -49,35 +50,35 @@ function nextRand(s: Purrl): number {
 }
 
 /** Inside a coral wall, or within `pad` of one. */
-function nearCoral(x: number, y: number, pad: number): boolean {
-  for (const r of OBSTACLES) {
+function nearCoral(x: number, y: number, pad: number, walls: readonly Rect[]): boolean {
+  for (const r of walls) {
     if (x > r.x - pad && x < r.x + r.w + pad && y > r.y - pad && y < r.y + r.h + pad) return true;
   }
   return false;
 }
 
-function inShallows(x: number, y: number): boolean {
-  return SHALLOWS.some((r) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h);
+function inShallows(x: number, y: number, pools: readonly Rect[]): boolean {
+  return pools.some((r) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h);
 }
 
 /** A straight leg that stays off the coral and out of the flood (sampled, so a thin wall cannot slip between). */
-function clearLeg(x0: number, y0: number, x1: number, y1: number): boolean {
+function clearLeg(x0: number, y0: number, x1: number, y1: number, area: Arena): boolean {
   const n = Math.max(1, Math.ceil(Math.hypot(x1 - x0, y1 - y0) / SAMPLE_GAP));
   for (let i = 1; i <= n; i++) {
     const t = i / n;
     const x = x0 + (x1 - x0) * t;
     const y = y0 + (y1 - y0) * t;
-    if (nearCoral(x, y, CLEAR) || inShallows(x, y)) return false;
+    if (nearCoral(x, y, CLEAR, area.obstacles) || inShallows(x, y, area.shallows)) return false;
   }
   return true;
 }
 
 /** Pick the next leg: a dry sand spot the snail can reach in a straight line. */
-function pickLeg(s: Purrl): void {
+function pickLeg(s: Purrl, area: Arena): void {
   for (let i = 0; i < TRIES; i++) {
     const x = MARGIN + nextRand(s) * (WORLD_W - 2 * MARGIN);
     const y = MARGIN + nextRand(s) * (WORLD_H - 2 * MARGIN);
-    if (nearCoral(x, y, CLEAR) || inShallows(x, y) || !clearLeg(s.x, s.y, x, y)) continue;
+    if (nearCoral(x, y, CLEAR, area.obstacles) || inShallows(x, y, area.shallows) || !clearLeg(s.x, s.y, x, y, area)) continue;
     s.tx = x;
     s.ty = y;
     s.pause = 0;
@@ -87,11 +88,14 @@ function pickLeg(s: Purrl): void {
   s.pause = PURRL_PAUSE;
 }
 
-/** Advance the snail by `dt` seconds: walk the current leg, rest at its end, then pick the next one. */
-export function stepPurrl(s: Purrl, dt: number): void {
+/**
+ * Advance the snail by `dt` seconds: walk the current leg, rest at its end, then pick the next one.
+ * `area` is the arena it swims in (the docks unless a World plays another layout).
+ */
+export function stepPurrl(s: Purrl, dt: number, area: Arena = DOCKS_ARENA): void {
   if (s.pause > 0) {
     s.pause -= dt;
-    if (s.pause <= 0) pickLeg(s);
+    if (s.pause <= 0) pickLeg(s, area);
     return;
   }
   const dx = s.tx - s.x;

@@ -387,7 +387,7 @@ export class World {
 
   /** Rising-tide water at the current flood level (used by the shock chain, bots and tests). */
   inWaterAt(x: number, y: number): boolean {
-    return inWater(x, y, this.tide.level);
+    return inWater(x, y, this.tide.level, this.arena.shallows);
   }
 
   /** Grant one chest reward (heal / ult charge / doubloons). */
@@ -512,7 +512,7 @@ export class World {
       const burrowing = stepBurrow(this, p, dt);
       if (burrowing) { p.fireLatch = false; continue; }
       const dashing = !disabled && stepDash(this, p, dt);
-      const flooding = inWater(p.x, p.y, this.tide.level);
+      const flooding = inWater(p.x, p.y, this.tide.level, this.arena.shallows);
       if (i) {
         if (!dashing && !disabled) {
           const spd = BASE_SPEED * p.speedMul * (p.buffLeft > 0 ? p.buffMul : 1) * statusSpeedMul(p.status)
@@ -885,7 +885,7 @@ export class World {
 
   /** Purrl (backlog #1) wanders the sand and patches up the first hurt fighter it bumps, once per life. */
   private stepPurrlSnail(dt: number): void {
-    stepPurrl(this.purrl, dt);
+    stepPurrl(this.purrl, dt, this.arena);
     for (const p of this.players.values()) {
       if (p.down || p.burrow || p.purrlFed || p.hp >= p.mhp) continue;
       if (Math.hypot(p.x - this.purrl.x, p.y - this.purrl.y) > p.r + PURRL_R) continue;
@@ -999,7 +999,7 @@ export class World {
       // underground players are hidden from everybody but the owner
       if (p.burrow && p.id !== viewerId) continue;
       // kelp hides fighters from far enemies unless they just attacked
-      if (viewer && !canSee(viewer, p, hides)) continue;
+      if (viewer && !canSee(viewer, p, hides, this.arena.bushes)) continue;
       players.push({
         id: p.id, x: Math.round(p.x), y: Math.round(p.y), hp: p.hp, mhp: p.mhp,
         f: p.fighter, n: p.name, st: statusMask(p.status),

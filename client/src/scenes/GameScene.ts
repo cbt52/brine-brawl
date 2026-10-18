@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { WORLD_W, WORLD_H } from '../../../shared/constants.ts';
 import { inBush } from '../../../shared/sim/visibility.ts';
+import { arenaById } from '../../../shared/arena/arena.ts';
 import type { Net } from '../net.ts';
 import type { SnapPlayer } from '../../../shared/protocol.ts';
 import { Controls } from '../input/controls.ts';
@@ -573,6 +574,8 @@ export class GameScene extends Phaser.Scene {
     this.pred.setWalls((snap.walls ?? []).map((w) => ({ x: w.x, y: w.y, w: w.w, h: w.h })));
     // the bubble storm carries and slows the local body too (backlog #17)
     this.pred.setBubbles(snap.bb ?? []);
+    // the match's layout (backlog #26): its scenery and pools, like the server's World
+    this.pred.setArena(arenaById(snap.m?.ar));
     if (!this.predReady) {
       this.pred.reset({ x: own.x, y: own.y }, own.f, def.radius);
       this.predReady = true;
@@ -604,6 +607,7 @@ export class GameScene extends Phaser.Scene {
     if (!replay) this.applyPrediction(view);
     const myTeam = view.find((p) => p.id === this.net.id)?.tm;
     const seen = new Set<number>();
+    const bushes = arenaById(this.net.last?.m?.ar).bushes;
     for (const p of view) {
       seen.add(p.id);
       this.names.set(p.id, p.n);
@@ -635,7 +639,7 @@ export class GameScene extends Phaser.Scene {
       // spawn shield blinks; a KO'd fighter keeps its rig for the death animation;
       // your own body shows through the kelp so you can still steer
       const blink = p.sh && Math.floor(nowMs / 100) % 2 === 0;
-      const hiding = p.id === this.net.id && inBush(p.x, p.y);
+      const hiding = p.id === this.net.id && inBush(p.x, p.y, bushes);
       rig.setAlpha(blink ? 0.45 : hiding ? 0.55 : 1);
       rig.setUltReady(p.id === this.net.id && p.uc >= 100 && !p.dn);
       // footstep dust while running (skipped once the FX budget dropped to lowfx)
