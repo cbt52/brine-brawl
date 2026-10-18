@@ -14,6 +14,7 @@ import {
 } from '../fx/statusFx.ts';
 import { HudScene } from './HudScene.ts';
 import { syncResults } from '../ui/results.ts';
+import { countRound } from '../ui/stats.ts';
 import { getFighter } from '../../../shared/fighters/index.ts';
 import { hasStatus, type Element } from '../../../shared/fighters/types.ts';
 import { FighterSprite, preloadArt } from '../art/rig.ts';
@@ -189,7 +190,10 @@ export class GameScene extends Phaser.Scene {
   /** HUD lives in its own scene (screen space) — just feed it the current view. */
   private updateHud(view: SnapPlayer[]): void {
     this.hud.setMatch(this.net.last?.m, view, this.net.id, this.net.ping, this.net.last?.tide, this.net.last?.tr);
-    syncResults(this.net.last?.m, {
+    const m = this.net.last?.m;
+    // local stats (backlog #9): countRound is a no-op after the first call for this round
+    if (m?.st === 'results' && m.res) countRound(m.res, this.net.id, `${this.net.room}:${m.r}`);
+    syncResults(m, {
       rematch: () => this.net.send({ t: 'rematch' }),
       changeFighter: () => window.dispatchEvent(new CustomEvent('brawl:menu')),
     });

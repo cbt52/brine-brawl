@@ -1,6 +1,7 @@
 import { friendlyRoom, parseRoomCode, quickRoom } from './rooms.ts';
 import { mountFighterGrid, nextSkin, saveSkin, savedFighter, savedSkin, skinLabel } from './select.ts';
 import { escapeHtml } from './util.ts';
+import { showStats } from './statsPage.ts';
 import type { RoomMode } from '../../../shared/protocol.ts';
 import { BOT_LEVELS, type BotDifficulty } from '../../../shared/sim/bot.ts';
 
@@ -69,7 +70,8 @@ export function showLobby(prefillRoom: string | null, prefillName: string | null
       <section class="fighters">
         <h2 class="fh">Choose fighter</h2>
         <div class="select" data-testid="fighter-select"></div>
-        <button class="big sm alt" data-testid="skin-select">${skinLabel(skin)}</button>
+        <div class="row"><button class="big sm alt" data-testid="skin-select">${skinLabel(skin)}</button>
+        <button class="big sm alt" data-testid="stats-open">📊 Stats</button></div>
       </section></div>`;
     document.body.appendChild(el);
     mountFighterGrid(el.querySelector<HTMLElement>('[data-testid=fighter-select]')!, fighter, (id) => { fighter = id; });
@@ -115,6 +117,7 @@ export function showLobby(prefillRoom: string | null, prefillName: string | null
       saveSkin(skin);
       (ev.currentTarget as HTMLButtonElement).textContent = skinLabel(skin);
     });
+    on('stats-open', showStats);
     on('join-go', () => done({ room: prefillRoom!, bots: 0, invite: false, mode }));
     on('quick-play', () => done({ room: quickRoom(), bots: 3, invite: false, mode: Math.random() < 0.5 ? 'bounty' : 'treasure' }));
     on('create-room', () => done({ room: friendlyRoom(), bots: 0, invite: true, mode }));

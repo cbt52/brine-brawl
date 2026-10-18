@@ -2,6 +2,7 @@ import type { Net } from '../net.ts';
 import { copyText, inviteUrl } from './rooms.ts';
 import { fighterRowHtml, markFighterRow, saveFighter, savedFighter } from './select.ts';
 import { setShakeEnabled, shakeEnabled, setSfxEnabled, sfxEnabled, setMusicEnabled, musicEnabled } from './settings.ts';
+import { showStats } from './statsPage.ts';
 
 /** Invite panel: full URL, copy button (with HTTP fallback), share if available. */
 export function showInvite(room: string): void {
@@ -45,6 +46,7 @@ export function mountMenu(net: Net): void {
     <span data-testid="menu-bots"></span>
     <button class="big sm alt" data-testid="menu-bot-plus">+ Bot</button></div>
     <small>Bots: host only</small>
+    <button class="big sm alt" data-testid="menu-stats">Stats</button>
     <button class="big sm alt" data-testid="menu-shake">Screenshake</button>
     <button class="big sm alt" data-testid="menu-sfx">Sound</button>
     <button class="big sm alt" data-testid="menu-music">Music</button>
@@ -103,6 +105,7 @@ export function mountMenu(net: Net): void {
   musicBtn.addEventListener('click', () => { setMusicEnabled(!musicEnabled()); syncMusic(); });
   syncMusic();
   q('menu-invite').addEventListener('click', () => { panel.style.display = 'none'; showInvite(net.room); });
+  q('menu-stats').addEventListener('click', () => { panel.style.display = 'none'; showStats(); });
   q('menu-leave').addEventListener('click', () => { location.href = '/'; });
   setInterval(() => { if (panel.style.display !== 'none') refresh(); }, 500);
 }
