@@ -81,8 +81,8 @@ class GalleryScene extends Phaser.Scene {
       ref.setVisible(false);
       this.refs.push(ref);
 
-      // 48 px legibility check, bottom right of the card
-      const small = new FighterSprite(this, refX, y + cellH - 34, { artId: art.id, height: 44 });
+      // 48 px legibility check, bottom right of the card (clear of the name line)
+      const small = new FighterSprite(this, refX, y + cellH - 48, { artId: art.id, height: 44 });
       small.setDepth(5);
       this.rigs.push(small);
 

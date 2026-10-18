@@ -2,11 +2,11 @@ import { TICK_HZ, WORLD_W, WORLD_H } from '../constants.ts';
 import { OBSTACLES, SPAWNS } from '../arena/docks.ts';
 import type { SimEvent, SnapMsg, SnapPlayer } from '../protocol.ts';
 import { getFighter } from '../fighters/index.ts';
-import { STATUS_CODE, type FighterDef, type StatusKind } from '../fighters/types.ts';
+import { STATUS_CODE, TRAP_BREAK_DMG, type FighterDef, type StatusKind } from '../fighters/types.ts';
 import { pushOutRect, resolveWalls, separate } from './collide.ts';
 import * as C from './combat.ts';
 import type { Projectile } from './combat.ts';
-import { castAbility, stepBurrow, stepDash, stepZones, type BurrowState, type DashState, type Zone } from './abilities.ts';
+import { applyStatus, castAbility, stepBurrow, stepDash, stepZones, type BurrowState, type DashState, type Zone } from './abilities.ts';
 
 export const BASE_SPEED = 240;
 /** default body radius (kits carry their own `radius`) */
@@ -56,6 +56,8 @@ export interface SimPlayer {
   buffLeft: number;
   status: StatusKind | null;
   statusLeft: number;
+  /** damage taken while `trapped`; reaching TRAP_BREAK_DMG pops the bubble */
+  trapTook: number;
   down: boolean;
   respawn: number;
   shield: number;
@@ -92,7 +94,7 @@ export class World {
       id, name, fighter: def.id, def, x: s.x, y: s.y, r: def.radius,
       hp: def.maxHp, mhp: def.maxHp, speedMul: def.speedMul, aim: 0, ack: 0, input: null,
       ammo: def.ammo, reload: 0, fireCd: 0, fireLatch: false, spcCd: 0, uc: 0, dash: null, burrow: null,
-      buffMul: 1, buffLeft: 0, status: null, statusLeft: 0,
+      buffMul: 1, buffLeft: 0, status: null, statusLeft: 0, trapTook: 0,
       down: false, respawn: 0, shield: C.SHIELD_SEC, kos: 0, deaths: 0, bot,
     };
     this.players.set(id, p);
@@ -136,25 +138,28 @@ export class World {
       }
       if (p.statusLeft > 0) {
         p.statusLeft -= dt;
-        if (p.statusLeft <= 0) { p.statusLeft = 0; p.status = null; }
+        if (p.statusLeft <= 0) { p.statusLeft = 0; p.status = null; p.trapTook = 0; }
       }
+      // a bubble trap holds the victim in place: no move, no dash, no attacks
+      const trapped = p.status === 'trapped';
+      if (trapped) p.dash = null;
       const burrowing = stepBurrow(this, p, dt);
       if (burrowing) { p.fireLatch = false; continue; }
-      const dashing = stepDash(this, p, dt);
+      const dashing = !trapped && stepDash(this, p, dt);
       if (i) {
-        if (!dashing) {
+        if (!dashing && !trapped) {
           const spd = BASE_SPEED * p.speedMul * (p.buffLeft > 0 ? p.buffMul : 1);
           stepMove(p, i.mx, i.my, spd, dt);
         }
-        if (Number.isFinite(i.ax) && Number.isFinite(i.ay) && (i.ax !== 0 || i.ay !== 0)) p.aim = Math.atan2(i.ay, i.ax);
+        if (!trapped && Number.isFinite(i.ax) && Number.isFinite(i.ay) && (i.ax !== 0 || i.ay !== 0)) p.aim = Math.atan2(i.ay, i.ax);
         p.ack = i.seq;
       }
       this.reloadStep(p, dt);
-      if ((p.fireLatch || i?.atk) && p.ammo > 0 && p.fireCd <= 0) this.fire(p);
+      if (!trapped && (p.fireLatch || i?.atk) && p.ammo > 0 && p.fireCd <= 0) this.fire(p);
       p.fireLatch = false;
       // specials/ults are hold-to-cast, gated by cooldown / charge (works the same for bots)
-      if (i?.spc && p.spcCd <= 0 && castAbility(this, p, p.def.special)) p.spcCd = p.def.special.cd > 0 ? p.def.special.cd : 1;
-      if (i?.ult && p.uc >= p.def.ultCharge && castAbility(this, p, p.def.ult)) p.uc = 0;
+      if (!trapped && i?.spc && p.spcCd <= 0 && castAbility(this, p, p.def.special)) p.spcCd = p.def.special.cd > 0 ? p.def.special.cd : 1;
+      if (!trapped && i?.ult && p.uc >= p.def.ultCharge && castAbility(this, p, p.def.ult)) p.uc = 0;
     }
     stepZones(this, dt);
     const alive = list.filter((p) => !p.down && !p.burrow);
@@ -222,6 +227,10 @@ export class World {
             pr.hit.add(v.id);
           } else dead = true;
           this.damage(pr.owner, v, pr.dmg, pr.x, pr.y);
+          if (pr.status && !v.down) {
+            applyStatus(v, pr.status, pr.statusSec ?? 1);
+            this.events.push({ k: 'status', v: v.id, s: pr.status, sec: pr.statusSec ?? 1 });
+          }
           if (dead) break;
         }
       }
@@ -247,6 +256,15 @@ export class World {
     this.events.push({ k: 'hit', a: attacker, v: v.id, dmg, x: Math.round(x), y: Math.round(y) });
     const a = this.players.get(attacker);
     if (a && a.id !== v.id && dealt > 0) a.uc = Math.min(a.def.ultCharge, a.uc + dealt);
+    if (v.status === 'trapped' && v.hp > 0) {
+      v.trapTook += dealt;
+      if (v.trapTook >= TRAP_BREAK_DMG) {
+        v.trapTook = 0;
+        v.status = null;
+        v.statusLeft = 0;
+        this.events.push({ k: 'status', v: v.id, s: 'trapped', sec: 0 });
+      }
+    }
     if (v.hp > 0) return;
     v.down = true;
     v.respawn = C.RESPAWN_SEC;
@@ -255,6 +273,7 @@ export class World {
     v.burrow = null;
     v.status = null;
     v.statusLeft = 0;
+    v.trapTook = 0;
     if (a) a.kos++;
     this.events.push({ k: 'ko', a: attacker, v: v.id });
   }
@@ -286,6 +305,7 @@ export class World {
     p.buffLeft = 0;
     p.status = null;
     p.statusLeft = 0;
+    p.trapTook = 0;
     p.shield = C.SHIELD_SEC;
     this.events.push({ k: 'spawn', id: p.id });
   }

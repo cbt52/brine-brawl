@@ -1,3 +1,5 @@
+import type { StatusKind } from '../fighters/types.ts';
+
 /** Default-fighter combat numbers (kept for tests and legacy imports; kits carry their own). */
 export const PROJ_SPEED = 900;
 export const PROJ_RANGE = 600;
@@ -30,6 +32,9 @@ export interface Projectile {
   lob?: boolean;
   /** damage blob on expiry or first hit */
   aoeOnEnd?: { radius: number; dmg: number };
+  /** status applied to every enemy it hits (bubble trap) */
+  status?: StatusKind;
+  statusSec?: number;
   /** enemies already hit by a piercing shot */
   hit?: Set<number>;
 }

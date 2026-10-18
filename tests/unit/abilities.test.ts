@@ -353,3 +353,105 @@ describe('T10 kits: Voltbun + Mira Tidecaller', () => {
     expect(Math.abs(b.x - 1320)).toBeLessThan(d0);
   });
 });
+
+describe('T11 kits: Cap\'n Noodle + Sudsy Loofah', () => {
+  it('registers both kits', () => {
+    expect(getFighter('noodle').id).toBe('noodle');
+    expect(getFighter('sudsy').id).toBe('sudsy');
+    expect(FIGHTERS.map((f) => f.id)).toEqual(expect.arrayContaining(['noodle', 'sudsy']));
+  });
+
+  it('Taffy Jab reaches far past a normal punch', () => {
+    const { w, a, b } = setup('noodle', 230);
+    castAbility(w, a, getFighter('noodle').attack);
+    expect(b.hp).toBe(b.mhp - 22);
+    expect(b.x).toBeGreaterThan(1200); // knockback lands
+    const far = setup('noodle', 340);
+    castAbility(far.w, far.a, getFighter('noodle').attack);
+    expect(far.b.hp).toBe(far.b.mhp);
+  });
+
+  it('Sling Grab yanks Noodle forward and stops on the first enemy with bonus damage', () => {
+    const { w, a, b } = setup('noodle', 260);
+    const x0 = a.x;
+    castAbility(w, a, getFighter('noodle').special);
+    run(w, 0.4);
+    expect(a.x - x0).toBeGreaterThan(120);
+    expect(a.x).toBeLessThan(b.x); // stopped on contact instead of flying past
+    expect(a.dash).toBeNull();
+    expect(b.hp).toBe(b.mhp - 26); // more than the jab's 22
+  });
+
+  it('Sling Grab stops at a wall', () => {
+    const { w, a } = setup('noodle', 700);
+    a.x = 460; a.y = 620; a.aim = 0; // coral wall spans x 560..680
+    castAbility(w, a, getFighter('noodle').special);
+    run(w, 0.4);
+    expect(a.x).toBeLessThan(560);
+  });
+
+  it('Taffy Typhoon is a cone barrage that ticks, and leaves the back clear', () => {
+    const { w, a, b } = setup('noodle', 180);
+    const behind = w.addPlayer(3, 'C');
+    behind.x = 840; behind.y = 1000; behind.shield = 0;
+    const hp0 = b.hp;
+    castAbility(w, a, getFighter('noodle').ult);
+    run(w, 1.1);
+    expect(hp0 - b.hp).toBeGreaterThan(12); // trigger hit plus at least one tick
+    expect(behind.hp).toBe(behind.mhp); // outside the 95° cone
+  });
+
+  it('Bubble Volley fires three slow bouncing bubbles', () => {
+    const { w, a } = setup('sudsy');
+    castAbility(w, a, getFighter('sudsy').attack);
+    expect(w.projs).toHaveLength(3);
+    for (const pr of w.projs) {
+      expect(Math.hypot(pr.vx, pr.vy)).toBeCloseTo(330, 5);
+      expect(pr.bounces).toBe(2);
+    }
+  });
+
+  it('Bubble Trap encases the target: no movement, no attacks, 1 s duration', () => {
+    const { w, a, b } = setup('sudsy', 300);
+    castAbility(w, a, getFighter('sudsy').special);
+    run(w, 0.6);
+    expect(b.status).toBe('trapped');
+    expect(w.snapshotFor(1).players.find((p) => p.id === 2)!.st).toBe(7);
+    const x0 = b.x;
+    const ammo0 = b.ammo;
+    for (let i = 0; i < TICK_HZ / 3; i++) {
+      w.setInput(2, inp({ seq: 10 + i, mx: -1, atk: true, spc: true }));
+      w.step();
+    }
+    expect(b.x).toBe(x0);
+    expect(b.ammo).toBe(ammo0);
+    run(w, 1.2); // bubble pops on its own
+    expect(b.status).toBeNull();
+  });
+
+  it('a trapped victim breaks out early after 25 damage', () => {
+    const { w, a, b } = setup('sudsy', 300);
+    castAbility(w, a, getFighter('sudsy').special);
+    run(w, 0.6);
+    expect(b.status).toBe('trapped');
+    w.damage(1, b, 20, b.x, b.y);
+    expect(b.status).toBe('trapped');
+    w.damage(1, b, 5, b.x, b.y);
+    expect(b.status).toBeNull();
+    expect(w.events.some((e) => e.k === 'status' && e.v === 2 && e.s === 'trapped' && e.sec === 0)).toBe(true);
+  });
+
+  it('Mega Bubble rolls through and traps everything it touches', () => {
+    const { w, a, b } = setup('sudsy', 180);
+    const c = w.addPlayer(3, 'C');
+    c.x = 1240; c.y = 1000; c.shield = 0;
+    castAbility(w, a, getFighter('sudsy').ult);
+    expect(w.projs).toHaveLength(1);
+    expect(w.projs[0].pierce).toBe(true);
+    run(w, 0.7);
+    expect(b.status).toBe('trapped');
+    expect(c.status).toBe('trapped');
+    expect(b.hp).toBe(b.mhp - 14);
+    expect(c.hp).toBe(c.mhp - 14);
+  });
+});

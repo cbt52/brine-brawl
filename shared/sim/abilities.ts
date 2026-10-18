@@ -39,6 +39,8 @@ export interface DashState {
   left: number;
   dmg: number;
   hit: Set<number>;
+  /** stop on the first wall/enemy touched */
+  stopOnContact: boolean;
   /** trail zones dropped along the path */
   trail: { radius: number; dmg: number; status: StatusKind | null; statusSec: number } | null;
   trailT: number;
@@ -114,7 +116,11 @@ function hitAll(
 function applyStatus(p: SimPlayer, status: StatusKind, sec: number): void {
   p.status = status;
   p.statusLeft = Math.max(p.statusLeft, sec);
+  if (status === 'trapped') p.trapTook = 0;
 }
+
+/** Same as `applyStatus`, exported for the world's projectile hits. */
+export { applyStatus };
 
 const TAU = Math.PI * 2;
 const wrapPi = (a: number): number => {
@@ -142,6 +148,7 @@ export function castAbility(h: CastHost, p: SimPlayer, def: AbilityDef): boolean
           left: def.range, dmg: def.dmg, r: def.radius,
           pierce: !!def.pierce, bounces: Math.max(0, Math.floor(def.bounce ?? 0)),
           lob: !!def.lob, aoeOnEnd: def.aoeOnEnd, hit: new Set(),
+          status: def.status, statusSec: def.statusSec,
         });
       }
       break;
@@ -168,6 +175,7 @@ export function castAbility(h: CastHost, p: SimPlayer, def: AbilityDef): boolean
       const dur = Math.max(0.02, def.dur);
       p.dash = {
         vx: (ax * def.dist) / dur, vy: (ay * def.dist) / dur, left: dur, dmg: def.contactDmg ?? 0, hit: new Set(),
+        stopOnContact: !!def.stopOnContact,
         trail: def.trailZone
           ? { radius: def.trailZone.radius, dmg: def.trailZone.dmg ?? 0, status: def.trailZone.status ?? null, statusSec: def.trailZone.statusSec ?? 0 }
           : null,
@@ -277,9 +285,18 @@ const TRAIL_GAP_SEC = 0.05;
 export function stepDash(h: CastHost, p: SimPlayer, dt: number): boolean {
   const d = p.dash;
   if (!d) return false;
-  p.x += d.vx * dt;
-  p.y += d.vy * dt;
+  const x0 = p.x;
+  const y0 = p.y;
+  const wantX = d.vx * dt;
+  const wantY = d.vy * dt;
+  p.x += wantX;
+  p.y += wantY;
   resolveWalls(p, OBSTACLES);
+  // a wall blocked most of the intended step: a contact dash stops here
+  if (d.stopOnContact && Math.hypot(p.x - x0, p.y - y0) < Math.hypot(wantX, wantY) * 0.7) {
+    p.dash = null;
+    return true;
+  }
   if (d.trail) {
     d.trailT -= dt;
     if (d.trailT <= 0) {
@@ -297,6 +314,10 @@ export function stepDash(h: CastHost, p: SimPlayer, dt: number): boolean {
       if (Math.hypot(v.x - p.x, v.y - p.y) < v.r + p.r) {
         d.hit.add(v.id);
         h.damage(p.id, v, d.dmg, v.x, v.y);
+        if (d.stopOnContact) {
+          p.dash = null;
+          return true;
+        }
       }
     }
   }

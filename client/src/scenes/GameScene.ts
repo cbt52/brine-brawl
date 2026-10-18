@@ -9,14 +9,21 @@ import { CombatFx } from '../fx/combatFx.ts';
 import { HudScene } from './HudScene.ts';
 import { syncResults } from '../ui/results.ts';
 import { getFighter } from '../../../shared/fighters/index.ts';
+import { STATUS_CODE } from '../../../shared/fighters/types.ts';
 import { FighterSprite, preloadArt } from '../art/rig.ts';
 import { getArt } from '../art/manifest.ts';
 
 const INTERP_DELAY_MS = 100;
+/** how long the taffy arm stays stretched out after a punch */
+const ARM_MS = 150;
 
 export class GameScene extends Phaser.Scene {
   private gfx!: Phaser.GameObjects.Graphics;
   private projGfx!: Phaser.GameObjects.Graphics;
+  /** bubbles and stretchy arms drawn above the rigs */
+  private overGfx!: Phaser.GameObjects.Graphics;
+  private armUntil = new Map<number, { until: number; a: number; range: number }>();
+  private kinds = new Map<number, string>();
   private rigs = new Map<number, FighterSprite>();
   private controls!: Controls;
   private self: Pos | null = null;
@@ -36,6 +43,7 @@ export class GameScene extends Phaser.Scene {
   create(): void {
     this.gfx = this.add.graphics().setDepth(0);
     this.projGfx = this.add.graphics().setDepth(10);
+    this.overGfx = this.add.graphics().setDepth(30);
     this.cameras.main.setBounds(-100, -100, WORLD_W + 200, WORLD_H + 200);
     this.cameras.main.centerOn(WORLD_W / 2, WORLD_H / 2);
     this.applyZoom();
@@ -68,6 +76,48 @@ export class GameScene extends Phaser.Scene {
     syncResults(this.net.last?.m);
   }
 
+  /** Bubble traps around victims plus Noodle's rubber arm. */
+  private drawOverlays(view: SnapPlayer[], nowMs: number): void {
+    const g = this.overGfx;
+    g.clear();
+    for (const p of view) {
+      if (p.st === STATUS_CODE.trapped && !p.dn) {
+        const r = getFighter(p.f).radius * 1.75;
+        g.fillStyle(0x9fe7ff, 0.22).fillCircle(p.x, p.y, r);
+        g.lineStyle(3, 0xeafcff, 0.9).strokeCircle(p.x, p.y, r);
+        g.fillStyle(0xffffff, 0.55).fillEllipse(p.x - r * 0.35, p.y - r * 0.45, r * 0.5, r * 0.28);
+      }
+      const arm = this.armUntil.get(p.id);
+      if (!arm) continue;
+      if (nowMs >= arm.until) { this.armUntil.delete(p.id); continue; }
+      const reach = arm.range * 0.85;
+      const ax = Math.cos(arm.a);
+      const ay = Math.sin(arm.a);
+      // sagging mid point, offset perpendicular to the punch direction
+      const mx = p.x + ax * reach * 0.55 - ay * 22;
+      const my = p.y + ay * reach * 0.55 + ax * 22;
+      const path: [number, number][] = [];
+      for (let i = 0; i <= 8; i++) {
+        const t = i / 8;
+        const u = 1 - t;
+        path.push([u * u * p.x + 2 * u * t * mx + t * t * (p.x + ax * reach), u * u * p.y + 2 * u * t * my + t * t * (p.y + ay * reach)]);
+      }
+      g.lineStyle(18, 0x1b1b2f, 1);
+      g.beginPath();
+      g.moveTo(path[0][0], path[0][1]);
+      for (const [x, y] of path) g.lineTo(x, y);
+      g.strokePath();
+      g.lineStyle(12, 0xe8c7a0, 1);
+      g.beginPath();
+      g.moveTo(path[0][0], path[0][1]);
+      for (const [x, y] of path) g.lineTo(x, y);
+      g.strokePath();
+      const fist = path[path.length - 1];
+      g.fillStyle(0xe8c7a0, 1).fillCircle(fist[0], fist[1], 15);
+      g.lineStyle(4, 0x1b1b2f, 1).strokeCircle(fist[0], fist[1], 15);
+    }
+  }
+
   update(time: number): void {
     this.controls.update(time);
     const g = this.gfx;
@@ -80,6 +130,7 @@ export class GameScene extends Phaser.Scene {
     for (const p of view) {
       seen.add(p.id);
       this.names.set(p.id, p.n);
+      this.kinds.set(p.id, p.f);
       const def = getFighter(p.f);
       const art = getArt(p.f);
       let rig = this.rigs.get(p.id);
@@ -106,13 +157,23 @@ export class GameScene extends Phaser.Scene {
     for (const e of evs) {
       if (e.k === 'shot' || e.k === 'cast') this.rigs.get(e.id)?.attack();
       else if (e.k === 'hit') this.rigs.get(e.v)?.hit();
+      if (e.k === 'shot' && this.kinds.get(e.id) === 'noodle') {
+        const atk = getFighter('noodle').attack;
+        this.armUntil.set(e.id, { until: nowMs + ARM_MS, a: ((e.a ?? 0) * Math.PI) / 180, range: atk.kind === 'melee' ? atk.range : 220 });
+      }
     }
+    this.drawOverlays(view, nowMs);
     this.controls.setCooldowns(view.find((p) => p.id === this.net.id));
     this.fx.handle(evs, this.net.id, () => navigator.vibrate?.(30));
     this.hud.addEvents(evs, (id) => this.names.get(id) ?? '?');
     this.updateHud(view);
     for (const [id, rig] of this.rigs) {
-      if (!seen.has(id)) { rig.destroy(); this.rigs.delete(id); }
+      if (!seen.has(id)) {
+        rig.destroy();
+        this.rigs.delete(id);
+        this.kinds.delete(id);
+        this.armUntil.delete(id);
+      }
     }
     if (this.self && seen.has(this.net.id)) {
       const cam = this.cameras.main;

@@ -248,7 +248,8 @@ Each reaction shows a big popup word ("SHOCK!").
   - Unit tests: each ability hits as designed. Bots pick these fighters at random.
   - Test: `npm run check && npm run smoke`
 
-- [ ] **T11 — Kits + art: Cap'n Noodle + Sudsy Loofah**
+- [x] **T11 — Kits + art: Cap'n Noodle + Sudsy Loofah**
+  - Note: kits registered (noodle 235 u taffy melee, stop-on-contact sling dash, cone barrage; sudsy 3-bubble bounce volley, bubble trap projectile, piercing mega bubble). New sim primitives: projectile `status`, dash `stopOnContact`, `trapped` status (no move/attack, pops after 25 dmg). Client draws the 150 ms taffy arm and bubble spheres.
   - Do:
     - SVGs and kits per §4.
     - Noodle's Taffy Jab renders a stretchy arm (thick bezier line, shoulder → fist) for 150 ms.
@@ -537,3 +538,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T09 ✅ 2026-10-18 — SVG-Pipeline (3 Kämpfer + Hurt-Faces, art.test), FighterSprite-Rig ersetzt Kreise, /gallery.html
 - T08b ✅ 2026-10-18 — Kunst-Pipeline: 24 Kämpfer + Deckhand aus EINEM Modell → SVG-Sprites + three-Blockouts, Galerie ?look=3d
 - T10 ✅ 2026-10-18 — Voltbun+Mira-Kits (Burrow-/Trail-/Cone-/TickPull-Primitive), Bots mit Zufalls-Kits; check+smoke grün
+- T11 ✅ 2026-10-18 — Noodle+Sudsy-Kits (Projektil-Status, Trap-Status, Stop-Dash), Taffy-Arm+Bubble-FX, Galerie grün; check+smoke+shot grün

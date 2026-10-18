@@ -9,10 +9,16 @@ export type Faction = 'critterkin' | 'weavers' | 'saltwind' | 'bubblebottom';
 
 export type Element = 'neutral' | 'water' | 'fire' | 'volt' | 'earth' | 'leaf' | 'air';
 
-export type StatusKind = 'wet' | 'burn' | 'static' | 'heavy' | 'tangled' | 'stun';
+/** `trapped` = stuck inside a bubble: no movement, no attacks, breaks after 25 damage. */
+export type StatusKind = 'wet' | 'burn' | 'static' | 'heavy' | 'tangled' | 'stun' | 'trapped';
 
 /** Snapshot code for a status (`st`), 0 = none. */
-export const STATUS_CODE: Record<StatusKind, number> = { wet: 1, burn: 2, static: 3, heavy: 4, tangled: 5, stun: 6 };
+export const STATUS_CODE: Record<StatusKind, number> = {
+  wet: 1, burn: 2, static: 3, heavy: 4, tangled: 5, stun: 6, trapped: 7,
+};
+
+/** Damage needed to pop a bubble trap early. */
+export const TRAP_BREAK_DMG = 25;
 
 export type Role = 'allrounder' | 'bruiser' | 'sharpshooter' | 'skirmisher' | 'support';
 
@@ -41,6 +47,9 @@ export interface ProjectileAbility extends AbilityBase {
   lob?: boolean;
   /** damage blob when the projectile expires or hits */
   aoeOnEnd?: { radius: number; dmg: number };
+  /** status applied to every enemy it hits (bubble trap) */
+  status?: StatusKind;
+  statusSec?: number;
 }
 
 export interface MeleeAbility extends AbilityBase {
@@ -62,6 +71,8 @@ export interface DashAbility extends AbilityBase {
   dur: number;
   /** damage dealt to every enemy touched once */
   contactDmg?: number;
+  /** stop the dash on the first wall or enemy it touches (Sling Grab) */
+  stopOnContact?: boolean;
   /** cosmetic: leave a trail */
   trail?: boolean;
   /** functional trail: damage/status zones dropped along the dash path */
