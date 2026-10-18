@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { RoomMode } from '../../shared/protocol.ts';
-import { TUTORIAL_KEY, TUTORIAL_MS, shouldShowTutorial, tutorialTips } from '../../client/src/ui/tutorial.ts';
+import { TUTORIAL_KEY, TUTORIAL_MS, shouldShowTutorial, tutorialHeading, tutorialTips } from '../../client/src/ui/tutorial.ts';
 
 describe('first-time tips (backlog #7)', () => {
   it('ships exactly three distinct tips for both input styles', () => {
@@ -64,6 +64,29 @@ describe('first-time tips (backlog #7)', () => {
     const titles = (mode: 'treasure' | 'showdown') => tutorialTips(true, mode).map((t) => t.title);
     expect(titles('treasure')).not.toContain('Showdown ring');
     expect(titles('showdown')).not.toContain('Treasure tide');
+  });
+
+  it('names the galleon and swaps its kelp tip for the deck cannons (backlog #43)', () => {
+    expect(tutorialHeading('galleon')).toBe('Welcome aboard the galleon');
+    expect(tutorialHeading('docks')).toBe('Welcome to the docks');
+    const galleon = tutorialTips(false, 'bounty', 'galleon');
+    expect(galleon).toHaveLength(3);
+    expect(galleon.map((t) => t.title)).toEqual(['Move & attack', 'Special & Ult', 'Deck cannons']);
+    expect(galleon.map((t) => t.body).join(' ')).not.toMatch(/kelp|tide|Wet/i);
+    expect(galleon[2].body).toMatch(/lane/);
+  });
+
+  it('keeps the docks tips and heading when no arena or the docks is given', () => {
+    expect(tutorialTips(false, 'bounty', 'docks')).toEqual(tutorialTips(false));
+    expect(tutorialTips(true)).toEqual(tutorialTips(true, 'bounty', 'docks'));
+    expect(tutorialTips(false).map((t) => t.title)).toContain('Kelp & tide');
+  });
+
+  it('adds the mode tip on the galleon too, and keeps it after the arena tip', () => {
+    const tips = tutorialTips(true, 'treasure', 'galleon');
+    expect(tips).toHaveLength(4);
+    expect(tips[2].title).toBe('Deck cannons');
+    expect(tips[3].title).toBe('Treasure tide');
   });
 
   it('auto-dismisses after a readable time, not instantly', () => {

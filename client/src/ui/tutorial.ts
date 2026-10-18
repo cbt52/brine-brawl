@@ -1,4 +1,5 @@
 import type { RoomMode } from '../../../shared/protocol.ts';
+import type { ArenaId } from '../../../shared/arena/arena.ts';
 
 /** First-time tips (backlog #7): three cards over the arena, shown once per browser. */
 
@@ -23,15 +24,23 @@ const MODE_TIPS: Partial<Record<RoomMode, Tip>> = {
   },
 };
 
-/** Three base tips plus the room mode's tip; the control lines follow the input (touch vs PC). */
-export function tutorialTips(touch: boolean, mode: RoomMode = 'bounty'): Tip[] {
-  const base = baseTips(touch);
+/** Heading of the card per deck (backlog #43): the docks and the galleon have their own words. */
+export function tutorialHeading(arena: ArenaId): string {
+  return arena === 'galleon' ? 'Welcome aboard the galleon' : 'Welcome to the docks';
+}
+
+/**
+ * Three base tips plus the room mode's tip; the control lines follow the input (touch vs PC).
+ * The third base tip is the arena's own: the galleon has no kelp or pools, so it gets the deck cannons.
+ */
+export function tutorialTips(touch: boolean, mode: RoomMode = 'bounty', arena: ArenaId = 'docks'): Tip[] {
+  const base = baseTips(touch, arena);
   // own keys only: an unknown ?mode= like "constructor" must not pick up an inherited function
   const extra = Object.hasOwn(MODE_TIPS, mode) ? MODE_TIPS[mode] : undefined;
   return extra ? [...base, extra] : base;
 }
 
-function baseTips(touch: boolean): Tip[] {
+function baseTips(touch: boolean, arena: ArenaId): Tip[] {
   return [
     {
       title: 'Move & attack',
@@ -45,12 +54,19 @@ function baseTips(touch: boolean): Tip[] {
         ? 'Use the Special and Ult buttons. Ult charges from the damage you deal.'
         : 'E or right click for Special, Q or Space for Ult. Ult charges from the damage you deal.',
     },
-    {
-      title: 'Kelp & tide',
-      body: 'Kelp bushes hide you until you attack. High tide floods the shallows: slow and Wet.',
-    },
+    arena === 'galleon' ? GALLEON_TIP : DOCKS_TIP,
   ];
 }
+
+const DOCKS_TIP: Tip = {
+  title: 'Kelp & tide',
+  body: 'Kelp bushes hide you until you attack. High tide floods the shallows: slow and Wet.',
+};
+
+const GALLEON_TIP: Tip = {
+  title: 'Deck cannons',
+  body: 'Cannons fire down marked lanes. The dashed line lights up, then a bar sweeps it: step off the lane.',
+};
 
 /** Only a stored 'seen' flag hides the tips; anything else (missing, unexpected) shows them. */
 export function shouldShowTutorial(stored: string | null): boolean {
@@ -74,9 +90,9 @@ function markSeen(): void {
 }
 
 /** Mount the tips card on the first visit only (the ☰ menu's "How to play" reopens it). */
-export function mountTutorial(touch: boolean, mode: RoomMode = 'bounty'): void {
+export function mountTutorial(touch: boolean, mode: RoomMode = 'bounty', arena: ArenaId = 'docks'): void {
   if (!shouldShowTutorial(readStored())) return;
-  showTutorial(touch, mode);
+  showTutorial(touch, mode, arena);
 }
 
 /**
@@ -84,14 +100,14 @@ export function mountTutorial(touch: boolean, mode: RoomMode = 'bounty'): void {
  * pointer input except its button, so the arena under it stays playable. Closing it (button or
  * timer) saves the flag; a card that is already up is replaced.
  */
-export function showTutorial(touch: boolean, mode: RoomMode = 'bounty'): void {
+export function showTutorial(touch: boolean, mode: RoomMode = 'bounty', arena: ArenaId = 'docks'): void {
   document.getElementById('tutorial')?.remove();
   const el = document.createElement('div');
   el.id = 'tutorial';
   el.className = 'panel tutorial';
   el.dataset.testid = 'tutorial';
-  el.innerHTML = `<b>Welcome to the docks</b>
-    <ul>${tutorialTips(touch, mode).map((t) => `<li><b>${t.title}</b> ${t.body}</li>`).join('')}</ul>
+  el.innerHTML = `<b>${tutorialHeading(arena)}</b>
+    <ul>${tutorialTips(touch, mode, arena).map((t) => `<li><b>${t.title}</b> ${t.body}</li>`).join('')}</ul>
     <button class="big sm" data-testid="tutorial-ok">Got it</button>`;
   document.body.appendChild(el);
   const close = () => {
