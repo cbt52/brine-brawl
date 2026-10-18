@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import type { RoomMode } from '../../shared/protocol.ts';
 import { TUTORIAL_KEY, TUTORIAL_MS, shouldShowTutorial, tutorialTips } from '../../client/src/ui/tutorial.ts';
 
 describe('first-time tips (backlog #7)', () => {
@@ -49,6 +50,14 @@ describe('first-time tips (backlog #7)', () => {
     expect(showdown[3].title).toBe('Showdown ring');
     expect(treasure[3].body).toMatch(/chest/i);
     expect(showdown[3].body).toMatch(/ring/i);
+  });
+
+  it('falls back to three tips for unknown or inherited mode names', () => {
+    for (const mode of ['constructor', 'toString', '__proto__', 'nope']) {
+      const tips = tutorialTips(false, mode as RoomMode);
+      expect(tips).toHaveLength(3);
+      expect(tips.every((t) => typeof t.title === 'string' && typeof t.body === 'string')).toBe(true);
+    }
   });
 
   it('shows the mode tip only in its own mode', () => {

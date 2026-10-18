@@ -27,6 +27,27 @@ test('first visit shows the tips, "Got it" saves it, the next visit does not', a
   await expect(tips).toHaveCount(0);
 });
 
+// backlog #34: a non-default mode adds its own fourth card; Bounty Brawl keeps three
+test('Showdown shows a fourth mode tip, Bounty Brawl shows three', async ({ page, browser }) => {
+  const room = 'tutm-' + Math.random().toString(36).slice(2, 8);
+  await page.goto(`/?room=${room}&name=Tutor&bots=1&mode=showdown`);
+  await expect.poll(() => page.evaluate(() => (window as any).__brawl.connected)).toBe(true);
+  const tips = page.getByTestId('tutorial');
+  await expect(tips).toBeVisible();
+  await expect(tips.locator('li')).toHaveCount(4);
+  await expect(tips.locator('li').last()).toContainText('Showdown ring');
+  await page.getByTestId('tutorial-ok').click();
+  await expect(tips).toHaveCount(0);
+
+  // a fresh browser context (new localStorage) so the bounty card shows again
+  const bounty = await browser.newContext();
+  const bp = await bounty.newPage();
+  await bp.goto(`/?room=${room}-b&name=Tutor&bots=1&mode=bounty`);
+  await expect.poll(() => bp.evaluate(() => (window as any).__brawl.connected)).toBe(true);
+  await expect(bp.getByTestId('tutorial').locator('li')).toHaveCount(3);
+  await bounty.close();
+});
+
 // backlog #21: a player who already dismissed the tips can bring them back from the menu
 test('menu "How to play" reopens the tips after they were seen', async ({ page }) => {
   const room = 'tuth-' + Math.random().toString(36).slice(2, 8);

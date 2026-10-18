@@ -26,7 +26,8 @@ const MODE_TIPS: Partial<Record<RoomMode, Tip>> = {
 /** Three base tips plus the room mode's tip; the control lines follow the input (touch vs PC). */
 export function tutorialTips(touch: boolean, mode: RoomMode = 'bounty'): Tip[] {
   const base = baseTips(touch);
-  const extra = MODE_TIPS[mode];
+  // own keys only: an unknown ?mode= like "constructor" must not pick up an inherited function
+  const extra = Object.hasOwn(MODE_TIPS, mode) ? MODE_TIPS[mode] : undefined;
   return extra ? [...base, extra] : base;
 }
 
