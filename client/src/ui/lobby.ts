@@ -1,4 +1,5 @@
 import { friendlyRoom, parseRoomCode, quickRoom } from './rooms.ts';
+import { escapeHtml } from './util.ts';
 
 export interface JoinChoice {
   room: string;
@@ -21,7 +22,7 @@ export function showLobby(prefillRoom: string | null, prefillName: string | null
     el.innerHTML = `
       <h1 class="title"><span>B</span><span>R</span><span>I</span><span>N</span><span>E</span> <span>B</span><span>R</span><span>A</span><span>W</span><span>L</span></h1>
       <input class="field" data-testid="name-input" maxlength="12" placeholder="Your pirate name" autocomplete="off" />
-      ${joining ? `<p class="sub">Join room <b data-testid="join-room">${prefillRoom}</b></p>
+      ${joining ? `<p class="sub">Join room <b data-testid="join-room">${escapeHtml(prefillRoom)}</b></p>
         <button class="big go" data-testid="join-go">Join!</button>` : `
       <button class="big go" data-testid="quick-play">Quick Play</button>
       <button class="big alt" data-testid="create-room">Create Room</button>

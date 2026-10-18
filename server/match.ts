@@ -56,6 +56,12 @@ export class Match {
         this.beginCountdown();
         return 'countdown';
       case 'countdown':
+        // the second combatant may leave mid-countdown (e.g. host removes a bot)
+        if (!enough) {
+          this.phase = 'waiting';
+          this.timer = 0;
+          return 'waiting';
+        }
         this.timer -= step;
         if (this.timer > 0) return null;
         this.phase = 'playing';

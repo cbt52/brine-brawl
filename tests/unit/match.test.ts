@@ -55,6 +55,19 @@ describe('Match state machine', () => {
     expect(m.info().res).toBeUndefined();
   });
 
+  it('countdown aborts back to waiting when the second combatant leaves', () => {
+    const m = new Match({ matchSec: 5, resultsSec: 1 });
+    expect(run(m, DT * 2)).toEqual(['countdown']);
+    expect(m.phase).toBe('countdown');
+    // host removes the bot during the countdown → never start a solo match
+    expect(run(m, DT * 2, 1)).toEqual(['waiting']);
+    expect(m.phase).toBe('waiting');
+    expect(m.timer).toBe(0);
+    expect(m.round).toBe(0);
+    // and the countdown restarts once a second combatant is back
+    expect(run(m, DT * 2)).toEqual(['countdown']);
+  });
+
   it('increments the round and clears the old ranking on restart', () => {
     const m = new Match({ matchSec: 5, resultsSec: 1 });
     run(m, DT);

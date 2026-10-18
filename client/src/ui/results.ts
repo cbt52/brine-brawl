@@ -1,4 +1,5 @@
 import type { MatchInfo, ScoreRow } from '../../../shared/protocol.ts';
+import { escapeHtml } from './util.ts';
 
 let shown = -1;
 
@@ -22,9 +23,6 @@ function row(r: ScoreRow, place: number): string {
   return `<li data-testid="results-row"><span class="pos">${tag}</span><span class="who">${escapeHtml(r.n)}</span>${bot}
     <span class="score">${r.k} KO${r.k === 1 ? '' : 's'} · ${r.d} KO'd</span></li>`;
 }
-
-const escapeHtml = (s: string): string =>
-  s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c] as string));
 
 /** Show the results overlay once per round and drop it as soon as the next countdown starts. */
 export function syncResults(m: MatchInfo | undefined): void {
