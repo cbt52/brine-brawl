@@ -14,8 +14,12 @@ OUTLINE_HEX = '#1b1b2f'
 # surfaces within ~72 degrees of the sun: camera-facing fronts lit, sides and undersides shaded)
 LIT_THRESHOLD = 0.1
 HIGHLIGHT_NZ = 0.85  # world normal z above which a lit surface gets the highlight band
-RIM_FACING = 0.65  # Layer Weight facing above which the rim kicks in
-RIM_MIX = 0.35
+RIM_FACING = 0.55  # Layer Weight facing above which the rim kicks in
+RIM_MIX = 0.55
+# ART feedback (T48): teal kits on teal ground need a stronger rim, and it belongs upper left only
+# (camera space: -x = screen left, +z = up), not as a halo around the whole silhouette.
+RIM_DIR = (-0.55, 0.0, 0.84)
+RIM_DOT_MIN = 0.05
 
 
 def hex_rgb(h):
@@ -84,6 +88,18 @@ def _mix(nt, fac, a, b):
     return next(s for s in mx.outputs if s.identifier == 'Result_Color')
 
 
+def _up_left(nt, geo):
+    """1 where the surface normal points up and to the left (camera space), else 0."""
+    nrm = nt.nodes.new('ShaderNodeVectorMath')
+    nrm.operation = 'NORMALIZE'
+    nt.links.new(geo.outputs['Normal'], nrm.inputs[0])
+    dot = nt.nodes.new('ShaderNodeVectorMath')
+    dot.operation = 'DOT_PRODUCT'
+    nt.links.new(nrm.outputs['Vector'], dot.inputs[0])
+    dot.inputs[1].default_value = RIM_DIR
+    return _math(nt, 'GREATER_THAN', dot.outputs['Value'], RIM_DOT_MIN)
+
+
 def toon(name, hex_color, workbench=False):
     """3-band toon material for one palette colour."""
     rgb = hex_rgb(hex_color)
@@ -118,6 +134,7 @@ def toon(name, hex_color, workbench=False):
     lw = nt.nodes.new('ShaderNodeLayerWeight')
     lw.inputs['Blend'].default_value = 0.5
     rim = _math(nt, 'GREATER_THAN', lw.outputs['Facing'], RIM_FACING)
+    rim = _math(nt, 'MULTIPLY', rim, _up_left(nt, geo))
     rim = _math(nt, 'MULTIPLY', rim, RIM_MIX)
     _emit(nt, _mix(nt, rim, banded, (1, 1, 1, 1)))
     return mat

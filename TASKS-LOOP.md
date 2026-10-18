@@ -621,7 +621,8 @@ Rules for every task:
 
 **Gate:** only when `.loop/feedback.md` has a line starting `ART-PILOT: OK`. Handle `ART:` lines first, in T48.
 
-- [ ] **T48 — Apply pilot feedback**: all `ART:` lines; re-render only the affected ids; mark each line ✓.
+- [x] **T48 — Apply pilot feedback**: all `ART:` lines; re-render only the affected ids; mark each line ✓.
+  - Note: `scripts/blender/lib/face.py` `EYE_BOOST = 1.25` + an ink ring (`EYE_RING = 2.6`, decal at lift -0.9) + `BROW_PX = 4.0` with the brow hugging the lid (`ez + eh/2 + 1.6`), mouth clamped to `ez - eh/2 - 6` so the grin stays clear → bigger eyes, harder contour, free forehead. `scripts/blender/lib/toon.py` rim is directional now (`RIM_DIR = (-0.55, 0.0, 0.84)` dot mask, `RIM_FACING` 0.55, `RIM_MIX` 0.55) → rim only upper left. Noodle tricorn (`scripts/blender/specs/noodle.json`): crown lifted to z 46, brim torus 56×50 at z 44 with `waves [3, 6, 8, -90]` (dips instead of the plate bulge) plus two `cone` side points at x ±27 leaning 40°, trim follows. `client/src/art/arena.ts` paints one flat sheet `0x04141c @ 0.07` at depth 1.3 (over water 1/1.2, under rigs 20+) so the ground sits darker behind the fighters. Re-rendered mira/noodle/sudsy/voltbun (70 frames each, palettes exact, feet y=113, atlases 172/175/136/155 KB); noodle contact sheet viewed twice while tuning the hat.
 - [ ] **T49 — Load sheets on demand**:
   - An atlas loads when its fighter is picked in the select screen or appears in a snapshot. The SVG shows until it has loaded.
   - No eager preload beyond the player's own fighter.
@@ -860,3 +861,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T46 ✅ 2026-10-18 — Budget+Perf: alle §2.11-Budgets im Unit-Test (FX 9,6 KB, Pilot-Download 1,03/2,5 MB, GPU ~22/50 MB); `__brawl.fps` + `npm run perf`: Desktop erster Frame 977 ms vs SVG 822 ms, iPhone 13 20 s Median 59,7 fps (min 55), lowfx nicht getrippt; check 891 + e2e:all 81 grün
 - T47 ✅ 2026-10-18 — CP9-Abnahme: 4 Shots 3D vs `?art=svg` (Desktop + iPhone 13), Galerie-Shot, serve.sh + healthz ok, Checkpoint + STOP gesetzt; check 891 + e2e 40 grün
 - T45 ✅ 2026-10-18 — FX-Atlas (`npm run art:fx`): 8 Loot-/Projektil-Sprites, 254×260, 9,6 KB, Sprite-Pool + Painter-Fallback, `?art=svg` unverändert; `shot.mjs` schießt Handys jetzt im Querformat; 4 Unit, check 884 + e2e 39 grün
+- T48 ✅ 2026-10-18 — Pilot-Art-Feedback: Augen +25 % mit Tintenring, Rim-Light nur oben links und stärker, Noodle-Dreispitz (breitere Krempe + 2 Spitzen), Boden hinter Kämpfern 7 % dunkler; 4 Atlanten neu, check 891 grün

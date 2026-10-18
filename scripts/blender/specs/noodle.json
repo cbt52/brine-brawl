@@ -40,11 +40,13 @@
       "prims": [{ "type": "sphere", "at": [0, 9, 26], "size": [44, 28, 28] },
                 { "type": "sphere", "at": [0, 15, 14], "size": [30, 14, 18] }] },
     { "name": "hat", "parent": "head", "c": "detail", "remesh": 1.2, "pivot": [0, 0, 62], "rot": [-12, 0, 0],
-      "prims": [{ "type": "sphere", "at": [0, 3, 41], "size": [40, 36, 17] },
-                { "type": "torus", "at": [0, 3, 39], "size": [54, 54, 6], "rot": [0, 0, -90], "waves": [3, 5, 10, 90] }] },
+      "prims": [{ "type": "sphere", "at": [0, 3, 46], "size": [38, 34, 20] },
+                { "type": "torus", "at": [0, 3, 44], "size": [56, 50, 6.5], "rot": [0, 0, -90], "waves": [3, 6, 8, -90] },
+                { "type": "cone", "at": [-27, 1, 50], "size": [17, 21, 16], "rot": [0, -40, 0] },
+                { "type": "cone", "at": [27, 1, 50], "size": [17, 21, 16], "rot": [0, 40, 0] }] },
     { "name": "hat_trim", "parent": "head", "c": "prop", "remesh": 0.8, "pivot": [0, 0, 62], "rot": [-12, 0, 0],
-      "prims": [{ "type": "torus", "at": [0, 3, 39], "size": [58, 58, 3.5], "rot": [0, 0, -90], "waves": [3, 5, 10.6, 90] },
-                { "type": "sphere", "at": [0, -14, 44], "size": [14, 5, 12] }] }
+      "prims": [{ "type": "torus", "at": [0, 3, 44], "size": [61, 55, 3.5], "rot": [0, 0, -90], "waves": [3, 6, 9.4, -90] },
+                { "type": "sphere", "at": [0, -13, 47], "size": [14, 5, 12] }] }
   ],
   "features": [],
   "face": { "part": "head", "eyeDx": 10, "eyeZ": 4, "eyeW": 11, "eyeH": 13, "mouthZ": -7,

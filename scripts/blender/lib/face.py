@@ -14,6 +14,11 @@ from mathutils import Vector
 from . import toon
 
 INK = toon.OUTLINE_HEX
+# ART feedback (T48): faces read too small at 48 px in the arena. Every eye grows by a quarter and
+# gains an ink ring, the brow hugs the lid (forehead stays clear) and the mouth keeps a 6 px gap.
+EYE_BOOST = 1.25
+EYE_RING = 2.6  # ink ring around each eye, px at 1x
+BROW_PX = 4.0  # brow stroke width, px at 1x
 
 
 class Head:
@@ -90,20 +95,23 @@ def build(f, head_part, head_ob, scale, workbench=False):
         return mats[hex_color]
 
     dx, ez = f['eyeDx'], f['eyeZ']
-    ew, eh = f.get('eyeW', 12), f.get('eyeH', 14)
-    mz = f.get('mouthZ', ez - eh / 2 - 9)
+    ew, eh = f.get('eyeW', 12) * EYE_BOOST, f.get('eyeH', 14) * EYE_BOOST
+    mz = min(f.get('mouthZ', ez - eh / 2 - 9), ez - eh / 2 - 6)
     v = {'normal': [], 'hurt': [], 'both': []}
     for s in (1, -1):
         x = s * dx
+        # ink ring sits just behind the white so the eye keeps a hard contour at 48 px
+        v['normal'].append(_decal(f'eyeink{s}', head, x, ez, (ew + 2 * EYE_RING, 2.0, eh + 2 * EYE_RING),
+                                  mat(INK), -0.9, 0, scale))
         v['normal'].append(_decal(f'eye{s}', head, x, ez, (ew, 2.0, eh), mat('#FFFFFF'), 0.0, 0, scale))
         px, pz = x - s * ew * 0.08, ez - eh * 0.06
         v['normal'].append(_decal(f'pupil{s}', head, px, pz, (ew * 0.52, 2.0, eh * 0.6), mat(INK), 0.6, 0, scale))
         v['normal'].append(_decal(f'glint{s}', head, px - ew * 0.12, pz + eh * 0.14, (ew * 0.2, 1.6, eh * 0.2),
                                   mat('#FFFFFF'), 1.2, 0, scale))
         rise, drop = BROWS[f.get('brow', 'calm')]
-        by = ez + eh / 2 + 3.5
+        by = ez + eh / 2 + 1.6
         v['normal'].append(_stroke(f'brow{s}', head, (x - s * ew * 0.5, by + drop), (x + s * ew * 0.5, by + rise),
-                                   3.2, mat(INK), 0.4, scale))
+                                   BROW_PX, mat(INK), 0.4, scale))
         # hurt: squeezed X eyes
         hw, hh = ew * 0.5, eh * 0.4
         v['hurt'].append(_stroke(f'xa{s}', head, (x - hw, ez - hh), (x + hw, ez + hh), 3.2, mat(INK), 0.4, scale))

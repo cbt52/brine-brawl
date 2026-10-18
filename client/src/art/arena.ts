@@ -36,6 +36,9 @@ export class ArenaArt {
     this.scene = scene;
     this.lowfx = Boolean(opts.lowfx);
     this.ground = scene.add.renderTexture(0, 0, WORLD_W, WORLD_H).setOrigin(0).setDepth(0);
+    // ART feedback (T48): the 3D ground is bright teal in places, so teal kits lose their edge.
+    // One flat sheet ~7 % darker than the ground, above the water (1–1.2) and under the rigs (20+).
+    scene.add.graphics().setDepth(1.3).fillStyle(0x04141c, 0.07).fillRect(0, 0, WORLD_W, WORLD_H);
     this.kelp = scene.add.graphics().setDepth(26);
     this.water = new WaterArt(scene);
     this.waves = scene.add.graphics().setDepth(2);
