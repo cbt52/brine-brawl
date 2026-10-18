@@ -8,7 +8,9 @@ import { FAWNSWORTH } from './fawnsworth.ts';
 import { GLOOMOTH } from './gloomoth.ts';
 import { HAMMY } from './hammy.ts';
 import { KIP } from './kip.ts';
+import { KRILL } from './krill.ts';
 import { LENNY } from './lenny.ts';
+import { LUMPY } from './lumpy.ts';
 import { MIRA } from './mira.ts';
 import { MOSSBACK } from './mossback.ts';
 import { NOODLE } from './noodle.ts';
@@ -17,15 +19,16 @@ import { PEBBLOR } from './pebblor.ts';
 import { PINCHPENNY } from './pinchpenny.ts';
 import { PIP } from './pip.ts';
 import { SABLE } from './sable.ts';
-import { TOBO } from './tobo.ts';
+import { SQUALL } from './squall.ts';
 import { SUDSY } from './sudsy.ts';
+import { TOBO } from './tobo.ts';
 import { VOLTBUN } from './voltbun.ts';
 import type { FighterDef } from './types.ts';
 
 const DEFS: FighterDef[] = [
   DEFAULT_FIGHTER, VOLTBUN, EMBERCUB, MOSSBACK, GLOOMOTH, PEBBLOR, DOZELUMP,
   MIRA, PIP, BRAK, ASHKA, KIP, TOBO, NOODLE, SABLE, BISQUE, NOVA, LENNY, FAWNSWORTH,
-  SUDSY, PINCHPENNY, HAMMY,
+  SUDSY, PINCHPENNY, HAMMY, LUMPY, SQUALL, KRILL,
 ];
 
 const BY_ID = new Map(DEFS.map((d) => [d.id, d]));
@@ -40,7 +43,9 @@ export { FAWNSWORTH } from './fawnsworth.ts';
 export { GLOOMOTH } from './gloomoth.ts';
 export { HAMMY } from './hammy.ts';
 export { KIP } from './kip.ts';
+export { KRILL } from './krill.ts';
 export { LENNY } from './lenny.ts';
+export { LUMPY } from './lumpy.ts';
 export { MIRA } from './mira.ts';
 export { MOSSBACK } from './mossback.ts';
 export { NOODLE } from './noodle.ts';
@@ -49,8 +54,9 @@ export { PEBBLOR } from './pebblor.ts';
 export { PINCHPENNY } from './pinchpenny.ts';
 export { PIP } from './pip.ts';
 export { SABLE } from './sable.ts';
-export { TOBO } from './tobo.ts';
+export { SQUALL } from './squall.ts';
 export { SUDSY } from './sudsy.ts';
+export { TOBO } from './tobo.ts';
 export { VOLTBUN } from './voltbun.ts';
 
 export const DEFAULT_FIGHTER_ID = DEFAULT_FIGHTER.id;

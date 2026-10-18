@@ -134,6 +134,8 @@ export interface AoeAbility extends AbilityBase {
   /** separate strike zones fanned across `strikeSpreadDeg` around the aim point (Lightning Chart) */
   strikes?: number;
   strikeSpreadDeg?: number;
+  /** the zone hides everyone inside it like a kelp bush (Squall's Ink Cloud, T32) */
+  hides?: boolean;
 }
 
 export interface BuffAbility extends AbilityBase {

@@ -8,6 +8,7 @@ describe('fighter select data', () => {
       'voltbun', 'embercub', 'mossback', 'gloomoth', 'pebblor', 'dozelump',
       'mira', 'pip', 'brak', 'ashka', 'kip', 'tobo', 'noodle', 'sable', 'bisque',
       'nova', 'lenny', 'fawnsworth', 'sudsy', 'pinchpenny', 'hammy',
+      'lumpy', 'squall', 'krill',
     ]);
     expect(SELECTABLE.some((f) => f.id === 'default')).toBe(false);
   });

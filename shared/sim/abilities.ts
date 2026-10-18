@@ -311,7 +311,7 @@ export function castAbility(
           selfHeal: def.selfHeal ?? 0, rootSec: def.rootSec ?? 0, dropGold: def.dropGold ?? 0,
           allyHeal: def.allyHeal ?? 0,
           element: hitElement(defEl, def.status), slot,
-          tickT: 0, fired: false,
+          tickT: 0, fired: false, hides: def.hides || undefined,
         });
       }
       // Smoke Pop: the cloud also carries the caster faster for as long as it stands
