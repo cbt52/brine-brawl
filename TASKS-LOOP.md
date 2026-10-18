@@ -455,7 +455,6 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 
 ---
 ## 5. IMPROVEMENT BACKLOG (ordered; T99 takes from the top; user feedback goes first)
-3. Skins, part 2 (slice 1 = `shared/skins.ts`: 3 skins, hue-rotated saturated colours, unit-tested, not wired): `join` carries `skin` (0–2, `skinAt`), the room keeps it per player and the snapshot sends `sk`; select screen gets a Skin button (localStorage, like the fighter pick); the rig recolours the SVG text (`recolorSvg`) before a per-skin texture is made, for the body and the hurt face, and the gallery shows all 3. Test: `npm run check` + one shot of two skins.
 4. "Weird Weather" match modifiers: jellyfish rain, bubble storm, double tide.
 5. Kill-cam: 2 s replay of the last KO from the snapshot buffer.
 6. Showdown battle-royale mode where the tide permanently rises and shrinks the island.
@@ -468,6 +467,7 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 13. Taffy Galleon, part 2 (slice 1 = `shared/sim/cannon.ts`, telegraph + moving bar, unit-tested, not wired): second arena data (rocking ship deck, own spawns/coral/sand), `World` + bots + prediction take an arena instead of the docks constants, lane cannons placed in that arena and damaging bodies once per volley, rocking deck art in `client/src/art/arena.ts`.
 14. Bot level in the in-game ☰ menu: the host can switch the level for bots already in the room (today the lobby picks it once, for the first human).
 15. Rematch countdown: after the results screen, the match restarts on its own 10 s after the last human taps Ready (today every human must tap Rematch).
+16. Skins everywhere: the in-game ☰ menu, the character cards and the results poster still draw the drawn look; they should show the picked skin too (`sk` is already in the snapshot, the results rows need it as well).
 
 ---
 ## 6. LOG (one line per task/hotfix; archive older lines to `.loop/log-archive.md` if >40 lines)
@@ -510,3 +510,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T99 ✅ 2026-10-18 — Emote-Rad: 4 Sticker (`shared/emotes.ts`, Index + 1,2 s Cooldown im Room), DOM-Rad oben rechts (Taste 1–4/V), Blase über dem Kämpfer; 4 Unit + 4 e2e-Tests, check 488 grün, Shot ok
 - T99 ✅ 2026-10-18 — Purrl-Schnecke (Backlog #1): `shared/sim/purrl.ts` wandert über Sand (seeded, meidet Korallen+Flut), heilt +10 einmal pro Leben (Respawn setzt zurück), Snapshot `purrl`, Client-Zeichnung; 9 Unit-Tests, check 497 grün, kein Live-Shot (kein Teleport-Hook)
 - T99 ✅ 2026-10-18 — Taffy Galleon slice 1: `shared/sim/cannon.ts` (Kanone: 1 s Telegraph, wandernde Leiste, Zeit-pure Treffer, Aim-Winkel); 8 Unit-Tests, check 505 grün; Arena-Rest → §5 #13
+- T99 ✅ 2026-10-18 — Skins slice 2: `join.skin` → room → `world.setSkin` → snapshot `sk`; lobby Skin button (localStorage); rig `setSkin` with async `addtexture` fallback, skin copies from recoloured SVG text; gallery shows both swaps; 4 unit tests, check 574 + e2e 19/19 + shot ok

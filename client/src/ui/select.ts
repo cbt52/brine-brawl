@@ -2,6 +2,7 @@ import { SELECTABLE } from '../../../shared/fighters/index.ts';
 import { abilitySummary, fighterStats } from '../../../shared/fighters/stats.ts';
 import type { Element, Faction, FighterDef, Role } from '../../../shared/fighters/types.ts';
 import { PASSIVE_OF } from '../../../shared/sim/passives.ts';
+import { SKINS, sanitizeSkin, skinAt } from '../../../shared/skins.ts';
 import { ELEMENT_LABEL, FACTION_COLOR, FACTION_LABEL, artUrl } from '../art/manifest.ts';
 import { escapeHtml } from './util.ts';
 
@@ -48,6 +49,33 @@ export function saveFighter(id: string): void {
     /* private mode */
   }
 }
+
+/** Palette-swap skin (backlog #3): 0 = the drawn look; stored as an index like the fighter id. */
+export const SKIN_KEY = 'brawl.skin';
+
+export function savedSkin(): number {
+  let raw: string | null = null;
+  try {
+    raw = localStorage.getItem(SKIN_KEY);
+  } catch {
+    /* private mode */
+  }
+  return sanitizeSkin(Number(raw));
+}
+
+export function saveSkin(skin: number): void {
+  try {
+    localStorage.setItem(SKIN_KEY, String(skin));
+  } catch {
+    /* private mode */
+  }
+}
+
+/** Button label for the lobby skin picker. */
+export const skinLabel = (skin: number): string => `Skin: ${skinAt(skin).name}`;
+
+/** Next skin in the cycle (Classic → Dusk → Mint → Classic). */
+export const nextSkin = (skin: number): number => (skin + 1) % SKINS.length;
 
 const hex = (color: number): string => `#${color.toString(16).padStart(6, '0')}`;
 

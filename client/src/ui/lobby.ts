@@ -1,5 +1,5 @@
 import { friendlyRoom, parseRoomCode, quickRoom } from './rooms.ts';
-import { mountFighterGrid, savedFighter } from './select.ts';
+import { mountFighterGrid, nextSkin, saveSkin, savedFighter, savedSkin, skinLabel } from './select.ts';
 import { escapeHtml } from './util.ts';
 import type { RoomMode } from '../../../shared/protocol.ts';
 import { BOT_LEVELS, type BotDifficulty } from '../../../shared/sim/bot.ts';
@@ -16,6 +16,8 @@ export interface JoinChoice {
   mode: RoomMode;
   /** bot level picked in the lobby (T99) */
   level: BotDifficulty;
+  /** palette-swap skin index from the select screen (backlog #3) */
+  skin: number;
 }
 
 const LEVEL_HINT: Record<BotDifficulty, string> = {
@@ -37,6 +39,7 @@ export function showLobby(prefillRoom: string | null, prefillName: string | null
     let fighter = savedFighter();
     let mode: RoomMode = 'bounty';
     let level: BotDifficulty = 'normal';
+    let skin = savedSkin();
     el.innerHTML = `<div class="lobby-inner">
       <h1 class="title"><span>B</span><span>R</span><span>I</span><span>N</span><span>E</span> <span>B</span><span>R</span><span>A</span><span>W</span><span>L</span></h1>
       <input class="field" data-testid="name-input" maxlength="12" placeholder="Your pirate name" autocomplete="off" />
@@ -59,6 +62,7 @@ export function showLobby(prefillRoom: string | null, prefillName: string | null
       <section class="fighters">
         <h2 class="fh">Choose fighter</h2>
         <div class="select" data-testid="fighter-select"></div>
+        <button class="big sm alt" data-testid="skin-select">${skinLabel(skin)}</button>
       </section></div>`;
     document.body.appendChild(el);
     mountFighterGrid(el.querySelector<HTMLElement>('[data-testid=fighter-select]')!, fighter, (id) => { fighter = id; });
@@ -66,12 +70,12 @@ export function showLobby(prefillRoom: string | null, prefillName: string | null
     document.body.classList.add('in-lobby');
     const name = el.querySelector<HTMLInputElement>('[data-testid=name-input]')!;
     name.value = prefillName ?? localStorage.getItem(NAME_KEY) ?? '';
-    const done = (c: Omit<JoinChoice, 'name' | 'fighter' | 'level'>) => {
+    const done = (c: Omit<JoinChoice, 'name' | 'fighter' | 'level' | 'skin'>) => {
       const n = name.value.trim();
       try { localStorage.setItem(NAME_KEY, n); } catch { /* private mode */ }
       el.remove();
       document.body.classList.remove('in-lobby');
-      resolve({ ...c, name: n, fighter, level });
+      resolve({ ...c, name: n, fighter, level, skin });
     };
     const on = (id: string, fn: () => void) => el.querySelector(`[data-testid=${id}]`)?.addEventListener('click', fn);
     // mode selector: Quick Play throws the dice, Create Room uses the picked one (T26)
@@ -97,6 +101,12 @@ export function showLobby(prefillRoom: string | null, prefillName: string | null
       el.querySelector('[data-testid=level-hint]')!.textContent = LEVEL_HINT[l];
     };
     for (const b of levelBtns) b.addEventListener('click', () => pickLevel(b.dataset.level as BotDifficulty));
+    // skin picker (backlog #3): cycles the palette swaps and remembers the last one
+    el.querySelector('[data-testid=skin-select]')!.addEventListener('click', (ev) => {
+      skin = nextSkin(skin);
+      saveSkin(skin);
+      (ev.currentTarget as HTMLButtonElement).textContent = skinLabel(skin);
+    });
     on('join-go', () => done({ room: prefillRoom!, bots: 0, invite: false, mode }));
     on('quick-play', () => done({ room: quickRoom(), bots: 3, invite: false, mode: Math.random() < 0.5 ? 'bounty' : 'treasure' }));
     on('create-room', () => done({ room: friendlyRoom(), bots: 0, invite: true, mode }));

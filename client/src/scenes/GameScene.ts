@@ -575,6 +575,8 @@ export class GameScene extends Phaser.Scene {
       // crew colours (T26): ring under every body, ally names in the crew colour
       rig.setTeam(p.tm ?? null, p.tm !== undefined && p.tm === myTeam);
       rig.setEvolved(Boolean(p.ev));
+      // palette-swap skin (backlog #3): the drawn look when the snapshot leaves `sk` out
+      rig.setSkin(p.sk ?? 0);
       rig.sync(p.x, p.y, p.a, Boolean(p.dn));
       rig.setBars(p.hp / p.mhp, p.am, def.ammo, art.color);
       // spawn shield blinks; a KO'd fighter keeps its rig for the death animation;

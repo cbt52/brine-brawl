@@ -59,6 +59,8 @@ export class Net {
         level: p.get('level') ?? undefined,
         // debug-only on the server (ALLOW_DEBUG): `?tide=high` screenshots
         tide: p.get('tide') ?? undefined,
+        // palette-swap skin from the select screen (backlog #3)
+        skin: p.get('skin') === null ? undefined : Number(p.get('skin')),
       });
     };
     ws.onmessage = (e) => {

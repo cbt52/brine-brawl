@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import { ART, FACTION_COLOR, artKey, artUrl, getArt, hurtKey, hurtUrl } from './manifest.ts';
+import { ART, FACTION_COLOR, artKey, artUrl, getArt, hurtUrl } from './manifest.ts';
+import { buildSkinTextures, pickSkinKey, queueSkinSources, skinKey } from './skinArt.ts';
 import type { Faction } from '../../../shared/fighters/types.ts';
 import { TEAM_COLORS } from '../../../shared/sim/teams.ts';
 
@@ -8,12 +9,14 @@ const hex = (c: number): string => `#${c.toString(16).padStart(6, '0')}`;
 
 export type RigState = 'idle' | 'run' | 'attack' | 'hit' | 'ko';
 
-/** Queue every fighter SVG (neutral + hurt) in a scene's `preload`. */
+/** Queue every fighter SVG (neutral + hurt) in a scene's `preload`, plus the skin copies (backlog #3). */
 export function preloadArt(scene: Phaser.Scene): void {
   for (const a of ART) {
     scene.load.svg(a.key, artUrl(a.id), { width: 128, height: 128 });
     scene.load.svg(a.hurtKey, hurtUrl(a.id), { width: 128, height: 128 });
   }
+  queueSkinSources(scene);
+  scene.load.once('complete', () => buildSkinTextures(scene));
 }
 
 export interface RigConfig {
@@ -46,6 +49,16 @@ export class FighterSprite extends Phaser.GameObjects.Container {
   private readonly feetY: number;
   private selfRing?: Phaser.GameObjects.Ellipse;
   private artId: string;
+  /** palette-swap index from the snapshot (`sk`); 0 = the drawn look */
+  private skin = 0;
+  /** the hurt face is on screen (or was, until its flash timer runs out) */
+  private faceHurt = false;
+  /** a skinned texture is still being built; redraw when it lands */
+  private waiting = false;
+  private readonly onTexture = (): void => {
+    this.waiting = false;
+    this.showFace(this.faceHurt);
+  };
   private anim: RigState = 'idle';
   private facing = 1;
   private busyUntil = 0;
@@ -115,8 +128,27 @@ export class FighterSprite extends Phaser.GameObjects.Container {
     const id = getArt(artId).id;
     if (id === this.artId) return;
     this.artId = id;
-    this.sprite.setTexture(artKey(id));
+    this.faceHurt = false;
+    this.showFace(false);
     this.sprite.setScale(this.scaleBase);
+  }
+
+  /** Palette-swap skin (backlog #3): cheap to call every snapshot, the texture only changes when needed. */
+  setSkin(skin: number): void {
+    if (skin === this.skin) return;
+    this.skin = skin;
+    this.showFace(this.faceHurt);
+  }
+
+  /** Body or hurt face in the current skin; while the skinned copy is still building, the drawn look shows. */
+  private showFace(hurt: boolean): void {
+    this.faceHurt = hurt;
+    const key = pickSkinKey(this.scene.textures, this.artId, this.skin, hurt);
+    if (this.sprite.texture.key !== key) this.sprite.setTexture(key);
+    if (this.skin && key !== skinKey(this.artId, this.skin, hurt) && !this.waiting) {
+      this.waiting = true;
+      this.scene.textures.once(Phaser.Textures.Events.ADD, this.onTexture);
+    }
   }
 
   setLabel(name: string): void {
@@ -301,7 +333,7 @@ export class FighterSprite extends Phaser.GameObjects.Container {
   /** White flash, hurt face, wobble. */
   hit(): void {
     if (this.down) return;
-    this.sprite.setTexture(hurtKey(this.artId));
+    this.showFace(true);
     this.sprite.setTintFill(0xffffff);
     this.scene.time.delayedCall(60, () => this.sprite.clearTint());
     this.wobble?.stop();
@@ -314,7 +346,7 @@ export class FighterSprite extends Phaser.GameObjects.Container {
       onComplete: () => this.sprite.setAngle(0),
     });
     this.scene.time.delayedCall(HURT_FACE_MS, () => {
-      if (!this.down) this.sprite.setTexture(artKey(this.artId));
+      if (!this.down) this.showFace(false);
     });
   }
 
@@ -339,6 +371,7 @@ export class FighterSprite extends Phaser.GameObjects.Container {
     this.stopStateTween();
     this.wobble?.stop();
     this.ultTween?.stop();
+    this.scene.textures.off(Phaser.Textures.Events.ADD, this.onTexture);
     super.destroy(fromScene);
   }
 

@@ -73,7 +73,7 @@ function onConnection(ws: WebSocket): void {
         const j = rooms.join(
           ws, msg.room, msg.name, msg.fighter, msg.bots,
           ALLOW_DEBUG ? msg.matchsec : undefined, ALLOW_DEBUG ? msg.tide : undefined, msg.mode,
-          msg.level,
+          msg.level, msg.skin,
         );
         if (!j) { send(ws, { t: 'err', msg: 'room full' }); ws.close(); return; }
         joined = j;

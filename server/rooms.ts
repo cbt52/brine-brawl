@@ -7,6 +7,7 @@ import { autoTeams, type Team } from '../shared/sim/teams.ts';
 import { randomFighterId, resolveFighterId } from '../shared/fighters/index.ts';
 import { Match, rankPlayers } from './match.ts';
 import { emoteIndex, emoteReady } from '../shared/emotes.ts';
+import { sanitizeSkin } from '../shared/skins.ts';
 
 const ROOM_RE = /^[a-z0-9-]{1,24}$/;
 const ADJ = ['Salty', 'Soggy', 'Crispy', 'Wobbly', 'Grumpy', 'Sneaky', 'Bouncy', 'Dizzy'];
@@ -184,7 +185,7 @@ export class RoomManager {
 
   join(
     ws: WebSocket, roomRaw: unknown, nameRaw: unknown, fighterRaw: unknown, botsRaw?: unknown,
-    matchSecRaw?: unknown, tideRaw?: unknown, modeRaw?: unknown, levelRaw?: unknown,
+    matchSecRaw?: unknown, tideRaw?: unknown, modeRaw?: unknown, levelRaw?: unknown, skinRaw?: unknown,
   ): { room: Room; client: Client } | null {
     const id = sanitizeRoom(roomRaw);
     let room = this.rooms.get(id);
@@ -207,6 +208,8 @@ export class RoomManager {
     };
     room.clients.set(cid, client);
     room.world.addPlayer(cid, client.name, client.fighter);
+    // skin (backlog #3): cosmetic only, so it is set straight on the sim player
+    room.world.setSkin(cid, sanitizeSkin(skinRaw));
     room.emptySince = null;
     if (room.clients.size === 1) room.botLevel = sanitizeBotLevel(levelRaw);
     if (room.clients.size === 1 && typeof botsRaw === 'number' && Number.isFinite(botsRaw)) {

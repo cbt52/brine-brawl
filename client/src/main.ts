@@ -7,7 +7,7 @@ import { Net, BUILD_ID } from './net.ts';
 import { GameScene } from './scenes/GameScene.ts';
 import { HudScene } from './scenes/HudScene.ts';
 import { showLobby } from './ui/lobby.ts';
-import { savedFighter } from './ui/select.ts';
+import { savedFighter, savedSkin } from './ui/select.ts';
 import { mountMenu, showInvite } from './ui/menu.ts';
 import { mountEmotes } from './ui/emotes.ts';
 
@@ -26,6 +26,7 @@ const savedName = localStorage.getItem('brawl.name');
 // the last picked fighter rides along on every join (the lobby grid persists it in localStorage)
 function withFighter(q: URLSearchParams): URLSearchParams {
   if (!q.get('fighter')) q.set('fighter', savedFighter());
+  if (!q.get('skin')) q.set('skin', String(savedSkin()));
   return q;
 }
 if (roomParam && (params.has('name') || params.has('bots'))) {
@@ -40,6 +41,7 @@ if (roomParam && (params.has('name') || params.has('bots'))) {
     q.set('fighter', c.fighter);
     q.set('mode', c.mode);
     q.set('level', c.level);
+    q.set('skin', String(c.skin));
     history.replaceState(null, '', `/?room=${encodeURIComponent(c.room)}`);
     net.start(q);
     mountMenu(net);

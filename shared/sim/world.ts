@@ -82,6 +82,8 @@ export interface SimPlayer {
   name: string;
   /** registry id (`shared/fighters`) */
   fighter: string;
+  /** skin index from `join` (shared/skins.ts); 0 = the drawn look */
+  skin: number;
   def: FighterDef;
   x: number;
   y: number;
@@ -208,7 +210,7 @@ export class World {
     const s = SPAWNS[(id - 1) % SPAWNS.length];
     const def = getFighter(fighter);
     const p: SimPlayer = {
-      id, name, fighter: def.id, def, x: s.x, y: s.y, r: def.radius,
+      id, name, fighter: def.id, skin: 0, def, x: s.x, y: s.y, r: def.radius,
       hp: def.maxHp, mhp: def.maxHp, speedMul: def.speedMul, aim: 0, ack: 0, input: null,
       ammo: def.ammo, reload: 0, fireCd: 0, fireLatch: false, spcCd: 0, uc: 0, dash: null, burrow: null,
       buffMul: 1, buffLeft: 0, dmgMul: 1, dmgMulLeft: 0, status: null, statusLeft: 0, rootLeft: 0, burnT: 0, trapTook: 0,
@@ -255,6 +257,12 @@ export class World {
     if (def.id === p.fighter) { p.pendingFighter = null; return false; }
     p.pendingFighter = def.id;
     return true;
+  }
+
+  /** Skin is cosmetic: it applies at once and rides every snapshot (`sk`). */
+  setSkin(id: number, skin: number): void {
+    const p = this.players.get(id);
+    if (p) p.skin = skin;
   }
 
   setInput(id: number, input: SimInput): void {
@@ -908,6 +916,7 @@ export class World {
         ev: p.evolved ? 1 : undefined,
         tm: p.team ?? undefined,
         ca: this.treasure && p.carry > 0 ? p.carry : undefined,
+        sk: p.skin || undefined,
       });
     }
     return {

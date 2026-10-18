@@ -26,6 +26,8 @@ export interface JoinMsg {
   matchsec?: number;
   /** jump the tide to a phase (`?tide=high` screenshots) — ALLOW_DEBUG servers only */
   tide?: string;
+  /** skin index from the select screen (backlog #3): 0 = drawn look, see shared/skins.ts */
+  skin?: number;
 }
 
 /** Match phases: waiting for players → 3 s countdown → playing → results → countdown… */
@@ -131,6 +133,8 @@ export interface SnapPlayer {
   ca?: number;
   /** special cooldown remaining in seconds */
   cd: number;
+  /** skin index (shared/skins.ts); absent = the drawn look */
+  sk?: number;
 }
 
 export interface SnapProj {

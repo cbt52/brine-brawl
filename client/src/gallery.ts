@@ -83,6 +83,14 @@ class GalleryScene extends Phaser.Scene {
       small.setDepth(5);
       this.rigs.push(small);
 
+      // the two palette swaps (backlog #3) sit in the free middle column, side by side
+      for (const skin of [1, 2]) {
+        const sw = new FighterSprite(this, x + inner * (0.62 + (skin - 1) * 0.15), bodyY + 14, { artId: art.id, height: 34 });
+        sw.setSkin(skin);
+        sw.setDepth(5);
+        this.rigs.push(sw);
+      }
+
       this.add
         .text(x + inner - 10, y + 7, '48 px', {
           fontFamily: 'system-ui, sans-serif',

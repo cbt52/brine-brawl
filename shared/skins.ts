@@ -4,7 +4,8 @@
  *
  * A skin rotates the hue of every *saturated, mid-light* colour in a fighter SVG. The ink outline
  * (near-black), whites and greys stay as drawn, so faces and linework keep reading. Slice 1 is not
- * wired into the game yet: nothing sends or renders a skin until slice 2.
+ * Slice 2 wires it: `join` carries the index, the room keeps it per player, and the snapshot sends
+ * it as `sk` (omitted for the drawn look). The client recolours the SVG text (`recolorSvg`).
  */
 
 export interface SkinDef {
@@ -25,6 +26,11 @@ export const SKINS: readonly SkinDef[] = [
 /** Anything out of range (or not an integer) falls back to the drawn look. */
 export function skinAt(index: number): SkinDef {
   return Number.isInteger(index) && SKINS[index] ? SKINS[index] : SKINS[0];
+}
+
+/** Wire-side check: a valid skin index (0 = drawn look) or 0 for anything else. */
+export function sanitizeSkin(raw: unknown): number {
+  return typeof raw === 'number' && Number.isInteger(raw) && raw >= 0 && raw < SKINS.length ? raw : 0;
 }
 
 /** Below this saturation a colour is a grey and never rotates. */

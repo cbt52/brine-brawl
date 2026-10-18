@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { SKINS, recolorSvg, shiftHex, skinAt } from '../../shared/skins.ts';
+import { SKINS, recolorSvg, sanitizeSkin, shiftHex, skinAt } from '../../shared/skins.ts';
+import { World } from '../../shared/sim/world.ts';
+import { pickSkinKey, skinKey } from '../../client/src/art/skinArt.ts';
 
 const DIR = join(process.cwd(), 'client/public/art');
 const svgs = readdirSync(DIR).filter((f) => f.endsWith('.svg'));
@@ -89,4 +91,43 @@ describe('recolorSvg', () => {
       }
     });
   }
+});
+
+describe('skin wiring (backlog #3 slice 2)', () => {
+  it('sanitizeSkin keeps valid indices and maps anything else to the drawn look', () => {
+    expect(sanitizeSkin(2)).toBe(2);
+    expect(sanitizeSkin(0)).toBe(0);
+    expect(sanitizeSkin(SKINS.length)).toBe(0);
+    expect(sanitizeSkin(-1)).toBe(0);
+    expect(sanitizeSkin(1.5)).toBe(0);
+    expect(sanitizeSkin('2')).toBe(0);
+    expect(sanitizeSkin(undefined)).toBe(0);
+  });
+
+  it('skin 0 keeps the old texture keys; skins get their own', () => {
+    expect(skinKey('ashka', 0)).toBe('art-ashka');
+    expect(skinKey('ashka', 1)).toBe('art-ashka-s1');
+    expect(skinKey('ashka', 2, true)).toBe('art-ashka-hurt-s2');
+  });
+
+  it('draws the drawn look until the skinned copy exists', () => {
+    const none = { exists: () => false };
+    const all = { exists: () => true };
+    expect(pickSkinKey(none, 'ashka', 2)).toBe('art-ashka');
+    expect(pickSkinKey(none, 'ashka', 2, true)).toBe('art-ashka-hurt');
+    expect(pickSkinKey(all, 'ashka', 2)).toBe('art-ashka-s2');
+    expect(pickSkinKey(all, 'ashka', 0)).toBe('art-ashka');
+  });
+
+  it('the snapshot carries the skin only when it is not the drawn look', () => {
+    const w = new World();
+    w.addPlayer(1, 'A', 'ashka');
+    w.addPlayer(2, 'B', 'ashka');
+    w.setSkin(1, 2);
+    const snap = w.snapshotFor(1);
+    expect(snap.players.find((p) => p.id === 1)?.sk).toBe(2);
+    expect(snap.players.find((p) => p.id === 2)?.sk).toBeUndefined();
+    w.setSkin(1, 0);
+    expect(w.snapshotFor(1).players.find((p) => p.id === 1)?.sk).toBeUndefined();
+  });
 });
