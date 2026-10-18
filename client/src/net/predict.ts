@@ -69,7 +69,7 @@ export function replay(
 ): Pos {
   const p = { x: from.x, y: from.y, r };
   for (const i of pending) {
-    stepMove(p, i.mx, i.my, speed * waterSpeedMul(p.x, p.y, waterLevel, area.shallows), DT, extra, bubbles, area.obstacles);
+    stepMove(p, i.mx, i.my, speed * waterSpeedMul(p.x, p.y, waterLevel, area.shallows), DT, area.obstacles, extra, bubbles);
   }
   return { x: p.x, y: p.y };
 }
@@ -139,7 +139,7 @@ export class Predictor {
     const body = { x: this.pos.x, y: this.pos.y, r: this.r };
     stepMove(
       body, i.mx, i.my, this.speed * waterSpeedMul(body.x, body.y, this.waterLevel, this.area.shallows), dt,
-      this.walls, this.bubbles, this.area.obstacles,
+      this.area.obstacles, this.walls, this.bubbles,
     );
     this.pos = { x: body.x, y: body.y };
   }

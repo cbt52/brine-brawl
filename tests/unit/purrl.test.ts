@@ -3,6 +3,7 @@ import { World } from '../../shared/sim/world.ts';
 import { makePurrl, PURRL_HEAL, PURRL_SPEED, stepPurrl } from '../../shared/sim/purrl.ts';
 import * as C from '../../shared/sim/combat.ts';
 import { OBSTACLES, SHALLOWS } from '../../shared/arena/docks.ts';
+import { DOCKS_ARENA } from '../../shared/arena/arena.ts';
 import { TICK_HZ, WORLD_W, WORLD_H } from '../../shared/constants.ts';
 
 const run = (w: World, sec: number) => { for (let i = 0; i < Math.round(sec * TICK_HZ); i++) w.step(); };
@@ -26,7 +27,7 @@ describe('Purrl: the wandering sea snail (backlog #1)', () => {
     let px = s.x;
     let py = s.y;
     for (let i = 0; i < 600 * TICK_HZ; i++) {
-      stepPurrl(s, 1 / TICK_HZ);
+      stepPurrl(s, 1 / TICK_HZ, DOCKS_ARENA);
       expect(s.x).toBeGreaterThanOrEqual(0);
       expect(s.x).toBeLessThanOrEqual(WORLD_W);
       expect(s.y).toBeGreaterThanOrEqual(0);
@@ -46,8 +47,8 @@ describe('Purrl: the wandering sea snail (backlog #1)', () => {
     const a = makePurrl(11);
     const b = makePurrl(11);
     for (let i = 0; i < 20 * TICK_HZ; i++) {
-      stepPurrl(a, 1 / TICK_HZ);
-      stepPurrl(b, 1 / TICK_HZ);
+      stepPurrl(a, 1 / TICK_HZ, DOCKS_ARENA);
+      stepPurrl(b, 1 / TICK_HZ, DOCKS_ARENA);
     }
     expect([a.x, a.y, a.a]).toEqual([b.x, b.y, b.a]);
   });

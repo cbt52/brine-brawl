@@ -14,25 +14,25 @@ const run = (w: World, s: number) => { for (let i = 0; i < Math.round(s * TICK_H
 
 describe('kelp visibility', () => {
   it('knows when a point is inside a bush', () => {
-    expect(inBush(IN_BUSH.x, IN_BUSH.y)).toBe(true);
-    expect(inBush(BUSH.x + 4, BUSH.y + 4)).toBe(true);
-    expect(inBush(BUSH.x - 40, BUSH.y - 40)).toBe(false);
-    expect(inBush(1200, 800)).toBe(false); // mid arena is open water
+    expect(inBush(IN_BUSH.x, IN_BUSH.y, BUSHES)).toBe(true);
+    expect(inBush(BUSH.x + 4, BUSH.y + 4, BUSHES)).toBe(true);
+    expect(inBush(BUSH.x - 40, BUSH.y - 40, BUSHES)).toBe(false);
+    expect(inBush(1200, 800, BUSHES)).toBe(false); // mid arena is open water
   });
 
   it('hides a bush-dweller from a far viewer but not from a close one', () => {
     const hid = { id: 2, x: IN_BUSH.x, y: IN_BUSH.y };
     const far = { id: 1, x: IN_BUSH.x + BUSH_SEE_RANGE + 50, y: IN_BUSH.y };
     const near = { id: 1, x: IN_BUSH.x + BUSH_SEE_RANGE - 20, y: IN_BUSH.y };
-    expect(canSee(far, hid)).toBe(false);
-    expect(canSee(near, hid)).toBe(true);
+    expect(canSee(far, hid, [], BUSHES)).toBe(false);
+    expect(canSee(near, hid, [], BUSHES)).toBe(true);
   });
 
   it('always shows open-ground fighters and yourself', () => {
     const open = { id: 2, x: 1200, y: 800 };
     const far = { id: 1, x: 100, y: 100 };
-    expect(canSee(far, open)).toBe(true);
-    expect(canSee({ id: 2, x: 100, y: 100 }, open)).toBe(true);
+    expect(canSee(far, open, [], BUSHES)).toBe(true);
+    expect(canSee({ id: 2, x: 100, y: 100 }, open, [], BUSHES)).toBe(true);
   });
 
   it('reveals an attacker for REVEAL_SEC and then hides them again', () => {

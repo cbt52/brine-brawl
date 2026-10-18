@@ -71,13 +71,13 @@ describe('tide clock', () => {
   });
 
   it('shrinks the pool at low tide and floods it at high tide', () => {
-    expect(waterRects(0)[0].w).toBeLessThan(POOL.w);
-    expect(waterRects(1)[0]).toMatchObject({ x: POOL.x, y: POOL.y, w: POOL.w, h: POOL.h });
-    expect(inWater(POOL_CENTRE.x, POOL_CENTRE.y, 1)).toBe(true);
-    expect(inWater(POOL_CENTRE.x, POOL_CENTRE.y, 0)).toBe(false);
-    expect(inWater(DRY.x, DRY.y, 1)).toBe(false);
-    expect(waterSpeedMul(DRY.x, DRY.y, 1)).toBe(1);
-    expect(waterSpeedMul(POOL_CENTRE.x, POOL_CENTRE.y, 1)).toBe(WATER_SLOW);
+    expect(waterRects(0, SHALLOWS)[0].w).toBeLessThan(POOL.w);
+    expect(waterRects(1, SHALLOWS)[0]).toMatchObject({ x: POOL.x, y: POOL.y, w: POOL.w, h: POOL.h });
+    expect(inWater(POOL_CENTRE.x, POOL_CENTRE.y, 1, SHALLOWS)).toBe(true);
+    expect(inWater(POOL_CENTRE.x, POOL_CENTRE.y, 0, SHALLOWS)).toBe(false);
+    expect(inWater(DRY.x, DRY.y, 1, SHALLOWS)).toBe(false);
+    expect(waterSpeedMul(DRY.x, DRY.y, 1, SHALLOWS)).toBe(1);
+    expect(waterSpeedMul(POOL_CENTRE.x, POOL_CENTRE.y, 1, SHALLOWS)).toBe(WATER_SLOW);
   });
 });
 

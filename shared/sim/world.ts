@@ -1,5 +1,4 @@
 import { TICK_HZ, WORLD_W, WORLD_H } from '../constants.ts';
-import { OBSTACLES } from '../arena/docks.ts';
 import type { Rect } from '../arena/docks.ts';
 import { DOCKS_ARENA, type Arena } from '../arena/arena.ts';
 import type { AbilitySlot, PickupKind, RoomMode, SimEvent, SnapJelly, SnapMsg, SnapPlayer, SnapVolley, Weather } from '../protocol.ts';
@@ -178,16 +177,16 @@ const clamp1 = (n: number) => (Number.isFinite(n) ? Math.max(-1, Math.min(1, n))
 /** Apply one movement step to a body; shared with client prediction.
  * `extra` holds dynamic obstacles (stone walls), so prediction can replay the same step.
  * `bubbles` holds the bubble storm (backlog #17): inside one the body walks slower and is carried up.
- * `base` is the arena's static scenery (the docks coral unless a World plays another layout). */
+ * `base` is the arena's static scenery (`Arena.obstacles`, required: no docks fallback). */
 export function stepMove(
   p: { x: number; y: number; r: number },
   mx: number,
   my: number,
   speed: number,
   dt: number,
+  base: Rect[],
   extra?: readonly Rect[],
   bubbles?: readonly Bubble[],
-  base: Rect[] = OBSTACLES,
 ): void {
   mx = clamp1(mx);
   my = clamp1(my);
@@ -543,7 +542,7 @@ export class World {
           const spd = BASE_SPEED * p.speedMul * (p.buffLeft > 0 ? p.buffMul : 1) * statusSpeedMul(p.status)
             * (flooding ? WATER_SLOW : 1);
           const rooted = p.rootLeft > 0;
-          if (!rooted) stepMove(p, i.mx, i.my, spd, dt, stone, this.bubbles, this.arena.obstacles);
+          if (!rooted) stepMove(p, i.mx, i.my, spd, dt, this.arena.obstacles, stone, this.bubbles);
         }
         if (!disabled && Number.isFinite(i.ax) && Number.isFinite(i.ay) && (i.ax !== 0 || i.ay !== 0)) p.aim = Math.atan2(i.ay, i.ax);
         p.ack = i.seq;

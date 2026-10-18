@@ -1,5 +1,5 @@
 import { WORLD_W, WORLD_H } from '../constants.ts';
-import { DOCKS_ARENA, type Arena } from '../arena/arena.ts';
+import type { Arena } from '../arena/arena.ts';
 import type { Rect } from '../arena/docks.ts';
 
 /**
@@ -90,9 +90,9 @@ function pickLeg(s: Purrl, area: Arena): void {
 
 /**
  * Advance the snail by `dt` seconds: walk the current leg, rest at its end, then pick the next one.
- * `area` is the arena it swims in (the docks unless a World plays another layout).
+ * `area` is the arena it swims in (required: every World passes its own `arena`).
  */
-export function stepPurrl(s: Purrl, dt: number, area: Arena = DOCKS_ARENA): void {
+export function stepPurrl(s: Purrl, dt: number, area: Arena): void {
   if (s.pause > 0) {
     s.pause -= dt;
     if (s.pause <= 0) pickLeg(s, area);

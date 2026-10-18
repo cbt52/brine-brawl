@@ -1,4 +1,4 @@
-import { BUSHES, type Rect } from '../arena/docks.ts';
+import type { Rect } from '../arena/docks.ts';
 
 /** Anything that hides like kelp (a bush rect already lives in `BUSHES`; steam is a circle). */
 export interface HideCircle {
@@ -20,8 +20,8 @@ export interface Body {
   revealT?: number;
 }
 
-/** True when the point lies inside any kelp bush rect (the docks kelp unless a World plays another layout). */
-export function inBush(x: number, y: number, bushes: readonly Rect[] = BUSHES): boolean {
+/** True when the point lies inside any kelp bush rect (`Arena.bushes`; required, no docks fallback). */
+export function inBush(x: number, y: number, bushes: readonly Rect[]): boolean {
   for (const b of bushes) {
     if (x >= b.x && x <= b.x + b.w && y >= b.y && y <= b.y + b.h) return true;
   }
@@ -34,7 +34,7 @@ export function inBush(x: number, y: number, bushes: readonly Rect[] = BUSHES): 
  * standing within `BUSH_SEE_RANGE`.
  */
 export function canSee(
-  viewer: Body, target: Body, hides: readonly HideCircle[] = [], bushes: readonly Rect[] = BUSHES,
+  viewer: Body, target: Body, hides: readonly HideCircle[], bushes: readonly Rect[],
 ): boolean {
   if (viewer.id === target.id) return true;
   if ((target.revealT ?? 0) > 0) return true;

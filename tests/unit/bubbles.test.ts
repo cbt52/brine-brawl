@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { World, stepMove, type SimInput } from '../../shared/sim/world.ts';
 import { replay } from '../../client/src/net/predict.ts';
+import { OBSTACLES } from '../../shared/arena/docks.ts';
 import {
   BUBBLE_COUNT, BUBBLE_LIFT, BUBBLE_R, BUBBLE_RISE, BUBBLE_SLOW, inBubble, makeBubbles, stepBubbles, type Bubble,
 } from '../../shared/sim/bubbles.ts';
@@ -60,21 +61,21 @@ describe('bubble overlap', () => {
 describe('bubble carry in stepMove', () => {
   it('leaves the walk alone when no bubble is near', () => {
     const p = { x: 1000, y: 1000, r: 32 };
-    stepMove(p, 1, 0, 100, DT);
+    stepMove(p, 1, 0, 100, DT, OBSTACLES);
     expect(p.x).toBeCloseTo(1000 + 100 * DT, 5);
     expect(p.y).toBeCloseTo(1000, 5);
   });
 
   it('slows the walk and carries the body up inside a bubble', () => {
     const p = { x: 1000, y: 1000, r: 32 };
-    stepMove(p, 1, 0, 100, DT, undefined, [bubble(1000, 1000)]);
+    stepMove(p, 1, 0, 100, DT, OBSTACLES, undefined, [bubble(1000, 1000)]);
     expect(p.x).toBeCloseTo(1000 + 100 * DT * BUBBLE_SLOW, 5);
     expect(p.y).toBeCloseTo(1000 - BUBBLE_LIFT * DT, 5);
   });
 
   it('a body standing still in a bubble is still carried up', () => {
     const p = { x: 1000, y: 1000, r: 32 };
-    stepMove(p, 0, 0, 100, DT, undefined, [bubble(1000, 1000)]);
+    stepMove(p, 0, 0, 100, DT, OBSTACLES, undefined, [bubble(1000, 1000)]);
     expect(p.y).toBeCloseTo(1000 - BUBBLE_LIFT * DT, 5);
   });
 });
@@ -126,7 +127,7 @@ describe('bubble storm in prediction', () => {
     const list = [bubble(1000, 1000)];
     const local = replay({ x: 1000, y: 1000 }, 32, [{ seq: 1, mx: 1, my: 0 }], 100, 0, undefined, list);
     const server = { x: 1000, y: 1000, r: 32 };
-    stepMove(server, 1, 0, 100, DT, undefined, list);
+    stepMove(server, 1, 0, 100, DT, OBSTACLES, undefined, list);
     expect(local.x).toBeCloseTo(server.x, 5);
     expect(local.y).toBeCloseTo(server.y, 5);
   });

@@ -4,6 +4,7 @@ import { castAbility } from '../../shared/sim/abilities.ts';
 import { getFighter, SELECTABLE } from '../../shared/fighters/index.ts';
 import { hasStatus, statusMask } from '../../shared/fighters/types.ts';
 import { canSee } from '../../shared/sim/visibility.ts';
+import { BUSHES } from '../../shared/arena/docks.ts';
 import { TICK_HZ } from '../../shared/constants.ts';
 
 const run = (w: World, s: number) => { for (let i = 0; i < Math.round(s * TICK_HZ); i++) w.step(); };
@@ -95,8 +96,8 @@ describe('Bubblebottom roster (CP8)', () => {
     run(w, 0.4);
     const zone = w.zones[0];
     expect(zone?.hides).toBe(true);
-    expect(canSee(viewer, hidden, w.zones.filter((z) => z.hides))).toBe(false);
-    expect(canSee(viewer, hidden)).toBe(true); // without the cloud he is in plain sight
+    expect(canSee(viewer, hidden, w.zones.filter((z) => z.hides), BUSHES)).toBe(false);
+    expect(canSee(viewer, hidden, [], BUSHES)).toBe(true); // without the cloud he is in plain sight
     run(w, 4);
     expect(w.zones.length).toBe(0);
   });

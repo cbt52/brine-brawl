@@ -4,7 +4,7 @@
  * water overlay share one source of truth.
  */
 import type { TidePhase, TideInfo, PickupKind } from '../protocol.ts';
-import { SHALLOWS, type Point, type Rect } from '../arena/docks.ts';
+import type { Point, Rect } from '../arena/docks.ts';
 
 export const TIDE_LOW_SEC = 35;
 export const TIDE_RISE_SEC = 5;
@@ -59,9 +59,9 @@ export function tideLevel(phase: TidePhase, left: number): number {
 
 /**
  * Water rects for a flood level: the pools shrink towards their centre as the tide goes out.
- * `pools` is the arena's flood pools (the docks shallows unless a World plays another layout).
+ * `pools` is the arena's flood pools (`Arena.shallows`; required, so no layout falls back to the docks).
  */
-export function waterRects(level: number, pools: readonly Rect[] = SHALLOWS): Rect[] {
+export function waterRects(level: number, pools: readonly Rect[]): Rect[] {
   const l = Math.max(0, Math.min(1, level));
   return pools.map((s) => {
     const inset = (1 - l) * INSET_FRAC * Math.min(s.w, s.h);
@@ -70,7 +70,7 @@ export function waterRects(level: number, pools: readonly Rect[] = SHALLOWS): Re
 }
 
 /** True when the point is inside flooded water at `level`. */
-export function inWater(x: number, y: number, level: number, pools: readonly Rect[] = SHALLOWS): boolean {
+export function inWater(x: number, y: number, level: number, pools: readonly Rect[]): boolean {
   if (level <= 0) return false;
   for (const r of waterRects(level, pools)) {
     if (x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) return true;
@@ -79,7 +79,7 @@ export function inWater(x: number, y: number, level: number, pools: readonly Rec
 }
 
 /** Speed multiplier for a body position (1 = dry land, `WATER_SLOW` = flooded). */
-export function waterSpeedMul(x: number, y: number, level: number, pools: readonly Rect[] = SHALLOWS): number {
+export function waterSpeedMul(x: number, y: number, level: number, pools: readonly Rect[]): number {
   return inWater(x, y, level, pools) ? WATER_SLOW : 1;
 }
 

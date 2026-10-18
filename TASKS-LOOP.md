@@ -457,7 +457,6 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 ## 5. IMPROVEMENT BACKLOG (ordered; T99 takes from the top; user feedback goes first)
 11. Optional ONLY if the user asks: ComfyUI portraits (127.0.0.1:8188, 2–7 min/img, 16 GB RAM, never while the user is using it).
 
-41. Arena defaults are a footgun: `waterRects`/`inWater`/`waterSpeedMul`, `inBush`/`canSee`, `stepPurrl` and `stepMove` fall back to the docks lists when no arena is passed. Once the Galleon ships, make the arena argument required at every call site (the compiler then finds a forgotten one) and drop the docks defaults.
 42. Join options are positional: `RoomManager.join` now takes 11 positional arguments (the `arena` pick was the last). Pass one `JoinOpts` object from `server/index.ts` so the next lobby option does not add a 12th, and keep the `rooms.join` call sites in one place.
 43. Galleon tips say the docks: the tips card always reads "Welcome to the docks" and lists the kelp and tide tip, which do not exist on the deck. Pick the card's heading and tips by the room's arena (`tutorialTips` takes the layout id, like the mode tip in #34).
 44. Cannon warning cue: a volley's telegraph and bar are drawn (`client/src/fx/cannonFx.ts`) but silent. Play a short warning tick the first time a lane shows `st: 'warn'` in `snap.cn`, and a thud when it turns to `fire`, in `client/src/audio/map.ts` terms (kept quiet, one cue per volley per lane).
@@ -477,10 +476,12 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 57. Cannon impact colour: the `hit` branch in `client/src/scenes/GameScene.ts` colours the impact from the attacker's element, and a cannon bar has attacker -1, so `getArt` falls back to the first fighter and every bar hit flashes that fighter's colour. For `e.src === 'cannon'`, use the bar orange from `client/src/fx/cannonFx.ts` (`BAR`) with a short splinter burst, with a unit test on the colour helper.
 
 58. Slab bump cue: a knockback or pull that a stone slab stops now halts cleanly (#40), but the victim just slides to a stop with no feedback. Emit a `bump` event when `shove()` is stopped by a solid (`shared/sim/abilities.ts`), and play a short dust puff plus a soft thud in `client/src/audio/map.ts` terms, with a unit test on the event.
+59. Predictor and World still default to the docks: `replay()`'s `area` and the predictor's `area` field (`client/src/net/predict.ts`) fall back to `DOCKS_ARENA`, and so does the `World` constructor (`shared/sim/world.ts`). Make the predictor's arena required the way #41 did for the sim helpers, so a galleon client cannot predict on the docks by accident. Decide the `World` default separately, since most unit tests call `new World()`.
 
 ---
 
 ## 6. LOG (one line per task/hotfix; archive older lines to `.loop/log-archive.md` if >40 lines)
+- T99 ✅ 2026-10-18 — Required arena lists (backlog #41): `waterRects`/`inWater`/`waterSpeedMul`, `inBush`/`canSee`, `stepPurrl`, `stepMove` take their list with no docks default (`stepMove` base moved before the optional params); compile-time guard test, check 778 grün → §5 #59
 - T99 ✅ 2026-10-18 — Knockback stops at slabs (backlog #40): `shove()` walks 6 u steps against `solids(h)` (scenery + walls), burrow landing too; 1 unit, check 776 grün → §5 #58
 - T99 ✅ 2026-10-18 — Cannon thud (backlog #39): `hit` event carries `src: 'cannon'` (`damage(…, slot, src)`), client cue `cannon` (sine 150→45 Hz + low noise) instead of the heavy bonk; 1 world + 1 audio test, check 775 grün → §5 #57
 - T99 ✅ 2026-10-18 — Skins slice 2: `join.skin` → room → `world.setSkin` → snapshot `sk`; lobby Skin button (localStorage); rig `setSkin` with async `addtexture` fallback, skin copies from recoloured SVG text; gallery shows both swaps; 4 unit tests, check 574 + e2e 19/19 + shot ok
@@ -510,14 +511,3 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T99 ✅ 2026-10-18 — Galleon part 3b (#26): bots steer + spawn on `World.arena`, dash/burrow/shove use its scenery; 2 tests, check 704 grün → §5 #26 (3c), #40
 - T99 ✅ 2026-10-18 — Galleon part 3c-1 (#26): `Arena` gets id/shallows/bushes, tide, kelp, snail + predictor use the match's arena, `MatchInfo.ar`; 5 tests, check 709 grün → §5 #26 (3d), #41
 - T99 ✅ 2026-10-18 — Galleon part 3d-1 (#26): `join.arena` picks the room's layout at creation (`arenaById`, unknown = docks), `Room` builds its `World` on it; 5 tests, check 714 grün → §5 #26 (3d-2), #42
-- T99 ✅ 2026-10-18 — Galleon deck art (#26, 3d-2a): `ArenaArt.setArena` paints the deck (`client/src/art/deckArt.ts`: planks, hull rail, crates, cannon carriages), `?arena=galleon` joins a galleon room; check 714 grün, galleon+docks shots ok → §5 #26 (lobby + telegraph), #43 (tips)
-- T99 ✅ 2026-10-18 — Galleon lobby deck pick (Docks/Galleon, sent with join) + cannon telegraph/bar (`cn` snapshot, `fx/cannonFx.ts`); 6 unit + 2 e2e, check 720 grün, lobby e2e 14/14, shot ok → §5 #26 done, #44 (cannon cue)
-- T99 ✅ 2026-10-18 — Host-only bot controls (backlog #27): `MatchInfo.host` per viewer (`Room.hostId`), ☰ bot+level buttons disabled for non-hosts with a hint; 3 unit + 1 e2e, check 723 grün, lobby e2e 6/6 → §5 #45
-- T99 ✅ 2026-10-18 — Ready count (backlog #28): `MatchInfo.rd` (connected humans who tapped / connected), "x/y ready" on the results poster, "Next round in" only once all are ready; 6 unit, check 729 grün, match e2e 4/4 → §5 #46 (auto-start vs slow tapper)
-- T99 ✅ 2026-10-18 — ☰ fighter faces (backlog #29): 16 px skinned portrait per button, follows the ☰ skin cycle (`setRowSkin`); 2 unit, check 731 grün, shot ok → §5 #47 (row wraps to 13 lines)
-- T99 ✅ 2026-10-18 — Jellyfish rain (backlog #30): `shared/sim/jellies.ts` (4 drifting jellies, 6 dmg sting, 1 s per-jelly cooldown), third Weather roll, `jl` snapshot, `fx/jellyFx.ts`; 11 unit + 1 e2e, check 742 grün, shot ok → §5 #48
-- T99 ✅ 2026-10-18 — Showdown finish banner (backlog #33): `lastSideIds` + `World.lastStandingLabel` ("CREW A" / fighter name), `Room.lastStand` → `MatchInfo.ls`, "LAST STANDING · <side>" above the table; 9 unit, check 763 grün, no screenshot → §5 #51 (title names the winner)
-- T99 ✅ 2026-10-18 — Mode tip (backlog #34): `tutorialTips(touch, mode)`, Treasure/Showdown get a 4th card (Bounty stays 3); wired in main/menu; 3 unit + 2 e2e tutorial, check 766 grün, shot ok → §5 #52 (bounty coins)
-- T99 ✅ 2026-10-18 — Killcam flake (backlog #35): `KillCam.playing(now)` judges the replay on its clock, `replaying` uses it; the stall did not reproduce (16/16 + 8/8 e2e), so the root cause is open → §5 #53; 1 unit, check 768 grün, killcam e2e 8/8 grün
-- T99 ✅ 2026-10-18 — Best KO run (backlog #36): `run`/`bestRun` per fighter in the sim (KOs since last death, reset on death and round), `ScoreRow.run` in the ranking, pirate log "Best run" row; 5 new unit tests, check 772 grün → §5 #54
-- T99 ✅ 2026-10-18 — Streak sticker never silenced (backlog #37): streak stickers skip the wheel cooldown and don't start it (`answerStreak` calls `world.emote` directly; once-per-round `streakSent` is the limit); 1 unit test rewritten, check 772 grün → §5 #55
