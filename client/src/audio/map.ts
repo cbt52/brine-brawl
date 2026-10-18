@@ -86,6 +86,9 @@ export function cueForEvent(
       return { name: 'bonk', x: e.x, y: e.y };
     case 'pick':
       return { name: 'pickup', x: e.x, y: e.y };
+    case 'combo':
+      // Crew Combo (T28): the ult fanfare at the contact point
+      return { name: 'ult', x: e.x, y: e.y };
     case 'passive':
       // faction passive stingers (T20): EVOLVE gets the fanfare, TOON LOGIC the boing
       return { name: e.p === 'evolve' ? 'ult' : e.p === 'flow' ? 'whip' : e.p === 'plunder' ? 'pickup' : 'pop', x: e.x, y: e.y };

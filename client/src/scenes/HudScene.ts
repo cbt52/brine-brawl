@@ -44,6 +44,8 @@ export class HudScene extends Phaser.Scene {
   private trGfx!: Phaser.GameObjects.Graphics;
   private trText!: Phaser.GameObjects.Text;
   private escapeText!: Phaser.GameObjects.Text;
+  /** Crew Combo banner (T28): the combo name across the middle of the screen */
+  private comboText!: Phaser.GameObjects.Text;
 
   constructor() {
     super({ key: 'hud' });
@@ -63,6 +65,7 @@ export class HudScene extends Phaser.Scene {
     this.trGfx = this.add.graphics().setDepth(9);
     this.trText = this.txt(16).setOrigin(0.5, 0).setVisible(false);
     this.escapeText = this.txt(26).setOrigin(0.5, 0).setAlpha(0);
+    this.comboText = this.txt(46).setOrigin(0.5).setAlpha(0);
     this.layout();
     this.ensureVignette();
     this.scale.on('resize', this.layout);
@@ -110,6 +113,7 @@ export class HudScene extends Phaser.Scene {
     this.pingText.setPosition(12, 64); // under the KO/ability readout, clear of the ☰ buttons
     this.cdText.setPosition(w / 2, h / 2 - 30);
     this.escapeText.setPosition(w / 2, 48);
+    this.comboText.setPosition(w / 2, h * 0.32);
     this.waitText.setPosition(w / 2, h / 2 + 60);
     this.sbText.setPosition(w / 2, h / 2);
     this.vignette?.setDisplaySize(w, h);
@@ -138,6 +142,15 @@ export class HudScene extends Phaser.Scene {
   private onToggle = (e: CustomEvent<boolean>): void => {
     this.sbPinned = !!e.detail;
   };
+
+  /** Crew Combo (T28): big centred banner for the pair name, then fade. */
+  showCombo(name: string): void {
+    if (!this.comboText) return;
+    this.tweens.killTweensOf(this.comboText);
+    this.comboText.setText(`${name}!`).setScale(1.5).setAlpha(1);
+    this.tweens.add({ targets: this.comboText, scale: 1, duration: 200, ease: 'Back.easeOut' });
+    this.tweens.add({ targets: this.comboText, alpha: 0, delay: 1050, duration: 480 });
+  }
 
   /** KO events → kill feed (last 4). */
   addEvents(events: SimEvent[], nameOf: (id: number) => string): void {

@@ -81,7 +81,15 @@ export interface PickMsg {
   fighter: string;
 }
 
-export type C2S = JoinMsg | InputMsg | DbgMsg | BotsMsg | PickMsg | { t: 'ping'; ts?: number };
+export type C2S =
+  | JoinMsg
+  | InputMsg
+  | DbgMsg
+  | BotsMsg
+  | PickMsg
+  /** start the next round right away (results screen "Rematch", T28) */
+  | { t: 'rematch' }
+  | { t: 'ping'; ts?: number };
 
 export interface SnapPlayer {
   id: number;
@@ -197,7 +205,9 @@ export type SimEvent =
   /** a faction passive fired (T20); `a` = the other fighter for PLUNDER */
   | { k: 'passive'; v: number; p: 'evolve' | 'flow' | 'plunder' | 'toon'; x: number; y: number; a?: number }
   /** a stone wall crumbled (T22) */
-  | { k: 'wall'; x: number; y: number };
+  | { k: 'wall'; x: number; y: number }
+  /** two teammates' ults paired up into a Crew Combo (T28) */
+  | { k: 'combo'; a: number; b: number; v: number; n: string; x: number; y: number };
 
 export interface SnapMsg {
   t: 'snap';

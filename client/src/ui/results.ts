@@ -3,6 +3,8 @@ import { escapeHtml } from './util.ts';
 import { wantedPoster } from './wanted.ts';
 
 let shown = -1;
+/** round whose results the player dismissed with "Change fighter" (T28) */
+let dismissed = -1;
 
 const CONFETTI_COLORS = ['#ffc93c', '#2ec4b6', '#e63946', '#ff7aa2', '#fff3b0'];
 
@@ -53,10 +55,17 @@ function posterRow(rows: ScoreRow[]): HTMLDivElement {
   return wrap;
 }
 
+/** What the results buttons do (T28): start the next round now / open the fighter picker. */
+export interface ResultsActions {
+  rematch?: () => void;
+  changeFighter?: () => void;
+}
+
 /** Show the results overlay once per round and drop it as soon as the next countdown starts. */
-export function syncResults(m: MatchInfo | undefined): void {
+export function syncResults(m: MatchInfo | undefined, actions: ResultsActions = {}): void {
   const el = document.getElementById('results');
   if (m?.st === 'results' && m.res) {
+    if (dismissed === m.r) { el?.remove(); return; }
     if (shown === m.r && el) return;
     shown = m.r;
     const rows = m.res;
@@ -69,11 +78,24 @@ export function syncResults(m: MatchInfo | undefined): void {
     div.innerHTML = `${confetti()}
       <h2 data-testid="results-title">🏆 ${escapeHtml(win?.n ?? 'Nobody')} wins!</h2>
       <ol class="rank-list" data-testid="results-list">${rows.map((r, i) => row(r, i + 1)).join('')}</ol>
+      <div class="row">
+        <button class="big" data-testid="results-rematch">Rematch</button>
+        <button class="big alt" data-testid="results-fighter">Change fighter</button>
+      </div>
       <small>Next round starting…</small>`;
     div.insertBefore(posterRow(rows), div.querySelector('.rank-list'));
+    div.querySelector('[data-testid=results-rematch]')?.addEventListener('click', () => actions.rematch?.());
+    div.querySelector('[data-testid=results-fighter]')?.addEventListener('click', () => {
+      // the ☰ panel carries the fighter row; keep this round's overlay dismissed
+      div.remove();
+      dismissed = m.r;
+      shown = -1;
+      actions.changeFighter?.();
+    });
     document.body.appendChild(div);
-  } else if (el) {
-    el.remove();
+  } else {
+    el?.remove();
     shown = -1;
+    dismissed = -1;
   }
 }

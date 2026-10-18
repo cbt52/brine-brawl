@@ -330,32 +330,10 @@ Each reaction shows a big popup word ("SHOCK!").
 Each fighter task: SVG + hurt SVG, data kit, hooks if needed, unit test per ability, gallery shot ≤1 PNG viewed.
 
 - [x] **T21 — Critterkin: Embercub + Mossback**
-  - Note: kits registered — Embercub (Flame Swipe melee cone burn / Ember Roll burn-trail dash / Bonfire aim zone that ticks burn and heals the caster), Mossback (Seed Spit 3-seed tangled spread / Shell Spin buff dmgMul 0.5 for 2 s / Overgrowth root AoE). New primitive bits: `AoeAbility.selfHeal` (zone heals its owner per ½ s tick), `AoeAbility.rootSec` (rootLeft on victims), `BuffAbility.dmgMul` + `SimPlayer.dmgMul/dmgMulLeft` applied in `World.damage`; buff summary shows the multiplier. 8 new tests, 364 green, gallery shot T21-0 shows both new cards.
-  - Test: `npm run check && npm run shot -- --name T21 --path /gallery.html`
 - [x] **T22 — Weavers: Pip Windwhistle + Brak Stonefist**
-  - Done: Pip (Gust Darts pair / Kite Lift dash / Whirlwind pull zone) and Brak (Gauntlet Pound / Stone Wall / Rockslide).
-  - New `wall` primitive in `shared/sim/walls.ts`: axis-aligned slab (200 u tall × 40 thick, 60 hp, 4 s), blocks bodies + shots, clears on round reset, drawn on its collision rect (prediction replays it too).
-  - Tests: `tests/unit/walls.test.ts` (7) + `tests/unit/weavers.test.ts` (7); `npm run check` green (378 tests).
-  - Brak's Stone Wall adds a new primitive `wall` (temporary dynamic obstacle, 4 s, HP 60, in collision + projectile blocking).
-  - Test: same pattern
 - [x] **T23 — Saltwind: Sable Tripleblade + Bisque Legsworth**
-  - Done: Sable (`shared/fighters/sable.ts`) — Twin Slash (150° arc, 15 dmg) / Claw Dash Cut (290 u, 20 contact) / Three-Tide Tempest (self AoE r 185, 12 + 8 per ½ s, 1 s). Bisque (`shared/fighters/bisque.ts`) — Ladle Kick (85° arc, 19 dmg) / Skillet Rocket Kick (320 u fire dash + burning pan-track) / Five-Course Combo (self cone 110°, r 205, 8 + 5 per ½ s, 2 s, burn). Data-only: existing primitives cover all six moves, no hooks needed. Art already on disk from T08b (`sable.svg` / `bisque.svg` + hurt faces).
-  - Tests: `tests/unit/saltwind.test.ts` (8) + selectable list in `tests/unit/fighter-stats.test.ts`; `npm run check` green (386 tests).
-  - Test: same pattern
 - [x] **T24 — Bubblebottom: Boss Pinchpenny + Hammy Divedome**
-  - Done: Pinchpenny (`shared/fighters/pinchpenny.ts`) — Coin Flick (2 piercing coins, 5° apart) / Claw Clamp (self AoE r 235, 9 dmg + pull 145 + heavy) / Register Crush (self AoE r 230, 18 dmg, drops 3 doubloons). Hammy (`shared/fighters/hammy.ts`) — Karate Chop (70° arc, 13 dmg, 4 ammo) / Tank Rocket (310 u dash, 17 contact) / Helmet Pop (r 255 field, 7 + 2 per ½ s, heavy 3 s). New data-only bit: `AoeAbility.dropGold` + `Zone.dropGold` → `World.dropGold(x,y,n)` (KO purse reuses it); art already on disk from T08b.
-  - Tests: `tests/unit/bubblebottom.test.ts` (8) + SELECTABLE list in `tests/unit/fighter-stats.test.ts`; `npm run check` green (394 tests), gallery shot T24-0.
-  - Test: same pattern
 - [x] **T25 — Balance harness + pass** · CP: yes
-  - Do:
-    - `scripts/balance.ts` (`npm run balance`): headless World with BotBrain(normal), no network, fast-forward sim.
-    - Every fighter pair runs 1v1 ×10 seeds × 60 s, plus 6-bot FFA ×20.
-    - Writes `.loop/balance.md` (winrate matrix, overall winrate, avg dmg/KO per fighter).
-    - Adjust data by ≤10% steps until every overall winrate is 40–60% (max 3 passes). Log the changes.
-    - `npm run balance -- --quick` runs in <30 s and is covered by a unit test.
-  - Checkpoint: "CP6 ✅ 12 Kämpfer", the new names plus a one-liner on balance.
-  - Test: `npm run check && npm run balance -- --quick`
-  - Note: `scripts/balance.ts` + `scripts/lib/balance.ts` (`npm run balance`, `--quick` ≈1 s): headless `World` + `BotBrain(normal)` with a seeded mulberry32, every SELECTABLE pair ×10 seeds ×60 s (fresh `World` per match, 60 s ≈ 10 s wall clock), 6-bot FFA ×20, KOs→deaths→damage decides the winner, `.loop/balance.md` holds the tables + the edit history. Enabling fix: `shared/sim/bot.ts` used the flat 380 u stand-off for every kit, so melee bots never swung and every melee kit scored 0–31 % — `prefRangeFor()` now takes 0.75× its own reach for melee kits (unit test in tests/unit/bot.test.ts). 3 data passes (all ≤10 % steps, logged in `.loop/balance.md`): outliers 11 → 5, mean winrate 50 %. Still outside 40–60 %: noodle 73, embercub 70, voltbun 66, pinchpenny 31, sudsy 27 — mobility decides bot duels more than the numbers, so the next pass goes to T99/T33. 397 unit tests green, e2e 15/15, healthz on 8720 OK.
   - Waiver (review 20261018-045112): the Do's 40–60 % band is **not** met and stays open — noodle 73 %, embercub 70 %, voltbun 66 %, pinchpenny 31 %, sudsy 27 %. The 3-pass budget is spent and mobility decides bot duels more than the numbers, so the closing pass is deferred to **T99** (first `.loop/balance.md` outlier, per §5). The harness itself is done and green.
 
 ### CP7 — "Team-Modus: Treasure Tide + Crew-Kombos"
@@ -377,7 +355,8 @@ Each fighter task: SVG + hurt SVG, data kit, hooks if needed, unit test per abil
     - Bots: collect/escort/hunt carrier roles.
     - Unit tests: win rule, drop on KO.
   - Test: `npm run check && npm run e2e`
-- [ ] **T28 — Crew Combos + spectate + rematch** · CP: yes
+- [x] **T28 — Crew Combos + spectate + rematch** · CP: yes
+  - Note: `shared/sim/combo.ts` (`COMBO_WINDOW_SEC` 1.5 / `COMBO_RADIUS` 300 / `COMBO_BONUS` 0.4 / `COMBO_BURST_RADIUS` 140, `comboName`, `comboPartner`); `AbilitySlot` threaded through the damage chokepoint (`World.damage(…, slot?)`, zones/dash/burrow/projectiles/aoe zones carry `slot`), `World.noteUltHit` keeps the last window of ult landings and on a match fires a `combo` event + a +40 % burst around the victim (buried/own crew exempt), the pair is spent so held ults can't retrigger. Client: combo banner in HudScene, golden double impact + `react`/`ult` sfx, results screen buttons (Rematch → new C2S `{t:'rematch'}` → `Room.rematch()` → `Match.rematch()` counts down at once; Change fighter opens the ☰ panel and keeps the poster dismissed), KO camera rides the killer (`spectateId`). 6 tests in tests/unit/combo.test.ts, check 428 green, e2e:all green (mobile flake reran clean), CP7 + healthz.
   - Do:
     - When two teammates' ults hit the same enemy or area within 1.5 s and 300 u → Crew Combo. It is named by element pair: Volt+Water "Storm Surge", Fire+Air "Firenado", Earth+Water "Mudslide", Leaf+Water "Bloom Burst", Fire+Earth "Magma Pop", else "Crew Combo!". Effect: +40% bonus dmg AoE + full-screen banner + unique FX.
     - While KO'd, the camera follows the killer.
@@ -539,6 +518,7 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T21 ✅ 2026-10-18 — Embercub+Mossback-Kits (Zone-SelfHeal/Tick-Burn, Root-AoE, Buff-DmgMul), 8 neue Tests, check+364 Tests+shot grün
 - T22 ✅ 2026-10-18 — Pip+Brak-Kits (Gust-Pair, Kite-Dash, Pull-Zone; Wall-Primitive `shared/sim/walls.ts`), 14 neue Tests, check+378 grün
 - T23 ✅ 2026-10-18 — Sable+Bisque-Kits (breiter Saber-Arc, Claw-Dash, Spin-Ult; Fire-Dash-Trail, 5-Gang-Combo-Cone), 8 neue Tests, check+386+shot grün
+- T28 ✅ 2026-10-18 — Crew Combos (Element-Paarnamen, +40 % Burst, 1,5 s/300 u, `slot` bis ins Damage-Chokepoint), KO-Kamera folgt Killer, Results Rematch/Change fighter; CP7, 428 Tests+e2e grün
 - T25 ✅ 2026-10-18 — Balance-Harness (`npm run balance`, --quick 1 s): 12×12-Paare ×10 Seeds ×60 s + FFA×20, `.loop/balance.md`; Bot-Nahkampf-Fix (prefRange aus der eigenen Reichweite); 3 Balance-Pässe, Outliers 11→5; CP6, 397 Tests+e2e 15/15+healthz grün
 - T27 ✅ 2026-10-18 — Treasure Tide: Sunken Chest spawnt alle 7 s eine Münze, getragene Münzen fallen bei KO, ≥10 Münzen starten 15 s Escape-Countdown (reset bei Verlust), HUD-Crew-Balken + Banner, Bot-Rollen carry/collect/escort; 13 neue Tests, check 420+e2e 15/15 grün
 - T26 ✅ 2026-10-18 — Teams: RoomMode (bounty|treasure) Lobby→Join→Room, autoTeams (sticky, Humans gespreizt), kein Friendly Fire (damage/Projektil/Ability/Element/Bot-Ziel), Crew-Ring+Ally-Namen, Bots regroup; 407 Tests+e2e 15/15 grün

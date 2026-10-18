@@ -54,6 +54,8 @@ export class GameScene extends Phaser.Scene {
   /** drawn position of the local body (predicted, see net/predict.ts) */
   self: Pos | null = null;
   private pred = new Predictor();
+  /** killer to follow while KO'd (T28); `null` = stay on the corpse */
+  private spectateId: number | null = null;
   private predReady = false;
   private camInit = false;
   private fx!: CombatFx;
@@ -148,7 +150,10 @@ export class GameScene extends Phaser.Scene {
   /** HUD lives in its own scene (screen space) — just feed it the current view. */
   private updateHud(view: SnapPlayer[]): void {
     this.hud.setMatch(this.net.last?.m, view, this.net.id, this.net.ping, this.net.last?.tide, this.net.last?.tr);
-    syncResults(this.net.last?.m);
+    syncResults(this.net.last?.m, {
+      rematch: () => this.net.send({ t: 'rematch' }),
+      changeFighter: () => window.dispatchEvent(new CustomEvent('brawl:menu')),
+    });
   }
 
   /** Low-tide treasure and standing stone walls: everything the deck itself spawns. */
@@ -541,6 +546,12 @@ export class GameScene extends Phaser.Scene {
         this.fx.impact(e.x, e.y, 0xffd23f);
       } else if (e.k === 'wall') {
         this.fx.impact(e.x, e.y, 0x8b95a6);
+      } else if (e.k === 'combo') {
+        // Crew Combo (T28): named banner + golden burst at the contact point
+        this.fx.reaction(e.x, e.y, e.n, 0xffd23f);
+        this.fx.impact(e.x, e.y, 0xffd23f);
+        this.fx.impact(e.x, e.y, 0xff7aa2);
+        this.hud.showCombo(e.n);
       } else if (e.k === 'pick') {
         this.fx.impact(e.x, e.y, e.kind === 'heal' ? 0x8bff9e : e.kind === 'gold' ? 0xffd23f : 0x9fe7ff);
       } else if (e.k === 'react') {
@@ -564,6 +575,8 @@ export class GameScene extends Phaser.Scene {
           navigator.vibrate?.(30);
         }
       } else if (e.k === 'ko') {
+        // the camera rides with the killer while we wait for the respawn (T28)
+        if (e.v === this.net.id) this.spectateId = e.a > 0 ? e.a : null;
         const victim = this.rigs.get(e.v);
         if (victim) this.fx.ko(victim.x, victim.groundY, getArt(this.kinds.get(e.v)).color);
         if (e.v === this.net.id || e.a === this.net.id) this.fx.shake('ko');
@@ -596,10 +609,15 @@ export class GameScene extends Phaser.Scene {
     }
     if (this.self && seen.has(this.net.id)) {
       const cam = this.cameras.main;
-      if (!this.camInit) { cam.centerOn(this.self.x, this.self.y); this.camInit = true; }
+      const me = view.find((p) => p.id === this.net.id);
+      // KO'd: follow the killer (falls back to the corpse when the killer left/sits in kelp)
+      const spec = me?.dn ? this.rigs.get(this.spectateId ?? -1) : undefined;
+      const tx = spec ? spec.x : this.self.x;
+      const ty = spec ? spec.y : this.self.y;
+      if (!this.camInit) { cam.centerOn(tx, ty); this.camInit = true; }
       else cam.centerOn(
-        cam.midPoint.x + (this.self.x - cam.midPoint.x) * 0.15,
-        cam.midPoint.y + (this.self.y - cam.midPoint.y) * 0.15,
+        cam.midPoint.x + (tx - cam.midPoint.x) * 0.15,
+        cam.midPoint.y + (ty - cam.midPoint.y) * 0.15,
       );
     }
   }

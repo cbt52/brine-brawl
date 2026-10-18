@@ -127,6 +127,11 @@ export class Room {
     this.assignTeams();
   }
 
+  /** "Rematch" on the results screen: count down into the next round right away (T28). */
+  rematch(): boolean {
+    return this.match.rematch() === 'countdown';
+  }
+
   /** Fighter change from the in-game menu: takes effect on the client's next respawn. */
   setFighter(c: Client, fighter: unknown): void {
     const id = resolveFighterId(fighter);

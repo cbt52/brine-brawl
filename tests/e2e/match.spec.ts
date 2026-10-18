@@ -44,3 +44,30 @@ test('a lone player waits for opponents', async ({ page }) => {
   expect(await phase(page)).toBe('waiting');
   expect(await page.evaluate(() => (window as any).__brawl.state()?.m?.t)).toBe(0);
 });
+
+test('results screen: Rematch starts the next round and Change fighter opens the picker', async ({ page }) => {
+  const room = 'rm-' + Math.random().toString(36).slice(2, 7);
+  await page.goto(`/?room=${room}&name=R&bots=1&matchsec=5`);
+  await expect.poll(() => page.evaluate(() => (window as any).__brawl.connected)).toBe(true);
+  await expect.poll(() => phase(page), { timeout: 10000 }).toBe('playing');
+  await expect(page.getByTestId('results')).toBeVisible({ timeout: 15000 });
+
+  // "Change fighter" dismisses this round's poster and opens the in-game menu with the fighter row
+  await page.getByTestId('results-fighter').click();
+  await expect(page.getByTestId('results')).toBeHidden();
+  await expect(page.getByTestId('menu')).toBeVisible();
+  await expect(page.locator('[data-testid=menu-fighters] button').first()).toBeVisible();
+  // …and the poster does not pop back while the phase is still 'results'
+  await page.waitForTimeout(400);
+  await expect(page.getByTestId('results')).toBeHidden();
+  await page.getByTestId('menu-btn').click(); // close it again so the next poster is clickable
+  await expect(page.getByTestId('menu')).toBeHidden();
+
+  // "Rematch" needs the poster, so wait for the next round's results and skip the wait
+  await expect.poll(() => phase(page), { timeout: 12000 }).toBe('countdown');
+  await expect.poll(() => phase(page), { timeout: 10000 }).toBe('playing');
+  await expect(page.getByTestId('results')).toBeVisible({ timeout: 15000 });
+  await page.getByTestId('results-rematch').click();
+  await expect.poll(() => phase(page), { timeout: 3000 }).toBe('countdown');
+  await expect(page.getByTestId('results')).toBeHidden();
+});

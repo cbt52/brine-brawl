@@ -85,6 +85,10 @@ function onConnection(ws: WebSocket): void {
       case 'pick':
         if (joined) joined.room.setFighter(joined.client, msg.fighter);
         break;
+      case 'rematch':
+        // any player may cut the results wait short (T28)
+        if (joined) joined.room.rematch();
+        break;
       case 'bots':
         // host (first human in the room) adjusts the bot count
         if (joined && joined.room.clients.keys().next().value === joined.client.id) {

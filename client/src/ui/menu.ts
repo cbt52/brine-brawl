@@ -81,10 +81,13 @@ export function mountMenu(net: Net): void {
     markFighterRow(frow, myFighter());
   };
   const setBots = (n: number) => { net.send({ t: 'bots', n: Math.max(0, Math.min(7, n)) }); };
-  btn.addEventListener('click', () => {
-    panel.style.display = panel.style.display === 'none' ? 'flex' : 'none';
+  const toggle = (open: boolean) => {
+    panel.style.display = open ? 'flex' : 'none';
     refresh();
-  });
+  };
+  btn.addEventListener('click', () => toggle(panel.style.display === 'none'));
+  // the results screen's "Change fighter" button (T28) opens the same panel
+  window.addEventListener('brawl:menu', () => toggle(true));
   q('menu-bot-plus').addEventListener('click', () => setBots(bots() + 1));
   q('menu-bot-minus').addEventListener('click', () => setBots(bots() - 1));
   const shakeBtn = q('menu-shake') as HTMLButtonElement;

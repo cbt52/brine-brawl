@@ -1,7 +1,7 @@
 import { TICK_HZ, WORLD_W, WORLD_H } from '../constants.ts';
 import { OBSTACLES, SPAWNS } from '../arena/docks.ts';
 import type { Rect } from '../arena/docks.ts';
-import type { PickupKind, RoomMode, SimEvent, SnapMsg, SnapPlayer } from '../protocol.ts';
+import type { AbilitySlot, PickupKind, RoomMode, SimEvent, SnapMsg, SnapPlayer } from '../protocol.ts';
 import { getFighter } from '../fighters/index.ts';
 import { statusMask, TRAP_BREAK_DMG, type FighterDef, type StatusKind } from '../fighters/types.ts';
 import { pushOutRect, resolveWalls, separate } from './collide.ts';
@@ -21,6 +21,9 @@ import {
   Tide, inWater, pickupFor, WATER_SLOW, WATER_WET_SEC,
 } from './tide.ts';
 import { COIN_SEC, DROP_MAX, SPOT, Treasure, teamTotals } from './treasure.ts';
+import {
+  COMBO_BONUS, COMBO_BURST_RADIUS, COMBO_WINDOW_SEC, comboName, comboPartner, type UltHit,
+} from './combo.ts';
 
 export const BASE_SPEED = 240;
 /** default body radius (kits carry their own `radius`) */
@@ -176,6 +179,8 @@ export class World {
   private nextProj = 1;
   /** rotates the pickup reward so chests do not always drop the same thing */
   private pickupRotor = 0;
+  /** recent ult landings, kept for the 1.5 s Crew Combo window (T28) */
+  private ultHits: UltHit[] = [];
 
   addPlayer(id: number, name: string, fighter = 'default', bot = false, team: Team | null = null): SimPlayer {
     const s = SPAWNS[(id - 1) % SPAWNS.length];
@@ -519,7 +524,7 @@ export class World {
             if (pr.hit.has(v.id)) continue;
             pr.hit.add(v.id);
           } else dead = true;
-          this.damage(pr.owner, v, pr.dmg, pr.x, pr.y);
+          this.damage(pr.owner, v, pr.dmg, pr.x, pr.y, pr.slot);
           // only attack shots feed FLOW; specials and ults do not (T20)
           if (pr.slot === 'attack' && !v.down) {
             const a = this.players.get(pr.owner);
@@ -552,7 +557,7 @@ export class World {
           id: this.newProjId(), owner: pr.owner, x: pr.x, y: pr.y, r: pr.aoeOnEnd.radius,
           delay: 0, dur: 0, dmg: pr.aoeOnEnd.dmg, tickDmg: 0, push: 0, pull: 0, tickPull: 0,
           coneDeg: 0, aim: 0, status: null, statusSec: 0, selfHeal: 0, rootSec: 0, dropGold: 0,
-          tickT: 0, fired: false,
+          tickT: 0, fired: false, slot: pr.slot,
         });
       }
       if (!dead && pr.left > 0) keep.push(pr);
@@ -560,8 +565,8 @@ export class World {
     this.projs = keep;
   }
 
-  /** Single damage entry point: also feeds the attacker's ult charge. */
-  damage(attacker: number, v: SimPlayer, dmg: number, x: number, y: number): void {
+  /** Single damage entry point: also feeds the attacker's ult charge and Crew Combo bookkeeping. */
+  damage(attacker: number, v: SimPlayer, dmg: number, x: number, y: number, slot?: AbilitySlot): void {
     if (v.shield > 0 || v.down || v.burrow) return;
     // no friendly fire (T26): a teammate's shot, zone or splash passes through
     if (this.friendly(attacker, v)) return;
@@ -571,6 +576,8 @@ export class World {
     v.hp = Math.max(0, v.hp - dmg);
     this.events.push({ k: 'hit', a: attacker, v: v.id, dmg, x: Math.round(x), y: Math.round(y) });
     const a = this.players.get(attacker);    if (a && a.id !== v.id && dealt > 0) a.uc = Math.min(a.def.ultCharge, a.uc + dealt * ultGainMul(a));
+    // two crewmates' ults on the same enemy or area pair up (T28)
+    if (slot === 'ult') this.noteUltHit(a, v, dealt);
     if (v.status === 'trapped' && v.hp > 0) {
       v.trapTook += dealt;
       if (v.trapTook >= TRAP_BREAK_DMG) {
@@ -610,6 +617,34 @@ export class World {
       if (spilled > 0) this.dropGold(v.x, v.y, spilled, Math.max(30, v.r + 20));
     } else this.dropCoins(v, KO_COINS);
     this.events.push({ k: 'ko', a: attacker, v: v.id, pay });
+  }
+
+  /**
+   * Crew Combo (T28): remember an ult landing and, when a crewmate's ult landed on the same enemy or
+   * within 300 u inside the last 1.5 s, add a burst of +40 % of this hit around the contact point.
+   */
+  private noteUltHit(a: SimPlayer | undefined, v: SimPlayer, dmg: number): void {
+    if (!a || dmg <= 0) return;
+    const el = a.def.ult.element ?? a.def.element;
+    const hit: UltHit = { id: a.id, team: a.team, el, x: v.x, y: v.y, v: v.id, tick: this.tick, dmg };
+    const window = Math.round(COMBO_WINDOW_SEC * TICK_HZ);
+    this.ultHits = this.ultHits.filter((h) => this.tick - h.tick <= window);
+    const partner = comboPartner(this.ultHits, hit, window);
+    this.ultHits.push(hit);
+    if (!partner) return;
+    // the pair is spent, so two held ults cannot re-trigger the combo every tick
+    this.ultHits = this.ultHits.filter((h) => h !== partner);
+    const name = comboName(partner.el, el);
+    this.events.push({
+      k: 'combo', a: partner.id, b: a.id, v: v.id, n: name, x: Math.round(v.x), y: Math.round(v.y),
+    });
+    const bonus = dmg * COMBO_BONUS;
+    for (const o of this.players.values()) {
+      if (o.down || o.burrow) continue;
+      if (Math.hypot(o.x - v.x, o.y - v.y) > COMBO_BURST_RADIUS + o.r) continue;
+      // damage() filters crews itself, so the burst never hurts the pair's own side
+      this.damage(a.id, o, bonus, o.x, o.y);
+    }
   }
 
   /** Scatter doubloon pickups around a KO'd body (the corpse pays out three coins). */

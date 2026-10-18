@@ -102,6 +102,13 @@ export class Match {
     return 'end';
   }
 
+  /** Results screen "Rematch" (T28): skip the rest of the results wait and count down now. */
+  rematch(): MatchEvent {
+    if (this.phase !== 'results') return null;
+    this.beginCountdown();
+    return 'countdown';
+  }
+
   info(): MatchInfo {
     const info: MatchInfo = { st: this.phase, t: Math.max(0, Math.ceil(this.timer)), r: this.round };
     if (this.phase === 'results') info.res = this.ranking;
