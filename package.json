@@ -18,7 +18,8 @@
     "art": "node scripts/art-gen.mjs && node scripts/blockout.mjs",
     "balance": "node --import tsx scripts/balance.ts",
     "art:3d": "node scripts/art3d.mjs",
-    "art:selftest": "node scripts/art3d.mjs selftest --still --shot T34"
+    "art:selftest": "node scripts/art3d.mjs selftest --still --shot T34",
+    "comfy": "node scripts/comfy.mjs"
   },
   "keywords": [],
   "author": "",

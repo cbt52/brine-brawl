@@ -546,7 +546,8 @@ Rules for every task:
   - Accept: same as T38. The gallery shot shows all 4 pilot sheets together, clearly distinct from each other.
   - Test: `npm run check && npm run art:3d -- sudsy --contact && npm run shot -- --name T40 --path /gallery.html --query ""`
 
-- [ ] **T41 — ComfyUI ground textures (optional)**
+- [~] **T41 — ComfyUI ground textures (optional)**
+  - Note: SKIPPED — ComfyUI wasn't running. `npm run comfy` started `Comfy Desktop` twice (`open -a`), but neither :8188 (launcher script) nor :8000 (Desktop default) answered within 3 min. The script quit the app again both times. The tooling is in place for a later manual run: `scripts/comfy.mjs` (exit 2 = already running → skip, 3 = no answer; `--keep` leaves the app open; tiles `sand-dry|sand-wet|planks|water`) + pure `scripts/lib/seamless.mjs` (per-axis cross-fade with a half-rolled copy, `seamScore`, `tileRepeat`) + `tests/unit/seamless.test.ts`. No textures were generated, so there's no ASSETS row. T42 uses Blender noise.
   - Do:
     - Write `scripts/comfy.mjs` and `npm run comfy`.
     - Use the API workflow `~/AI/ComfyUI-Shared/api/flux2-klein-t2i.json`. If it is missing, build it from the UI workflow via `/object_info`; give up after 20 min.
@@ -806,3 +807,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T38 ✅ 2026-10-18 — Mira atlas (torus prim + waves, hood/rim/braid/ribbons), 70 frames ~158 KB, feet y=113; check 831 grün
 - T39 ✅ 2026-10-18 — Noodle atlas (torus `lag` → tricorn brim, grin mouth, lanky biped), 70 frames 173 KB, feet y=113; check 837 grün
 - T40 ✅ 2026-10-18 — Sudsy atlas (blob pouf, nubs, bubbles, apron, overhead spatula chop, gap teeth), 136 KB, feet ok; check 843 grün
+- T41 ⏭ 2026-10-18 — skipped: Comfy Desktop no answer on :8188/:8000 within 3 min; `npm run comfy` + seamless lib kept; check 846 grün
