@@ -456,7 +456,6 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 ---
 ## 5. IMPROVEMENT BACKLOG (ordered; T99 takes from the top; user feedback goes first)
 11. Optional ONLY if the user asks: ComfyUI portraits (127.0.0.1:8188, 2–7 min/img, 16 GB RAM, never while the user is using it).
-13. Taffy Galleon, part 2 (slice 1 = `shared/sim/cannon.ts`, telegraph + moving bar, unit-tested, not wired): second arena data (rocking ship deck, own spawns/coral/sand), `World` + bots + prediction take an arena instead of the docks constants, lane cannons placed in that arena and damaging bodies once per volley, rocking deck art in `client/src/art/arena.ts`.
 14. Bot level in the in-game ☰ menu: the host can switch the level for bots already in the room (today the lobby picks it once, for the first human).
 15. Rematch countdown: after the results screen, the match restarts on its own 10 s after the last human taps Ready (today every human must tap Rematch).
 16. Skins everywhere: the in-game ☰ menu, the character cards and the results poster still draw the drawn look; they should show the picked skin too (`sk` is already in the snapshot, the results rows need it as well).
@@ -470,6 +469,7 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 23. Stats part 2 (slice 1 = `client/src/ui/stats.ts`, counted per finished round, panel in the lobby and the ☰ menu): win rate per fighter in the panel, and a "new best bounty" tag on the results poster (the round's bounty is already in `res`, compare it with the saved best before counting).
 24. Streak sticker: a fighter with three KOs in one round gets a bubble from the room (same four stickers, shared cooldown) so a streak reads above the body.
 25. Purrl heal feedback: when the snail heals a fighter, a small bubble ring and a "+10" pop show on that fighter (today the heal is silent apart from the number in the event list), so humans learn that the snail heals them too.
+26. Taffy Galleon, part 3 (slice 2 = `shared/arena/galleon.ts`: deck obstacles, spawns and four rail cannons, unit-tested, not wired): `World`, bots and prediction take an arena instead of the docks constants, the cannons come from `GALLEON_CANNONS` and damage bodies once per volley (`volleyHits` + `k`), rocking deck art in `client/src/art/arena.ts`.
 
 ---
 ## 6. LOG (one line per task/hotfix; archive older lines to `.loop/log-archive.md` if >40 lines)
@@ -503,3 +503,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T99 ✅ 2026-10-18 — Local stats (backlog #9): rounds/wins/KOs/best bounty/favorite in localStorage, counted once per room:round in GameScene, panel from lobby + ☰; 9 unit, check 628 grün, shot ok → §5 #23
 - T99 ✅ 2026-10-18 — Bot-Antwort (Backlog #10): Bot mit KO auf Mensch sendet 1/3 der Fälle einen Sticker (`botKoSticker`, `Room.answerKos`), gleicher Cooldown; 4 Tests, check 632 grün
 - T99 ✅ 2026-10-18 — Purrl-Suche (Backlog #12): verletzter Bot (<60 % HP), kein Gegner in Sicht, Schnecke <480 u → Zustand `snail` läuft hin (1× Heilung/Leben); 4 Tests, check 636 grün, balance 24/24 in 40–60 % (Chase-Variante drückte Dozelump/Hammy auf 37/39 %, daher nur beim Wandern)
+- T99 ✅ 2026-10-18 — Galleon slice 2 (#13): `shared/arena/galleon.ts` layout, 6 unit tests, not wired → §5 #26

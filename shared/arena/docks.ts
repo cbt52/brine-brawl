@@ -19,7 +19,7 @@ const QUAD: Rect[] = [
   { x: 560, y: 560, w: 120, h: 120 },
 ];
 
-function mirrorOf(quad: Rect[]): Rect[] {
+export function mirrorOf(quad: Rect[]): Rect[] {
   const out: Rect[] = [];
   for (const r of quad) {
     out.push(r);
