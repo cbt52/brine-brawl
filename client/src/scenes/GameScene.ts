@@ -10,6 +10,7 @@ import { Predictor } from '../net/predict.ts';
 import { KillCam } from '../net/killcam.ts';
 import { CombatFx } from '../fx/combatFx.ts';
 import { elementColor } from '../fx/style.ts';
+import { drawVolleys } from '../fx/cannonFx.ts';
 import {
   dripPhase, flameAlpha, reactionColor, reactionLabel, STATUS_ICON, statusColor, statusList, type IconKind,
 } from '../fx/statusFx.ts';
@@ -230,6 +231,7 @@ export class GameScene extends Phaser.Scene {
     for (const wl of snap.walls ?? []) this.drawWall(g, wl);
     for (const su of snap.sum ?? []) this.drawSummon(g, su, nowMs);
     if (snap.purrl) this.drawPurrl(g, snap.purrl, nowMs);
+    drawVolleys(g, arenaById(snap.m?.ar).cannons, snap.cn ?? []);
     for (const bu of snap.bb ?? []) this.drawBubble(g, bu, nowMs);
     for (const c of snap.chests ?? []) {
       const bob = Math.sin(nowMs / 420 + c.id) * 2;

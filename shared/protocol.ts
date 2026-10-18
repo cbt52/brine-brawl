@@ -241,6 +241,15 @@ export interface SnapPurrl {
   a: number;
 }
 
+/** A deck cannon with a volley on its lane (backlog #26): `i` indexes the arena's cannons. */
+export interface SnapVolley {
+  i: number;
+  /** `warn` = the telegraph, `fire` = the moving bar */
+  st: 'warn' | 'fire';
+  /** seconds since this stage began */
+  age: number;
+}
+
 /** A bubble of the bubble storm (backlog #17); fighters inside it are carried up and slowed. */
 export interface SnapBubble {
   id: number;
@@ -310,6 +319,8 @@ export interface SnapMsg {
   purrl?: SnapPurrl;
   /** bubble storm bubbles, only in a bubble-storm round (backlog #17) */
   bb?: SnapBubble[];
+  /** deck cannon volleys in flight, only on arenas with cannons (backlog #26) */
+  cn?: SnapVolley[];
   /** Treasure Tide crew totals + escape countdown (T27) */
   tr?: TreasureInfo;
   /** match phase + timer (added by the room) */

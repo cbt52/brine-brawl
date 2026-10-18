@@ -55,16 +55,26 @@ export function volleyAt(c: Cannon, t: number): Volley | null {
   return { k, stage: 'fire', age: fired };
 }
 
+/**
+ * Where a fired bar is along its lane (distances from the muzzle): `tail` to `head`.
+ * Null while the volley is still telegraphing or the bar has not left the muzzle yet.
+ */
+export function barSpan(c: Cannon, v: Pick<Volley, 'stage' | 'age'>): { tail: number; head: number } | null {
+  if (v.stage !== 'fire') return null;
+  const travelled = v.age * SHOT_SPEED;
+  const head = Math.min(travelled, c.range);
+  const tail = Math.max(0, travelled - SHOT_LEN);
+  if (tail > head) return null;
+  return { tail, head };
+}
+
 /** Is a fighter-sized body (centre x,y, radius r) inside the moving bar of this volley right now? */
 export function volleyHits(c: Cannon, v: Volley, x: number, y: number, r: number): boolean {
-  if (v.stage !== 'fire') return false;
+  const span = barSpan(c, v);
+  if (!span) return false;
   const dx = x - c.x;
   const dy = y - c.y;
   const along = dx * Math.cos(c.a) + dy * Math.sin(c.a);
   const across = -dx * Math.sin(c.a) + dy * Math.cos(c.a);
-  const travelled = v.age * SHOT_SPEED;
-  const head = Math.min(travelled, c.range);
-  const tail = Math.max(0, travelled - SHOT_LEN);
-  if (tail > head) return false;
-  return Math.abs(across) <= SHOT_WIDTH / 2 + r && along >= tail - r && along <= head + r;
+  return Math.abs(across) <= SHOT_WIDTH / 2 + r && along >= span.tail - r && along <= span.head + r;
 }

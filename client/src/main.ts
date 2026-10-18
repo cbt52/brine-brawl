@@ -35,7 +35,7 @@ if (roomParam && (params.has('name') || params.has('bots'))) {
   mountMenu(net, fxOpts.mobile);
   mountTutorial(fxOpts.mobile);
 } else {
-  void showLobby(roomParam, params.get('name') ?? savedName).then((c) => {
+  void showLobby(roomParam, params.get('name') ?? savedName, params.get('arena')).then((c) => {
     const q = new URLSearchParams(params);
     q.set('room', c.room);
     if (c.name) q.set('name', c.name);
@@ -44,6 +44,7 @@ if (roomParam && (params.has('name') || params.has('bots'))) {
     q.set('mode', c.mode);
     q.set('level', c.level);
     q.set('skin', String(c.skin));
+    q.set('arena', c.arena);
     history.replaceState(null, '', `/?room=${encodeURIComponent(c.room)}`);
     net.start(q);
     mountMenu(net, fxOpts.mobile);

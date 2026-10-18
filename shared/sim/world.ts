@@ -2,7 +2,7 @@ import { TICK_HZ, WORLD_W, WORLD_H } from '../constants.ts';
 import { OBSTACLES } from '../arena/docks.ts';
 import type { Rect } from '../arena/docks.ts';
 import { DOCKS_ARENA, type Arena } from '../arena/arena.ts';
-import type { AbilitySlot, PickupKind, RoomMode, SimEvent, SnapMsg, SnapPlayer, Weather } from '../protocol.ts';
+import type { AbilitySlot, PickupKind, RoomMode, SimEvent, SnapMsg, SnapPlayer, SnapVolley, Weather } from '../protocol.ts';
 import { getFighter } from '../fighters/index.ts';
 import { statusMask, TRAP_BREAK_DMG, type FighterDef, type StatusKind } from '../fighters/types.ts';
 import { pushOutRect, resolveWalls, separate } from './collide.ts';
@@ -556,6 +556,17 @@ export class World {
     this.stepCannons();
   }
 
+  /** Cannon volleys on their lanes right now (backlog #26): the client draws telegraphs and bars from these. */
+  private volleySnap(): SnapVolley[] | undefined {
+    const t = this.tick / TICK_HZ;
+    const out: SnapVolley[] = [];
+    this.arena.cannons.forEach((c, i) => {
+      const v = volleyAt(c, t);
+      if (v) out.push({ i, st: v.stage, age: Math.round(v.age * 100) / 100 });
+    });
+    return out.length ? out : undefined;
+  }
+
   /** Deck cannons (slice 3a): a volley's moving bar damages each body it crosses, once per volley. */
   private stepCannons(): void {
     if (!this.arena.cannons.length) return;
@@ -1023,6 +1034,7 @@ export class World {
       purrl: {
         x: Math.round(this.purrl.x), y: Math.round(this.purrl.y), a: Math.round((this.purrl.a * 180) / Math.PI),
       },
+      cn: this.volleySnap(),
       bb: this.bubbles.length
         ? this.bubbles.map((b) => ({ id: b.id, x: Math.round(b.x), y: Math.round(b.y), r: b.r }))
         : undefined,

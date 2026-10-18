@@ -4,6 +4,7 @@ import { escapeHtml } from './util.ts';
 import { showStats } from './statsPage.ts';
 import type { RoomMode } from '../../../shared/protocol.ts';
 import { BOT_LEVELS, type BotDifficulty } from '../../../shared/sim/bot.ts';
+import { arenaById, type ArenaId } from '../../../shared/arena/arena.ts';
 
 export interface JoinChoice {
   room: string;
@@ -19,7 +20,14 @@ export interface JoinChoice {
   level: BotDifficulty;
   /** palette-swap skin index from the select screen (backlog #3) */
   skin: number;
+  /** deck for a room created now; an open room keeps its own (backlog #26) */
+  arena: ArenaId;
 }
+
+const ARENA_HINT: Record<ArenaId, string> = {
+  docks: 'Bubblebottom Docks: kelp, tide pools and the rising tide',
+  galleon: 'Taffy Galleon: a dry deck with cannon lanes',
+};
 
 const LEVEL_HINT: Record<BotDifficulty, string> = {
   easy: 'Easy bots miss a lot and react slowly',
@@ -36,7 +44,7 @@ const MODE_HINT: Record<RoomMode, string> = {
 const NAME_KEY = 'brawl.name';
 
 /** Full-screen lobby. Resolves once the player picks how to enter. */
-export function showLobby(prefillRoom: string | null, prefillName: string | null): Promise<JoinChoice> {
+export function showLobby(prefillRoom: string | null, prefillName: string | null, prefillArena: string | null = null): Promise<JoinChoice> {
   return new Promise((resolve) => {
     const el = document.createElement('div');
     el.id = 'lobby';
@@ -47,6 +55,8 @@ export function showLobby(prefillRoom: string | null, prefillName: string | null
     let mode: RoomMode = 'bounty';
     let level: BotDifficulty = 'normal';
     let skin = savedSkin();
+    // a ?arena= link starts on that deck; the picker can still change it before Create Room
+    let arena: ArenaId = arenaById(prefillArena).id;
     el.innerHTML = `<div class="lobby-inner">
       <h1 class="title"><span>B</span><span>R</span><span>I</span><span>N</span><span>E</span> <span>B</span><span>R</span><span>A</span><span>W</span><span>L</span></h1>
       <input class="field" data-testid="name-input" maxlength="12" placeholder="Your pirate name" autocomplete="off" />
@@ -60,6 +70,11 @@ export function showLobby(prefillRoom: string | null, prefillName: string | null
         <button class="big sm alt mode" data-mode="showdown" data-testid="mode-showdown">Showdown</button>
       </div>
       <p class="sub small" data-testid="mode-hint">${MODE_HINT[mode]}</p>
+      <div class="row mode-row" data-testid="arena-select">
+        <button class="big sm mode${arena === 'docks' ? ' on' : ' alt'}" data-arena="docks" data-testid="arena-docks">Docks</button>
+        <button class="big sm mode${arena === 'galleon' ? ' on' : ' alt'}" data-arena="galleon" data-testid="arena-galleon">Galleon</button>
+      </div>
+      <p class="sub small" data-testid="arena-hint">${ARENA_HINT[arena]}</p>
       <div class="row mode-row" data-testid="level-select">
         ${BOT_LEVELS.map((l) => `<button class="big sm mode${l === level ? ' on' : ' alt'}" data-level="${l}" data-testid="level-${l}">${l[0].toUpperCase()}${l.slice(1)}</button>`).join('')}
       </div>
@@ -79,12 +94,12 @@ export function showLobby(prefillRoom: string | null, prefillName: string | null
     document.body.classList.add('in-lobby');
     const name = el.querySelector<HTMLInputElement>('[data-testid=name-input]')!;
     name.value = prefillName ?? localStorage.getItem(NAME_KEY) ?? '';
-    const done = (c: Omit<JoinChoice, 'name' | 'fighter' | 'level' | 'skin'>) => {
+    const done = (c: Omit<JoinChoice, 'name' | 'fighter' | 'level' | 'skin' | 'arena'>) => {
       const n = name.value.trim();
       try { localStorage.setItem(NAME_KEY, n); } catch { /* private mode */ }
       el.remove();
       document.body.classList.remove('in-lobby');
-      resolve({ ...c, name: n, fighter, level, skin });
+      resolve({ ...c, name: n, fighter, level, skin, arena });
     };
     const on = (id: string, fn: () => void) => el.querySelector(`[data-testid=${id}]`)?.addEventListener('click', fn);
     // mode selector: Quick Play throws the dice, Create Room uses the picked one (T26)
@@ -99,6 +114,18 @@ export function showLobby(prefillRoom: string | null, prefillName: string | null
       el.querySelector('[data-testid=mode-hint]')!.textContent = MODE_HINT[m];
     };
     for (const b of modeBtns) b.addEventListener('click', () => pickMode(b.dataset.mode as RoomMode));
+    // deck picker (backlog #26): the pick is sent with every join; the server only reads it for a new room
+    const arenaBtns = [...el.querySelectorAll<HTMLButtonElement>('[data-arena]')];
+    const pickArena = (a: ArenaId) => {
+      arena = a;
+      for (const b of arenaBtns) {
+        const active = b.dataset.arena === a;
+        b.classList.toggle('on', active);
+        b.classList.toggle('alt', !active);
+      }
+      el.querySelector('[data-testid=arena-hint]')!.textContent = ARENA_HINT[a];
+    };
+    for (const b of arenaBtns) b.addEventListener('click', () => pickArena(b.dataset.arena as ArenaId));
     // bot level selector (T99): Quick Play and any bots the host adds later use it
     const levelBtns = [...el.querySelectorAll<HTMLButtonElement>('[data-level]')];
     const pickLevel = (l: BotDifficulty) => {
