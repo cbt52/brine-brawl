@@ -324,6 +324,19 @@ Each reaction shows a big popup word ("SHOCK!").
   - Note: `shared/sim/bounty.ts` (`BOUNTY_START` 100, +100 per KO, purse `50 + 50 %` floored, 3 coins, `crownHolder`); `SimPlayer.bounty`/`gold`, KO pays the killer + drops 3 gold pickups, victim resets to 100, `resetScores` clears bounty+stash; snapshot `b`, `ScoreRow {b,f}`, `rankPlayers` sorts by bounty; HUD shows own bounty + bounty scoreboard, GameScene draws the crown + `WANTED` tag over the leader; results = canvas parchment posters (`client/src/ui/wanted.ts`, portrait from `/art/<id>.svg`) with runner-up mini sheets; 9 tests in tests/unit/bounty.test.ts, 339 green, e2e 15/15; shot T19-0.
 
 - [x] **T20 — Faction passives** · CP: yes
+  - Do:
+    - `shared/sim/passives.ts` with the four faction passives from §2.6:
+      - EVOLVE (Critterkin): 2 KOs without dying → +12 % size, +20 % max HP, +25 % ult gain; lost on KO.
+      - FLOW (Weavers): 3 attack hits within 3 s → the next attack deals +50 % dmg and ×2 status duration.
+      - PLUNDER (Saltwind): a KO steals 30 % of the victim's ult charge and pays +25 % bounty.
+      - TOON LOGIC (Bubblebottom): once per life a lethal hit leaves 1 HP plus a 0.5 s pancake (immobile).
+    - Reset the passive state on spawn/death; expose it in the snapshot (`ev`).
+    - Client: golden crest + aura on an evolved toon, ribbon swirl on FLOW, flying coins on PLUNDER,
+      BOING! + stars on TOON LOGIC, one sound stinger per passive, and a passive line on every
+      character card (select screen).
+    - Unit tests for all four passives and their resets.
+  - Test: `npm run check`
+  - Checkpoint: CP5 — see §0.7 (`npm run e2e` green, `scripts/serve.sh` + `curl -sf http://127.0.0.1:8720/healthz`, `.loop/checkpoint.md` written).
   - Note: `shared/sim/passives.ts` (EVOLVE 2 KOs → +12 % r, +20 % mhp, +25 % ult via `ultGainMul`; FLOW 3 attack hits in 3 s → next attack ×1.5 dmg, ×2 status via a `CastMod` into `castAbility`, projectiles carry `slot`, melee counted in the primitive; PLUNDER steals 30 % uc + `bountyAfterKO(b, 1.25)`; TOON LOGIC 1-HP save + 0.5 s pancake in `damage()`), spawn/death resets, snapshot `ev`; client: golden aura + crest (`drawEvolved`), `rig.setEvolved` 1.12, `rig.pancake`, `fx.passive` (aura burst / ribbon swirl / flying coins / BOING! + star), passive sound stingers, passive line on every character card; 8 tests in tests/unit/passives.test.ts, 347 green, smoke OK, e2e 15/15, shot T20-0.
 
 ### CP6 — "Die Crew wächst: 12 Kämpfer + Balance"
@@ -519,4 +532,7 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T14 ✅ 2026-10-18 — Arena-Art in RenderTexture (Sand/Planken/Korallen/Shallows/Waves), Kelp-Büsche verstecken Kämpfer (200 u / 1 s Reveal, Bots+Snapshot gefiltert); check+shot grün
 - T15 ✅ 2026-10-18 — Prozedurales Audio (11 Presets, Distanz-Dämpfung, iOS-Unlock, Shanty-Loop, ☰ Sound/Music-Toggles, cast-slot für Ult-SFX); cp1-e2e-Position aus dem Busch; check+e2e grün
 - T19 ✅ 2026-10-18 — Bounty Brawl: 100-Start, KO-Purse 50+50 %, +100 Bounty, 3 Münzen, Krone+WANTED-Marker, WANTED-Poster-Results; check+339 Tests+e2e 15/15 grün
+- T17 ✅ 2026-10-18 — Elemente/Statuses: 6-Reaktions-Tabelle, Burn-Tick, Mud-Root, Steam-Cloud, st-Bitmaske, Status-FX+Reaktionsworte; check grün
+- T18 ✅ 2026-10-18 — Rising Tide: 35/5/15/5-Zyklus, Flut-Rects + Wading-Slow/Wet, Schock-Kette, Low-Tide-Chests+Pickups, Tide-Meter+Hupe; 13 Tests grün
+- RF ✅ 2026-10-18 — Review 042545: Edge-Cadence (quantized dir, EDGE_MS=TICK_MS), Burn-KO, Ability-Element-Fallback, Chest-Seeding, T20-Spec+Logs; 356 Tests+e2e 15/15 grün
 - T20 ✅ 2026-10-18 — Fraktions-Passives (EVOLVE/FLOW/PLUNDER/TOON LOGIC) im Sim + Aura/Krone/Ribbon/Münzen/Pancake-FX, Passiv-Zeile auf den Karten; CP5, check+347 Tests+smoke+e2e grün

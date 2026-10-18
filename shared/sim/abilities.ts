@@ -169,6 +169,8 @@ export function castAbility(
 ): boolean {
   const ax = Math.cos(p.aim);
   const ay = Math.sin(p.aim);
+  // an ability without an explicit element hits with the fighter's own element (types.ts:40-41)
+  const defEl = def.element ?? p.def.element;
 
   switch (def.kind) {
     case 'projectile': {
@@ -185,7 +187,7 @@ export function castAbility(
           left: def.range, dmg, r: def.radius,
           pierce: !!def.pierce, bounces: Math.max(0, Math.floor(def.bounce ?? 0)),
           lob: !!def.lob, aoeOnEnd: def.aoeOnEnd, hit: new Set(),
-          status: def.status, statusSec, element: hitElement(def.element, def.status), slot,
+          status: def.status, statusSec, element: hitElement(defEl, def.status), slot,
         });
       }
       break;
@@ -205,7 +207,7 @@ export function castAbility(
         if (slot === 'attack' && !v.down) noteAttackHit(p);
         if (def.knockback) shove(v, d > 1e-6 ? dx / d : ax, d > 1e-6 ? dy / d : ay, def.knockback);
         if (!v.down && v.shield <= 0) {
-          const el = hitElement(def.element, def.status);
+          const el = hitElement(defEl, def.status);
           const react = applyElementHit(h, p.id, v, def.status ?? null, statusSec, el);
           if (react === null && def.status) h.events.push({ k: 'status', v: v.id, s: def.status, sec: statusSec || 1 });
         }
@@ -221,7 +223,7 @@ export function castAbility(
           ? {
             radius: def.trailZone.radius, dmg: def.trailZone.dmg ?? 0,
             status: def.trailZone.status ?? null, statusSec: def.trailZone.statusSec ?? 0,
-            element: hitElement(def.element ?? def.trailZone.element, def.trailZone.status),
+            element: hitElement(def.element ?? def.trailZone.element ?? p.def.element, def.trailZone.status),
           }
           : null,
         trailT: 0,
@@ -237,7 +239,7 @@ export function castAbility(
         dmg: def.dmg,
         status: def.status ?? null,
         statusSec: def.statusSec ?? 0,
-        element: hitElement(def.element, def.status),
+        element: hitElement(defEl, def.status),
       };
       p.dash = null;
       break;
@@ -251,7 +253,7 @@ export function castAbility(
         dmg: def.dmg, tickDmg: def.tickDmg ?? 0, push: def.push ?? 0, pull: def.pull ?? 0,
         tickPull: def.tickPull ?? 0, coneDeg: def.coneDeg ?? 0, aim: p.aim,
         status: def.status ?? null, statusSec: def.statusSec ?? 0,
-        element: hitElement(def.element, def.status),
+        element: hitElement(defEl, def.status),
         tickT: 0, fired: false,
       });
       break;
@@ -272,7 +274,7 @@ export function castAbility(
         if (Math.hypot(v.x - sx, v.y - sy) > def.radius + v.r) continue;
         if (def.dmg) h.damage(p.id, v, def.dmg, v.x, v.y);
         if (!v.down) {
-          const el = hitElement(def.element, def.status);
+          const el = hitElement(defEl, def.status);
           const react = applyElementHit(h, p.id, v, def.status, def.sec, el);
           if (react === null) h.events.push({ k: 'status', v: v.id, s: def.status, sec: def.sec });
         }

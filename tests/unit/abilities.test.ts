@@ -495,3 +495,44 @@ describe('T11 kits: Cap\'n Noodle + Sudsy Loofah', () => {
     expect(c.hp).toBe(c.mhp - 14);
   });
 });
+
+describe('element + death edge cases (review fixes)', () => {
+  it('an ability without an element hits with the fighter element', () => {
+    const { w, a, b } = setup('voltbun', 300);
+    const atk = getFighter('voltbun').attack;
+    expect(atk.element).toBeUndefined();
+    castAbility(w, a, atk);
+    expect(w.projs).toHaveLength(2);
+    for (const pr of w.projs) expect(pr.element).toBe('volt');
+    run(w, 0.6);
+    // the volt hit reacts like any volt hit (static), not like a neutral one
+    expect(b.hp).toBeLessThan(b.mhp);
+  });
+
+  it('an explicit ability element still wins over the fighter element', () => {
+    const { w, a } = setup('voltbun', 300);
+    castAbility(w, a, { kind: 'projectile', count: 1, spread: 0, speed: 900, range: 400, dmg: 5, radius: 6, element: 'fire' });
+    expect(w.projs[0].element).toBe('fire');
+  });
+
+  it('a corpse does not move or cast on the tick the burn kills it', () => {
+    const w = new World();
+    const p = w.addPlayer(1, 'A');
+    p.x = 1000; p.y = 1000; p.shield = 0;
+    p.hp = 1;
+    p.status = 'burn'; p.statusLeft = 10;
+    w.setInput(1, inp({ mx: 1, spc: true }));
+    let died = false;
+    for (let i = 0; i < TICK_HZ * 2 && !died; i++) {
+      const x0 = p.x;
+      w.clearEvents();
+      w.step();
+      if (p.down) {
+        died = true;
+        expect(p.x).toBe(x0); // no movement after the burn KO
+        expect(w.events.some((e) => e.k === 'cast' && e.id === 1)).toBe(false);
+      }
+    }
+    expect(died).toBe(true);
+  });
+});

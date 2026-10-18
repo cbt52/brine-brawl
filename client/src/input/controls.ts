@@ -3,11 +3,7 @@ import type { InputMsg, SnapPlayer } from '../../../shared/protocol.ts';
 import { DEFAULT_FIGHTER, getFighter } from '../../../shared/fighters/index.ts';
 import type { Net } from '../net.ts';
 import { TouchControls, isTouchDevice } from './touch.ts';
-import { TICK_MS, ticksDue } from './cadence.ts';
-
-/** A fresh move direction may go out at once (on top of the tick cadence), but never closer than
- * this: 8 ms caps the stream at ~30 + a few edge sends/s, far below the server's 60 msg/s cap. */
-const EDGE_MS = 8;
+import { TICK_MS, edgeDue, ticksDue } from './cadence.ts';
 
 /** Keyboard + mouse, plus twin-stick touch controls (see touch.ts). */
 export class Controls {
@@ -131,13 +127,16 @@ export class Controls {
     const m = this.poll();
     const due = ticksDue(this.acc, frameMs);
     this.acc = due.acc;
-    const dir = `${m.mx},${m.my}`;
+    // quantized: the touch joystick returns a raw float vector that changes on every rendered
+    // frame, so a raw comparison would count almost every frame as a direction change
+    const dir = `${m.mx.toFixed(1)},${m.my.toFixed(1)}`;
     const moved = dir !== this.lastDir;
     this.lastDir = dir;
     if (due.n > 0) {
       for (let i = 0; i < due.n; i++) this.send(now, m);
-    } else if (moved && now - this.lastSent >= EDGE_MS) {
+    } else if (edgeDue(due.n, moved, now, this.lastSent)) {
       this.send(now, m);
+      this.acc = 0; // the edge send covers the tick fraction that was pending
     }
   }
 }

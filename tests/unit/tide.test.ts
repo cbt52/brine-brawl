@@ -26,7 +26,7 @@ function atPhase(phase: 'low' | 'rising' | 'high' | 'falling'): World {
   return w;
 }
 
-/** A world that has actually *entered* the low tide (that is what spawns the chests). */
+/** A world whose tide has cycled into a low phase (chests are stocked by the first low step). */
 function withChests(): World {
   const w = new World();
   w.tide.force('falling');
@@ -81,6 +81,35 @@ describe('tide clock', () => {
 });
 
 describe('treasure chests', () => {
+  it('is already stocked on the first step of a fresh round (round start is low tide)', () => {
+    const w = new World();
+    expect(w.tide.phase).toBe('low');
+    expect(w.chests).toHaveLength(0); // nothing before the first tick
+    w.step();
+    expect(w.chests).toHaveLength(CHEST_SPOTS.length);
+    // a new round restocks the pools instead of waiting for the next low tide
+    w.chests = [];
+    w.resetScores();
+    w.step();
+    expect(w.chests).toHaveLength(CHEST_SPOTS.length);
+  });
+
+  it('keeps a picked-clean pool empty until the tide comes back in', () => {
+    const w = withChests();
+    w.chests = [];
+    run(w, 1);
+    expect(w.tide.phase).toBe('low');
+    expect(w.chests).toHaveLength(0);
+  });
+
+  it('a debug tide jump re-syncs the loot (?tide=low shows chests)', () => {
+    const w = new World();
+    w.debugTide('high');
+    expect(w.chests).toHaveLength(0);
+    w.debugTide('low');
+    expect(w.chests).toHaveLength(CHEST_SPOTS.length);
+  });
+
   it('surfaces at low tide and is swallowed by the rising flood', () => {
     const w = withChests();
     expect(w.tide.phase).toBe('low');

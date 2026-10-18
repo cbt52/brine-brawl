@@ -144,6 +144,8 @@ export class World {
   tide = new Tide();
   /** low-tide treasure chests */
   chests: Chest[] = [];
+  /** true once the current low tide has been stocked, so a round does not wait for the next one */
+  private lootSeeded = false;
   /** unclaimed chest rewards */
   picks: Pickup[] = [];
   private nextProj = 1;
@@ -193,6 +195,13 @@ export class World {
     p.input = input;
   }
 
+  /** Put a fresh chest on every low-tide spot. */
+  private seedChests(): void {
+    this.chests = CHEST_SPOTS.map((s, i) => ({
+      id: this.newProjId(), x: s.x, y: s.y, hp: CHEST_HP, mhp: CHEST_HP, bob: i * 1.7,
+    }));
+  }
+
   /** Live projectiles and zones share one id source (ids only need to be unique in a snapshot). */
   newProjId(): number {
     return this.nextProj++;
@@ -204,12 +213,13 @@ export class World {
    */
   private stepTide(dt: number): void {
     const entered = this.tide.step(dt);
-    if (entered === 'low') {
-      this.chests = CHEST_SPOTS.map((s, i) => ({
-        id: this.newProjId(), x: s.x, y: s.y, hp: CHEST_HP, mhp: CHEST_HP, bob: i * 1.7,
-      }));
-    } else if (entered === 'rising') {
-      this.chests = []; // the flood swallows whatever is left
+    if (entered === 'rising') this.chests = []; // the flood swallows whatever is left
+    // stock the pools as soon as the tide is low — the round may start mid-low, and that is when the
+    // treasure is on the sand (§2.10); one seeding per low tide, so a picked-clean pool stays empty
+    if (this.tide.phase === 'low') {
+      if (!this.lootSeeded) { this.seedChests(); this.lootSeeded = true; }
+    } else {
+      this.lootSeeded = false;
     }
     if (!this.picks.length) return;
     const keep: Pickup[] = [];
@@ -291,6 +301,8 @@ export class World {
       } else {
         p.burnT = 0;
       }
+      // the burn can be the killing blow: the corpse must not move/reload/fire on this tick
+      if (p.down) continue;
       // a bubble trap holds the victim in place; a stun locks input the same way, a toon pancake
       // only freezes for its half second (TOON LOGIC, T20)
       const trapped = p.status === 'trapped';
@@ -566,7 +578,11 @@ export class World {
 
   /** Debug: jump the tide to the start of a phase (`?tide=high` screenshots). */
   debugTide(phase: string): void {
-    if (phase === 'low' || phase === 'rising' || phase === 'high' || phase === 'falling') this.tide.force(phase);
+    if (phase !== 'low' && phase !== 'rising' && phase !== 'high' && phase !== 'falling') return;
+    this.tide.force(phase);
+    // keep the loot in sync with the jump (`?tide=low` screenshots must show chests)
+    this.lootSeeded = false;
+    if (phase === 'low') { this.seedChests(); this.lootSeeded = true; } else this.chests = [];
   }
 
   clearEvents(): void {
@@ -578,6 +594,8 @@ export class World {
    * results screens talk about this round only; positions, HP and live projectiles stay.
    */
   resetScores(): void {
+    // the pools are stocked again for the new round (the next step seeds them while the tide is low)
+    this.lootSeeded = false;
     for (const p of this.players.values()) {
       p.kos = 0;
       p.deaths = 0;
