@@ -2,6 +2,7 @@ services:
   - type: web
     name: brine-brawl
     runtime: docker
+    branch: loop/brawler
     plan: free
     region: frankfurt
     dockerfilePath: ./Dockerfile
