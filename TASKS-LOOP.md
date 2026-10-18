@@ -457,7 +457,6 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 ## 5. IMPROVEMENT BACKLOG (ordered; T99 takes from the top; user feedback goes first)
 11. Optional ONLY if the user asks: ComfyUI portraits (127.0.0.1:8188, 2–7 min/img, 16 GB RAM, never while the user is using it).
 
-45. Host hand-over toast: the bot controls now follow the host role (`MatchInfo.host`), so when the host leaves and the next player becomes host their ☰ menu unlocks silently. Show a one-line toast "You host this room now" on that change (client compares `host` between snapshots), so the newly enabled controls are explained.
 46. Results auto-start vs Ready: a human who has not tapped Ready still gets the round restarted after the 8 s results wait (`Match.update` `results` case), so a slow tapper loses the rematch. Hold the results a few seconds longer while any connected human is unready (the footer already says "auto-start in Ns"), with a unit test on `Room.readyTally` plus the match with one slow tapper.
 
 47. ☰ fighter row wraps to 13 lines: at the 280 px `.frow` width the 24 buttons (now with a 16 px face) take 13 rows and push Leave down on short phones. Lay the row out as a 3-column grid of face + name (`#menu .frow` in `client/src/ui/ui.css`), so it fits in about 8 rows and the `on` state stays readable.
@@ -476,10 +475,12 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 59. Predictor and World still default to the docks: `replay()`'s `area` and the predictor's `area` field (`client/src/net/predict.ts`) fall back to `DOCKS_ARENA`, and so does the `World` constructor (`shared/sim/world.ts`). Make the predictor's arena required the way #41 did for the sim helpers, so a galleon client cannot predict on the docks by accident. Decide the `World` default separately, since most unit tests call `new World()`.
 60. Debug gate untested: `matchsec` and `tide` reach `RoomManager.join` only when `ALLOW_DEBUG` is set, and that ternary lives in `server/index.ts` (no unit test covers it). Move the `JoinOpts` mapping from the `join` message into a small pure helper (`joinOptsFromMsg(msg, allowDebug)`) and unit-test that production drops both fields.
 62. Telegraph pulse: a lane about to fire looks the same for its whole 1 s warning, so the dashes do not say "now". Flash them faster in the last 0.3 s of `CANNON_WARN_SEC` (`drawTelegraph` in `client/src/fx/cannonFx.ts`), with a unit test on the pulse helper.
+63. Host toast on phones: #45 checked the desktop viewport only (`client/src/ui/ui.css` `#host-toast` sits 50 px from the top, centred). Take one Pixel 7 shot (`npm run shot -- --device "Pixel 7" --query "room=toastchk&name=A&bots=1"`) with the toast injected, and move it if it overlaps the TIDE/Showdown timer tag or the ☰/🏆 row.
 
 ---
 
 ## 6. LOG (one line per task/hotfix; archive older lines to `.loop/log-archive.md` if >40 lines)
+- T99 ✅ 2026-10-18 — Host hand-over toast (backlog #45): `Net.snapListeners` + `watchHost` (ui/hostToast.ts) show "You host this room now" for 3 s when the host flag goes false→true (first snapshot is baseline); 4 unit + 1 e2e, check 792 grün, e2e desktop 32/32 grün, desktop shot ok → §5 #63
 - T99 ✅ 2026-10-18 — Cannon cues (backlog #44): `volleyCues` (audio/map.ts) blips when a lane first telegraphs, thuds when it fires, per-lane stage so it re-arms; quiet `cannonWarn`/`cannonFire` presets, muted on replay; 7 unit tests incl. a full galleon match, check 788 grün → §5 #62 (#61 was closed by RF ad4afc2, removed)
 - T99 ✅ 2026-10-18 — Galleon tips (backlog #43): `tutorialTips`/`showTutorial`/`mountTutorial` take the arena; galleon heading 'Welcome aboard the galleon' and a 'Deck cannons' tip replace kelp & tide; menu ☰ passes `net.last.m.ar`; 3 unit tests, check 781 grün → §5 #61
 - T99 ✅ 2026-10-18 — Required arena lists (backlog #41): `waterRects`/`inWater`/`waterSpeedMul`, `inBush`/`canSee`, `stepPurrl`, `stepMove` take their list with no docks default (`stepMove` base moved before the optional params); compile-time guard test, check 778 grün → §5 #59

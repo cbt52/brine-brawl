@@ -21,6 +21,8 @@ export class Net {
   events: SimEvent[] = [];
   /** runs once, on the first snapshot: the room's own mode and arena, not the joiner's choices (backlog #43) */
   onFirstSnap: ((snap: SnapMsg) => void) | null = null;
+  /** runs on every snapshot, after `last` is set (backlog #45: the host hand-over toast) */
+  snapListeners: ((snap: SnapMsg) => void)[] = [];
   private ws: WebSocket | null = null;
   private overlay = document.getElementById('overlay')!;
 
@@ -106,6 +108,7 @@ export class Net {
         this.onFirstSnap = null;
         first(msg);
       }
+      for (const listener of this.snapListeners) listener(msg);
       if (msg.ev.length) this.events.push(...msg.ev);
       if (this.events.length > 200) this.events.splice(0, this.events.length - 200);
       const now = performance.now();

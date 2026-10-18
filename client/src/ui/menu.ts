@@ -5,6 +5,7 @@ import { fighterRowHtml, markFighterRow, nextSkin, saveFighter, saveSkin, savedF
 import { setShakeEnabled, shakeEnabled, setSfxEnabled, sfxEnabled, setMusicEnabled, musicEnabled, setColorblindEnabled, colorblindEnabled } from './settings.ts';
 import { showStats } from './statsPage.ts';
 import { showTutorial } from './tutorial.ts';
+import { watchHost } from './hostToast.ts';
 
 /** Invite panel: full URL, copy button (with HTTP fallback), share if available. */
 export function showInvite(room: string): void {
@@ -159,4 +160,6 @@ export function mountMenu(net: Net, touch: boolean): void {
   q('menu-howto').addEventListener('click', () => { panel.style.display = 'none'; showTutorial(touch, net.last?.m?.mode ?? 'bounty', net.last?.m?.ar ?? 'docks'); });
   q('menu-leave').addEventListener('click', () => { location.href = '/'; });
   setInterval(() => { if (panel.style.display !== 'none') refresh(); }, 500);
+  // backlog #45: the ☰ controls unlock on hand-over, so say so once
+  watchHost(net);
 }

@@ -50,6 +50,11 @@ body.in-lobby #rotate { display: none; }
 #tutorial li b { color: #9fd6d0; font-weight: 400; }
 #tutorial .big { pointer-events: auto; }
 
+/* host hand-over toast (backlog #45): one line under the ☰ and 🏆 buttons, click-through */
+#host-toast { position: fixed; z-index: 31; left: 50%; top: calc(50px + env(safe-area-inset-top)); transform: translateX(-50%);
+  pointer-events: none; padding: 5px 14px; border-radius: 12px; border: 3px solid #1b1b2f; background: #0e2a3af2; color: #ffc93c;
+  font-family: 'Lilita One', system-ui, sans-serif; font-size: 15px; white-space: nowrap; }
+
 /* results overlay: WANTED posters + ranking + confetti, auto-removed when the next countdown starts */
 #results { z-index: 25; min-width: min(380px, 92vw); max-height: 92vh; overflow-y: auto; overflow-x: hidden; gap: 10px; }
 #results h2 { margin: 0; font-size: clamp(20px, 6vw, 30px); color: #ffc93c; text-align: center;
