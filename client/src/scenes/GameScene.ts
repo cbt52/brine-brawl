@@ -95,6 +95,18 @@ export class GameScene extends Phaser.Scene {
     preloadArt(this);
   }
 
+  /** What each body shows (debug hook / e2e, T37): sheet or SVG, texture key, frame and depth. */
+  get looks(): { id: number; sheet: boolean; tex: string; frame: string; flip: boolean; depth: number }[] {
+    return [...this.rigs].map(([id, r]) => ({
+      id,
+      sheet: r.usesSheet,
+      tex: r.sprite.texture.key,
+      frame: String(r.sprite.frame.name),
+      flip: r.sprite.flipX,
+      depth: r.depth,
+    }));
+  }
+
   /** The kill-cam replay of our last KO is on screen (debug hook / e2e). */
   get replaying(): boolean {
     return this.killCam.playing(performance.now());
@@ -665,6 +677,8 @@ export class GameScene extends Phaser.Scene {
       // palette-swap skin (backlog #3): the drawn look when the snapshot leaves `sk` out
       rig.setSkin(p.sk ?? 0);
       rig.sync(p.x, p.y, p.a, Boolean(p.dn));
+      // y-sort the bodies (T37): lower on screen draws in front, all inside the 20–21 fighter band
+      rig.setDepth(20 + p.y / WORLD_H);
       rig.setBars(p.hp / p.mhp, p.am, def.ammo, art.color);
       // spawn shield blinks; a KO'd fighter keeps its rig for the death animation;
       // your own body shows through the kelp so you can still steer

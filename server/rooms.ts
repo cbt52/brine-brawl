@@ -50,6 +50,8 @@ export class Room {
   emptySince: number | null = Date.now();
   bots = new Map<number, BotBrain>();
   wantBots = 0;
+  /** debug builds only (`?botf=`): fighter ids for new bots, in spawn order; empty = random kits */
+  botFighters: string[] = [];
   private nextBot = 1000;
   /** last emote timestamp per client, so nobody can spam the room (T99) */
   private emoteAt = new Map<number, number>();
@@ -166,7 +168,8 @@ export class Room {
       const used = new Set([...this.world.players.values()].map((p) => p.name));
       const name = BOT_NAMES.find((n) => !used.has(n)) ?? `Bot ${id}`;
       // bots show up with a random real kit (T10) and join the smaller crew (T26)
-      this.world.addPlayer(id, name, randomFighterId(), true);
+      const pinned = this.botFighters.length ? this.botFighters[this.bots.size % this.botFighters.length] : null;
+      this.world.addPlayer(id, name, pinned ?? randomFighterId(), true);
       this.bots.set(id, new BotBrain(id, this.botLevel));
     }
     this.assignTeams();
@@ -286,10 +289,22 @@ export interface JoinOpts {
   matchSec?: unknown;
   /** debug builds only: rising-tide jump (`?tide=high`) */
   tide?: unknown;
+  /** debug builds only: `?botf=` comma list of bot fighter ids */
+  botFighters?: unknown;
   mode?: unknown;
   level?: unknown;
   skin?: unknown;
   arena?: unknown;
+}
+
+/** `?botf=a,b` → registered fighter ids only (unknown ids are dropped), at most one per bot slot. */
+export function parseBotFighters(raw: unknown): string[] {
+  if (typeof raw !== 'string') return [];
+  return raw
+    .split(',')
+    .map((s) => s.trim())
+    .filter((id) => id && resolveFighterId(id) === id)
+    .slice(0, MAX_HUMANS - 1);
 }
 
 export class RoomManager {
@@ -313,6 +328,7 @@ export class RoomManager {
     if (room.clients.size >= MAX_HUMANS) return null;
     if (created && opts.matchSec !== undefined) room.match.setMatchSec(opts.matchSec);
     if (opts.tide !== undefined) room.world.debugTide(String(opts.tide));
+    if (opts.botFighters !== undefined) room.botFighters = parseBotFighters(opts.botFighters);
     const cid = this.nextId++;
     const client: Client = {
       id: cid,

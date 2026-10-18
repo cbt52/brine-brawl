@@ -30,6 +30,8 @@ export interface JoinMsg {
   matchsec?: number;
   /** jump the tide to a phase (`?tide=high` screenshots) — ALLOW_DEBUG servers only */
   tide?: string;
+  /** comma list of fighter ids the bots take, in spawn order (`?botf=voltbun`) — ALLOW_DEBUG servers only */
+  botf?: string;
   /** skin index from the select screen (backlog #3): 0 = drawn look, see shared/skins.ts */
   skin?: number;
 }

@@ -90,6 +90,8 @@ window.__brawl = {
   get self() { return (game.scene.getScene('game') as GameScene | null)?.self ?? null; },
   /** kill-cam replay of our last KO is playing (backlog #5) */
   get replaying() { return (game.scene.getScene('game') as GameScene | null)?.replaying ?? false; },
+  /** per-body look: 3D sheet or SVG, texture, frame (T37) */
+  get looks() { return (game.scene.getScene('game') as GameScene | null)?.looks ?? []; },
   build: BUILD_ID,
   state: () => net.last,
   send: (m: C2S) => net.send(m),

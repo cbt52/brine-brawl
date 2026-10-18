@@ -4,18 +4,25 @@ import { buildSkinTextures, pickSkinKey, queueSkinSources, skinKey } from './ski
 import type { Faction } from '../../../shared/fighters/types.ts';
 import { TEAM_COLORS } from '../../../shared/sim/teams.ts';
 import { crewMark } from '../fx/crewMark.ts';
+import { ANIMS, SHEET_IDS, animKey, hasSheet, sheetDir, sheetJson, sheetKey, sheetPng, sheetView, svgForced } from './sheets.ts';
+import type { Dir8, SheetAnim } from './sheets.ts';
+import { ensureSkinSheet } from './skinSheet.ts';
 
 /** Phaser wants 0xrrggbb; the name plate wants a CSS colour. */
 const hex = (c: number): string => `#${c.toString(16).padStart(6, '0')}`;
 
 export type RigState = 'idle' | 'run' | 'attack' | 'hit' | 'ko';
 
-/** Queue every fighter SVG (neutral + hurt) in a scene's `preload`, plus the skin copies (backlog #3). */
+/**
+ * Queue every fighter SVG (neutral + hurt) in a scene's `preload`, plus the skin copies (backlog #3)
+ * and the 3D sprite atlases (T37; skipped with `?art=svg`).
+ */
 export function preloadArt(scene: Phaser.Scene): void {
   for (const a of ART) {
     scene.load.svg(a.key, artUrl(a.id), { width: 128, height: 128 });
     scene.load.svg(a.hurtKey, hurtUrl(a.id), { width: 128, height: 128 });
   }
+  if (!svgForced()) for (const id of SHEET_IDS) scene.load.atlas(sheetKey(id), sheetPng(id), sheetJson(id));
   queueSkinSources(scene);
   scene.load.once('complete', () => buildSkinTextures(scene));
 }
@@ -35,13 +42,18 @@ const ATTACK_MS = 80;
 const KO_SPIN_MS = 420;
 /** on-screen growth of an evolved Critterkin (+12 %, matches `EVOLVE_SIZE`) */
 const EVOLVE_SCALE = 1.12;
+/** sheet frames put the feet on y = 112 of the 128 px cell (§2.11) */
+const SHEET_FEET = 112 / 128;
+const SHEET_ATTACK_MS = (ANIMS.attack.frames / ANIMS.attack.fps) * 1000;
 
 /**
- * One fighter on screen: shadow ellipse, SVG body, name plate and HP/ammo bars, all tweened through the
- * shared animation states. The sim never sees this class — it only drives position, aim, face and bars.
+ * One fighter on screen: shadow ellipse, body, name plate and HP/ammo bars. The body plays the 3D sprite
+ * sheet when the fighter has one (T37: 8 facings, frame anims), else it is the flat SVG tweened through
+ * the same states. KO, pancake, evolve and the hit wobble are tweens in both looks. The sim never sees
+ * this class — it only drives position, aim, face and bars.
  */
 export class FighterSprite extends Phaser.GameObjects.Container {
-  readonly sprite: Phaser.GameObjects.Image;
+  readonly sprite: Phaser.GameObjects.Sprite;
   private readonly shadow: Phaser.GameObjects.Ellipse;
   private readonly nameText?: Phaser.GameObjects.Text;
   private readonly bars?: Phaser.GameObjects.Graphics;
@@ -62,6 +74,14 @@ export class FighterSprite extends Phaser.GameObjects.Container {
   };
   private anim: RigState = 'idle';
   private facing = 1;
+  /** texture key of the 3D sheet on screen; null = the flat SVG look */
+  private sheet: string | null = null;
+  /** 8-way facing for the sheet frames (hysteresis in `sheetDir`) */
+  private dir: Dir8 = 'S';
+  private sheetAnim: SheetAnim = 'idle';
+  /** the sheet's attack frames are playing; the counter drops stale end-of-attack timers */
+  private attacking = false;
+  private attackSeq = 0;
   private busyUntil = 0;
   private down = false;
   private idleTween?: Phaser.Tweens.Tween;
@@ -91,7 +111,7 @@ export class FighterSprite extends Phaser.GameObjects.Container {
       .ellipse(0, feetY + cfg.height * 0.02, cfg.height * 0.62, cfg.height * 0.2, 0x0b1f2c, 0.28)
       .setOrigin(0.5, 0.5);
     this.sprite = scene.add
-      .image(0, feetY + cfg.height * 0.09, artKey(this.artId))
+      .sprite(0, feetY + cfg.height * 0.09, artKey(this.artId))
       .setOrigin(0.5, 1)
       .setScale(this.scaleBase);
 
@@ -117,6 +137,7 @@ export class FighterSprite extends Phaser.GameObjects.Container {
 
     this.add(children);
     scene.add.existing(this);
+    this.updateLook();
     this.startIdle();
   }
 
@@ -130,7 +151,7 @@ export class FighterSprite extends Phaser.GameObjects.Container {
     if (id === this.artId) return;
     this.artId = id;
     this.faceHurt = false;
-    this.showFace(false);
+    this.updateLook();
     this.sprite.setScale(this.scaleBase);
   }
 
@@ -138,12 +159,34 @@ export class FighterSprite extends Phaser.GameObjects.Container {
   setSkin(skin: number): void {
     if (skin === this.skin) return;
     this.skin = skin;
+    this.updateLook();
+  }
+
+  /** Sheet or SVG for the current fighter + skin (the skinned sheet is built on first use). */
+  private updateLook(): void {
+    const sheet = hasSheet(this.artId) && !svgForced() ? ensureSkinSheet(this.scene, this.artId, this.skin) : null;
+    if (sheet !== this.sheet) {
+      this.sheet = sheet;
+      if (sheet) {
+        this.sprite.setOrigin(0.5, SHEET_FEET).setY(this.feetY + this.h * 0.02);
+        this.stopIdle();
+      } else {
+        this.sprite.setOrigin(0.5, 1).setY(this.feetY + this.h * 0.09).setFlipX(this.facing < 0);
+      }
+      // a new texture key means new animation keys (and the SVG look has none)
+      this.sprite.stop();
+    }
     this.showFace(this.faceHurt);
   }
 
   /** Body or hurt face in the current skin; while the skinned copy is still building, the drawn look shows. */
   private showFace(hurt: boolean): void {
+    if (!this.scene) return;
     this.faceHurt = hurt;
+    if (this.sheet) {
+      this.playSheet();
+      return;
+    }
     const key = pickSkinKey(this.scene.textures, this.artId, this.skin, hurt);
     if (this.sprite.texture.key !== key) this.sprite.setTexture(key);
     if (this.skin && key !== skinKey(this.artId, this.skin, hurt) && !this.waiting) {
@@ -292,6 +335,19 @@ export class FighterSprite extends Phaser.GameObjects.Container {
     this.ultGlow = glow;
   }
 
+  /** Turn toward an aim angle (degrees, y down): 8 sheet facings, or a left/right flip for the SVG. */
+  face(aimDeg: number): void {
+    const dir = Math.cos((aimDeg * Math.PI) / 180) < 0 ? -1 : 1;
+    if (dir !== this.facing) {
+      this.facing = dir;
+      if (!this.sheet) this.sprite.setFlipX(dir < 0);
+    }
+    const next = sheetDir(aimDeg, this.dir);
+    if (next === this.dir) return;
+    this.dir = next;
+    this.playSheet();
+  }
+
   /** Per-frame sync with the interpolated snapshot: position, aim (flip), movement → idle/run. */
   sync(x: number, y: number, aimDeg: number, down: boolean): void {
     if (this.scene.time.now < this.frozenUntil) return;
@@ -304,11 +360,7 @@ export class FighterSprite extends Phaser.GameObjects.Container {
       return;
     }
     if (this.down) this.revive();
-    const dir = Math.cos((aimDeg * Math.PI) / 180) < 0 ? -1 : 1;
-    if (dir !== this.facing) {
-      this.facing = dir;
-      this.sprite.setFlipX(dir < 0);
-    }
+    this.face(aimDeg);
     if (this.scene.time.now < this.busyUntil) return;
     this.applyState(moving ? 'run' : 'idle');
   }
@@ -316,6 +368,10 @@ export class FighterSprite extends Phaser.GameObjects.Container {
   /** One-shot punch stretch toward the aim. */
   attack(): void {
     if (this.down) return;
+    if (this.sheet) {
+      this.sheetAttack();
+      return;
+    }
     this.busyUntil = this.scene.time.now + ATTACK_MS;
     this.stopStateTween();
     this.sprite.setScale(this.scaleBase);
@@ -367,6 +423,11 @@ export class FighterSprite extends Phaser.GameObjects.Container {
     }
   }
 
+  /** The 3D sprite sheet is on screen (T37), not the flat SVG. */
+  get usesSheet(): boolean {
+    return this.sheet !== null;
+  }
+
   get isDown(): boolean {
     return this.down;
   }
@@ -378,6 +439,42 @@ export class FighterSprite extends Phaser.GameObjects.Container {
     this.ultTween?.stop();
     this.scene.textures.off(Phaser.Textures.Events.ADD, this.onTexture);
     super.destroy(fromScene);
+  }
+
+  // ---------------------------------------------------------------- sheet frames
+
+  /** Strike frames toward the current facing, then back to idle/run. */
+  private sheetAttack(): void {
+    this.busyUntil = this.scene.time.now + SHEET_ATTACK_MS;
+    this.stopIdle();
+    this.stopStateTween();
+    this.sprite.setScale(this.scaleBase).setX(0);
+    this.attacking = true;
+    this.playSheet(true);
+    const seq = ++this.attackSeq;
+    this.scene.time.delayedCall(SHEET_ATTACK_MS, () => {
+      if (seq !== this.attackSeq || !this.scene) return;
+      this.attacking = false;
+      this.busyUntil = 0;
+      if (!this.down) this.startIdle();
+    });
+  }
+
+  /**
+   * Play the frame anim for the current state + facing. A facing change keeps the cycle's phase, so
+   * a runner turning mid-stride does not restart the step; `restart` replays one-shots (attack).
+   */
+  private playSheet(restart = false): void {
+    if (!this.sheet || this.down) return;
+    const view = sheetView(this.dir);
+    this.sprite.setFlipX(view.flip);
+    const anim: SheetAnim = this.faceHurt ? 'hurt' : this.attacking ? 'attack' : this.anim === 'run' ? 'run' : 'idle';
+    const key = animKey(this.sheet, anim, view.dir);
+    const state = this.sprite.anims;
+    if (!restart && state.currentAnim?.key === key && (state.isPlaying || !ANIMS[anim].loop)) return;
+    const phase = !restart && anim === this.sheetAnim && state.currentFrame ? state.currentFrame.index - 1 : 0;
+    this.sheetAnim = anim;
+    this.sprite.play({ key, startFrame: phase % ANIMS[anim].frames });
   }
 
   // ---------------------------------------------------------------- states
@@ -396,6 +493,10 @@ export class FighterSprite extends Phaser.GameObjects.Container {
     if (this.anim === 'ko') return;
     this.anim = 'idle';
     this.stopIdle();
+    if (this.sheet) {
+      this.playSheet();
+      return;
+    }
     this.idleTween = this.scene.tweens.add({
       targets: this.sprite,
       scaleY: this.scaleBase * 1.04,
@@ -410,6 +511,10 @@ export class FighterSprite extends Phaser.GameObjects.Container {
   private startRun(): void {
     this.stopIdle();
     this.sprite.setX(0);
+    if (this.sheet) {
+      this.playSheet();
+      return;
+    }
     this.idleTween = this.scene.tweens.add({
       targets: this.sprite,
       angle: { from: -8 * this.facing, to: 8 * this.facing },

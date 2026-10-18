@@ -6,7 +6,8 @@ import { FighterSprite, preloadArt, type RigState } from './art/rig.ts';
 /**
  * Fighter gallery. `?look=3d` opens with the 3D blockouts visible; the button in the corner toggles them.
  * Sprite and blockout come from the same model (`scripts/art-gen.mjs`), so each cell compares the flat SVG
- * against the lit volume it was derived from.
+ * against the lit volume it was derived from. Fighters with a 3D sprite sheet (T37) play it and turn
+ * through all 8 facings; `?art=svg` shows the flat look instead.
  */
 const DEMO: RigState[] = ['idle', 'idle', 'run', 'attack', 'hit', 'ko'];
 
@@ -16,6 +17,7 @@ class GalleryScene extends Phaser.Scene {
   private rigs: FighterSprite[] = [];
   private refs: Phaser.GameObjects.Image[] = [];
   private step = 0;
+  private turn = 0;
 
   constructor() {
     super('gallery');
@@ -124,7 +126,12 @@ class GalleryScene extends Phaser.Scene {
       loop: true,
       callback: () => {
         this.step = (this.step + 1) % DEMO.length;
-        this.rigs.forEach((rig, i) => rig.play(DEMO[(this.step + i) % DEMO.length]));
+        this.rigs.forEach((rig, i) => {
+          rig.play(DEMO[(this.step + i) % DEMO.length]);
+          // sheet fighters turn a 45° step per beat: S → SW → W … (the W side is the mirrored E frames)
+          if (rig.usesSheet) rig.face(90 + this.turn * 45);
+        });
+        this.turn = (this.turn + 1) % 8;
       },
     });
 

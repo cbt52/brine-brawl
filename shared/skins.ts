@@ -5,7 +5,8 @@
  * A skin rotates the hue of every *saturated, mid-light* colour in a fighter SVG. The ink outline
  * (near-black), whites and greys stay as drawn, so faces and linework keep reading. Slice 1 is not
  * Slice 2 wires it: `join` carries the index, the room keeps it per player, and the snapshot sends
- * it as `sk` (omitted for the drawn look). The client recolours the SVG text (`recolorSvg`).
+ * it as `sk` (omitted for the drawn look). The client recolours the SVG text (`recolorSvg`) and the
+ * pixels of the 3D sprite atlases (`recolorPixels`, T37).
  */
 
 export interface SkinDef {
@@ -87,4 +88,27 @@ export function shiftHex(hex: string, hueShift: number): string {
 export function recolorSvg(svg: string, hueShift: number): string {
   if (hueShift % 360 === 0) return svg;
   return svg.replace(PAINT, (_all, attr: string, hex: string) => `${attr}="${shiftHex('#' + hex, hueShift)}"`);
+}
+
+/**
+ * Recolour RGBA pixels in place (T37: the 3D sprite atlases). Each pixel follows the same rule as a
+ * paint attribute in `recolorSvg`, so the outline and the face whites stay as rendered. Atlases are
+ * palette PNGs, so a per-colour cache keeps this to a few hundred `shiftHex` calls.
+ */
+export function recolorPixels<T extends Uint8Array | Uint8ClampedArray>(data: T, hueShift: number): T {
+  if (hueShift % 360 === 0) return data;
+  const cache = new Map<number, number>();
+  for (let i = 0; i < data.length; i += 4) {
+    if (data[i + 3] === 0) continue;
+    const rgb = (data[i] << 16) | (data[i + 1] << 8) | data[i + 2];
+    let out = cache.get(rgb);
+    if (out === undefined) {
+      out = parseInt(shiftHex('#' + (rgb | (1 << 24)).toString(16).slice(1), hueShift).slice(1), 16);
+      cache.set(rgb, out);
+    }
+    data[i] = (out >> 16) & 255;
+    data[i + 1] = (out >> 8) & 255;
+    data[i + 2] = out & 255;
+  }
+  return data;
 }

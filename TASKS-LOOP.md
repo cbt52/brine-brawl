@@ -506,7 +506,8 @@ Rules for every task:
     - The feet stay on the y ≈ 112 line in every frame. Test: frame bottom = 112 ± 3 via `spriteSourceSize`.
   - Test: `npm run check && npm run art:3d -- voltbun --contact`
 
-- [ ] **T37 — Rig plays sprite sheets (SVG fallback kept)**
+- [x] **T37 — Rig plays sprite sheets (SVG fallback kept)**
+  - Note: `sheets.ts` is pure (sectors centred on i·45°, aim = atan2 y-down so 90° = S; `sheetView` maps W/SW/NW → E/SE/NE + flipX; `svgForced`). Rig body is now a Sprite: sheet mode = origin (0.5, 112/128) on the shadow centre, no idle/run/attack tweens (frames do it), facing changes keep the cycle phase, attack = 3 frames (187 ms) then idle, hit = `hurt_<dir>_0` for 200 ms + tintFill + wobble; KO/pancake/evolve unchanged. `skinSheet.ts` builds `sheet-<id>-s<n>` as a CanvasTexture on first use (frames + trim copied) and creates anims per texture. Depth `20 + y/WORLD_H` in GameScene. `botf` = `JoinOpts.botFighters` → `Room.botFighters` (ALLOW_DEBUG). `__brawl.looks` + `tests/e2e/sheets.spec.ts` prove sheet/skin/SVG/`?art=svg` in a live match; gallery turns sheet fighters 45° per beat. Shots: the task's portrait iPhone 13 shot only shows the rotate hint, so the landscape one is the check, but on a first visit the tutorial card covers it (no URL skip, it's localStorage), so the in-game look was NOT checked by eye. T38+ shots: use `iPhone 13 landscape` and dismiss the tips first.
   - Do:
     - Create `client/src/art/sheets.ts` with `SHEET_IDS=['voltbun']`, `ANIMS`, and `sheetDir` (±8° hysteresis).
     - In the rig, change Image to Sprite. Create anims per id and dir, use the hurt frame on hit, and mirror the W side with `flipX`.
@@ -798,3 +799,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T99 ✅ 2026-10-18 — JoinOpts (backlog #42): `RoomManager.join(ws, opts)` takes one `JoinOpts` object, `server/index.ts` is the only production call site, 6 test files moved over; check 778 grün, serve.sh + smoke ok → §5 #60
 - T35 ✅ 2026-10-18 — Voltbun 3D stills: spec + earsLong/tailBattery/face(hurt), part pivots, gold collar, HSV toon shadow; S 100 px, E 106 / bottoms 115–118 → T36
 - T36 ✅ 2026-10-18 — puppet.py (biped/blob/hover, ground snap) + Voltbun atlas 70 frames 1022×525 157 KB indexed, feet y=113 all; check 813 grün
+- T37 ✅ 2026-10-18 — rig plays Voltbun sheet (8 facings, hysteresis, hurt frame, lazy skin atlases), botf, y-sort; check 824 + e2e 34 grün
