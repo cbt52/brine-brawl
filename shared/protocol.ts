@@ -97,6 +97,8 @@ export interface SnapPlayer {
   b: number;
   /** ult charge in percent (0-100) */
   uc: number;
+  /** 1 = evolved (Critterkin EVOLVE passive, T20) */
+  ev?: number;
   /** special cooldown remaining in seconds */
   cd: number;
 }
@@ -155,7 +157,9 @@ export type SimEvent =
   /** a treasure chest broke open */
   | { k: 'chest'; x: number; y: number }
   /** somebody grabbed a dropped reward */
-  | { k: 'pick'; id: number; kind: PickupKind; x: number; y: number };
+  | { k: 'pick'; id: number; kind: PickupKind; x: number; y: number }
+  /** a faction passive fired (T20); `a` = the other fighter for PLUNDER */
+  | { k: 'passive'; v: number; p: 'evolve' | 'flow' | 'plunder' | 'toon'; x: number; y: number; a?: number };
 
 export interface SnapMsg {
   t: 'snap';

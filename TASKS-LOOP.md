@@ -283,20 +283,6 @@ Each reaction shows a big popup word ("SHOCK!").
   - Test: `npm run check && npm run e2e`
 
 - [x] **T16 — Client prediction + net diagnostics** · CP: yes
-  - Done: `client/src/net/predict.ts` (`Predictor`: local step on every sent input, snapshot `ack` prunes the
-    input log, replay from the server position, error blended out over `BLEND_MS`=100 ms, snap past
-    `SNAP_DIST`=120 u, instant snap while down); `GameScene.applyPrediction` swaps the own body into the
-    interpolated view (rigs + camera); `Controls.onSend` feeds it, movement edges now bypass the 20 ms
-    throttle; `Net` gained `ping` (2 s probe → HUD corner, colour by RTT) and `?lag=ms` (both directions);
-    `window.__brawl.self/lag/ping` for tests; 13 unit + 3 e2e tests.
-  - Do:
-    - Own player predicted with the shared movement step. Keep unacked inputs and re-apply them after each snapshot (reconcile). Smooth error correction (blend over 100 ms; snap if >120 u).
-    - Ping display (`ping`/`pong` every 2 s) in the corner.
-    - `?lag=ms` adds simulated latency to client send/receive (test only).
-    - Unit tests: reconcile converges and replays inputs correctly.
-    - e2e: with `?lag=150`, own position changes within 50 ms of keydown.
-  - Checkpoint: "CP4 ✅ Juice": effects, sound (toggle in ☰), arena with kelp hiding spots, smoother movement.
-  - Test: `npm run check && npm run e2e`
 
 ### CP5 — "Überraschung: Gezeiten, Elemente, Kopfgeld"
 
@@ -337,14 +323,8 @@ Each reaction shows a big popup word ("SHOCK!").
   - Test: `npm run check && npm run e2e`
   - Note: `shared/sim/bounty.ts` (`BOUNTY_START` 100, +100 per KO, purse `50 + 50 %` floored, 3 coins, `crownHolder`); `SimPlayer.bounty`/`gold`, KO pays the killer + drops 3 gold pickups, victim resets to 100, `resetScores` clears bounty+stash; snapshot `b`, `ScoreRow {b,f}`, `rankPlayers` sorts by bounty; HUD shows own bounty + bounty scoreboard, GameScene draws the crown + `WANTED` tag over the leader; results = canvas parchment posters (`client/src/ui/wanted.ts`, portrait from `/art/<id>.svg`) with runner-up mini sheets; 9 tests in tests/unit/bounty.test.ts, 339 green, e2e 15/15; shot T19-0.
 
-- [ ] **T20 — Faction passives** · CP: yes
-  - Do:
-    - Implement EVOLVE, FLOW, PLUNDER and TOON LOGIC (§2.6) in `shared/sim/passives.ts`.
-    - Visuals: Evolve = scale up + golden aura + crest overlay sprite. Flow = ribbon swirl on the empowered attack. Plunder = coins fly to the killer. Toon Logic = pancake squash + "boing" + star.
-    - Passive info on the character cards.
-    - Unit tests for each.
-  - Checkpoint: "CP5 ✅ Überraschung!" Rising tide, element reactions (example: wet + volt = shock), bounty hunt + WANTED poster, faction passives.
-  - Test: `npm run check && npm run smoke && npm run e2e`
+- [x] **T20 — Faction passives** · CP: yes
+  - Note: `shared/sim/passives.ts` (EVOLVE 2 KOs → +12 % r, +20 % mhp, +25 % ult via `ultGainMul`; FLOW 3 attack hits in 3 s → next attack ×1.5 dmg, ×2 status via a `CastMod` into `castAbility`, projectiles carry `slot`, melee counted in the primitive; PLUNDER steals 30 % uc + `bountyAfterKO(b, 1.25)`; TOON LOGIC 1-HP save + 0.5 s pancake in `damage()`), spawn/death resets, snapshot `ev`; client: golden aura + crest (`drawEvolved`), `rig.setEvolved` 1.12, `rig.pancake`, `fx.passive` (aura burst / ribbon swirl / flying coins / BOING! + star), passive sound stingers, passive line on every character card; 8 tests in tests/unit/passives.test.ts, 347 green, smoke OK, e2e 15/15, shot T20-0.
 
 ### CP6 — "Die Crew wächst: 12 Kämpfer + Balance"
 (Each fighter task: SVG + hurt SVG, data kit, hooks if needed, unit test per ability, gallery shot ≤1 PNG viewed.)
@@ -539,3 +519,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T14 ✅ 2026-10-18 — Arena-Art in RenderTexture (Sand/Planken/Korallen/Shallows/Waves), Kelp-Büsche verstecken Kämpfer (200 u / 1 s Reveal, Bots+Snapshot gefiltert); check+shot grün
 - T15 ✅ 2026-10-18 — Prozedurales Audio (11 Presets, Distanz-Dämpfung, iOS-Unlock, Shanty-Loop, ☰ Sound/Music-Toggles, cast-slot für Ult-SFX); cp1-e2e-Position aus dem Busch; check+e2e grün
 - T19 ✅ 2026-10-18 — Bounty Brawl: 100-Start, KO-Purse 50+50 %, +100 Bounty, 3 Münzen, Krone+WANTED-Marker, WANTED-Poster-Results; check+339 Tests+e2e 15/15 grün
+- T20 ✅ 2026-10-18 — Fraktions-Passives (EVOLVE/FLOW/PLUNDER/TOON LOGIC) im Sim + Aura/Krone/Ribbon/Münzen/Pancake-FX, Passiv-Zeile auf den Karten; CP5, check+347 Tests+smoke+e2e grün

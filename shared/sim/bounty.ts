@@ -20,9 +20,10 @@ export function koPurse(victimBounty: number): number {
   return KO_PURSE + Math.floor(safe(victimBounty) * KO_BOUNTY_FRAC);
 }
 
-/** The killer's own bounty after a KO. */
-export function bountyAfterKO(killerBounty: number): number {
-  return safe(killerBounty) + BOUNTY_PER_KO;
+/** The killer's own bounty after a KO. `mult` > 1 pays the PLUNDER bonus (Saltwind, T20). */
+export function bountyAfterKO(killerBounty: number, mult = 1): number {
+  const m = Number.isFinite(mult) && mult > 0 ? mult : 1;
+  return safe(killerBounty) + Math.round(BOUNTY_PER_KO * m);
 }
 
 /** The victim's bounty after being KO'd: back to the base purse. */

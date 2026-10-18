@@ -13,6 +13,9 @@ function duel() {
   const b = w.addPlayer(2, 'Prey', 'default');
   a.shield = 0;
   b.shield = 0;
+  // T20 TOON LOGIC: spend the once-per-life free save so these tests see a clean KO
+  a.toonUsed = true;
+  b.toonUsed = true;
   return { w, a, b };
 }
 

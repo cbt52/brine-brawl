@@ -257,6 +257,60 @@ export class CombatFx {
     });
   }
 
+  /**
+   * Faction passive stingers (T20). EVOLVE pops a golden aura, FLOW draws the ribbon swirl on the
+   * empowered attack, PLUNDER sends coins flying to the killer, TOON LOGIC the pancake "boing".
+   */
+  passive(kind: 'evolve' | 'flow' | 'plunder' | 'toon', x: number, y: number, target?: { x: number; y: number }): void {
+    if (kind === 'evolve') {
+      this.spawn(FX.ring, x, y - 24, { life: 560, scale: 0.4, scaleTo: 3.4, alpha: 0.9, tint: GOLD, depth: FX_DEPTH + 4 });
+      const n = this.budget.low ? 3 : 6;
+      for (let i = 0; i < n; i++) {
+        const a = (i / n) * Math.PI * 2;
+        this.spawn(FX.star, x + Math.cos(a) * 20, y - 30 + Math.sin(a) * 12, {
+          vx: Math.cos(a) * 46, vy: Math.sin(a) * 30 - 54, life: 700, scale: 0.8, scaleTo: 0.15, tint: GOLD,
+          angle: (a * 180) / Math.PI, depth: FX_DEPTH + 6,
+        });
+      }
+      this.reaction(x, y, 'EVOLVED!', GOLD);
+      return;
+    }
+    if (kind === 'flow') {
+      this.spawn(FX.ring, x, y - 24, { life: 320, scale: 0.35, scaleTo: 1.8, alpha: 0.85, tint: 0x2ec4b6, depth: FX_DEPTH + 4 });
+      for (let i = 0; i < 3; i++) {
+        this.spawn(FX.bubble, x, y - 24, {
+          vx: (i - 1) * 34, vy: -40 - i * 12, life: 420, scale: 0.5, scaleTo: 0.1, tint: 0x8ff5e9, depth: FX_DEPTH + 5,
+        });
+      }
+      return;
+    }
+    if (kind === 'plunder') {
+      if (!target) return;
+      const coins = this.budget.low ? 2 : 4;
+      if (!this.budget.reserve(coins)) return;
+      for (let i = 0; i < coins; i++) {
+        const img = this.scene.add.image(x, y - 24, FX.circle).setDepth(FX_DEPTH + 6).setTint(GOLD).setScale(0.34);
+        this.scene.tweens.add({
+          targets: img,
+          x: target.x + (Math.random() - 0.5) * 16,
+          y: target.y - 24 + (Math.random() - 0.5) * 16,
+          scale: 0.16,
+          delay: i * 55,
+          duration: 380,
+          ease: 'Sine.easeIn',
+          onComplete: () => {
+            img.destroy();
+            this.budget.release(1);
+          },
+        });
+      }
+      return;
+    }
+    // TOON LOGIC: a big star and the boing word where the pancake happened
+    this.spawn(FX.star, x, y - 34, { life: 520, scale: 0.5, scaleTo: 1.6, alpha: 0.95, tint: 0xff7aa2, depth: FX_DEPTH + 6 });
+    this.reaction(x, y, 'BOING!', 0xff7aa2);
+  }
+
   /** Screenshake for hits/KOs that involve the local player. */
   shake(kind: 'hit' | 'ko'): void {
     if (!this.shakeOn) return;

@@ -2,6 +2,7 @@ import type { AbilitySlot, SimEvent } from '../protocol.ts';
 import type { AbilityDef, Element, StatusKind } from '../fighters/types.ts';
 import { OBSTACLES } from '../arena/docks.ts';
 import { applyElementHit, applyStatus as storeStatus, ELEMENT_OF_STATUS } from './elements.ts';
+import { noteAttackHit } from './passives.ts';
 import { resolveWalls } from './collide.ts';
 import type { Projectile } from './combat.ts';
 import type { Chest, SimPlayer } from './world.ts';
@@ -150,12 +151,21 @@ const wrapPi = (a: number): number => {
   return x;
 };
 
+/** Damage / status scaling for one cast (the weaver FLOW passive, T20). */
+export interface CastMod {
+  /** damage multiplier (1 = normal) */
+  dmg: number;
+  /** status-duration multiplier (1 = normal) */
+  status: number;
+}
+
 /** Cast any ability primitive. Returns false when the def is degenerate (nothing happened). */
 export function castAbility(
   h: CastHost,
   p: SimPlayer,
   def: AbilityDef,
   slot: AbilitySlot = 'special',
+  mod?: CastMod,
 ): boolean {
   const ax = Math.cos(p.aim);
   const ay = Math.sin(p.aim);
@@ -164,22 +174,26 @@ export function castAbility(
     case 'projectile': {
       const n = Math.max(1, Math.floor(def.count) || 1);
       const spread = (Math.max(0, def.spread) * Math.PI) / 180;
+      const dmg = def.dmg * (mod?.dmg ?? 1);
+      const statusSec = (def.statusSec ?? 0) * (mod?.status ?? 1);
       for (let i = 0; i < n; i++) {
         const a = n === 1 ? p.aim : p.aim - spread / 2 + (spread * i) / (n - 1);
         h.projs.push({
           id: h.newProjId(), owner: p.id,
           x: p.x + Math.cos(a) * p.r, y: p.y + Math.sin(a) * p.r,
           vx: Math.cos(a) * def.speed, vy: Math.sin(a) * def.speed,
-          left: def.range, dmg: def.dmg, r: def.radius,
+          left: def.range, dmg, r: def.radius,
           pierce: !!def.pierce, bounces: Math.max(0, Math.floor(def.bounce ?? 0)),
           lob: !!def.lob, aoeOnEnd: def.aoeOnEnd, hit: new Set(),
-          status: def.status, statusSec: def.statusSec, element: hitElement(def.element, def.status),
+          status: def.status, statusSec, element: hitElement(def.element, def.status), slot,
         });
       }
       break;
     }
     case 'melee': {
       const half = (Math.max(0, def.arcDeg) * Math.PI) / 360;
+      const dmg = def.dmg * (mod?.dmg ?? 1);
+      const statusSec = (def.statusSec ?? 0) * (mod?.status ?? 1);
       for (const v of enemies(h, p.id)) {
         const dx = v.x - p.x;
         const dy = v.y - p.y;
@@ -187,12 +201,13 @@ export function castAbility(
         if (d > def.range + v.r) continue;
         // a target standing on top of the attacker always gets hit
         if (d > v.r && Math.abs(wrapPi(Math.atan2(dy, dx) - p.aim)) > half) continue;
-        h.damage(p.id, v, def.dmg, v.x, v.y);
+        h.damage(p.id, v, dmg, v.x, v.y);
+        if (slot === 'attack' && !v.down) noteAttackHit(p);
         if (def.knockback) shove(v, d > 1e-6 ? dx / d : ax, d > 1e-6 ? dy / d : ay, def.knockback);
         if (!v.down && v.shield <= 0) {
           const el = hitElement(def.element, def.status);
-          const react = applyElementHit(h, p.id, v, def.status ?? null, def.statusSec ?? 0, el);
-          if (react === null && def.status) h.events.push({ k: 'status', v: v.id, s: def.status, sec: def.statusSec ?? 1 });
+          const react = applyElementHit(h, p.id, v, def.status ?? null, statusSec, el);
+          if (react === null && def.status) h.events.push({ k: 'status', v: v.id, s: def.status, sec: statusSec || 1 });
         }
       }
       break;

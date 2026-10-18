@@ -1,6 +1,7 @@
 import { SELECTABLE } from '../../../shared/fighters/index.ts';
 import { abilitySummary, fighterStats } from '../../../shared/fighters/stats.ts';
 import type { Element, FighterDef, Role } from '../../../shared/fighters/types.ts';
+import { PASSIVE_OF } from '../../../shared/sim/passives.ts';
 import { ELEMENT_LABEL, FACTION_COLOR, FACTION_LABEL, artUrl } from '../art/manifest.ts';
 import { escapeHtml } from './util.ts';
 
@@ -56,6 +57,12 @@ const statBar = (label: string, v: number): string =>
 const moveLine = (name: string, ability: FighterDef['attack']): string =>
   `<span><b>${escapeHtml(name)}</b> ${escapeHtml(abilitySummary(ability))}</span>`;
 
+/** Faction passive line (T20): every kit shows the rule it plays by. */
+const passiveLine = (def: FighterDef): string => {
+  const pas = PASSIVE_OF[def.faction];
+  return `<span class="passive"><b>${escapeHtml(pas.name)}</b> ${escapeHtml(pas.text)}</span>`;
+};
+
 function card(def: FighterDef, selected: string): string {
   const st = fighterStats(def);
   const moves = def.moves ?? { attack: 'Attack', special: 'Special', ult: 'Ultimate' };
@@ -67,6 +74,7 @@ function card(def: FighterDef, selected: string): string {
       <i class="elem">${ELEMENT_ICON[def.element]} ${ELEMENT_LABEL[def.element]}</i>
       <i class="role">${ROLE_LABEL[def.role]}</i></span>
     <span class="bars">${statBar('HP', st.hp)}${statBar('SPD', st.speed)}${statBar('DMG', st.dmg)}</span>
+    ${passiveLine(def)}
     <span class="moves">${moveLine(moves.attack, def.attack)}${moveLine(moves.special, def.special)}${moveLine(moves.ult, def.ult)}</span>
   </button>`;
 }

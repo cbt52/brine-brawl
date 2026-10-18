@@ -217,6 +217,7 @@ export class GameScene extends Phaser.Scene {
         g.fillStyle(0xffffff, 0.55).fillEllipse(p.x - r * 0.35, p.y - r * 0.45, r * 0.5, r * 0.28);
       }
       if (p.st && !p.dn) this.drawStatus(g, p, nowMs);
+      if (p.ev && !p.dn) this.drawEvolved(g, p, nowMs);
       const arm = this.armUntil.get(p.id);
       if (!arm) continue;
       if (nowMs >= arm.until) { this.armUntil.delete(p.id); continue; }
@@ -283,6 +284,20 @@ export class GameScene extends Phaser.Scene {
     g.fillStyle(0x2ec4b6, 1).fillCircle(x - w * 0.3, y - h * 0.12, 1.9);
     g.fillStyle(0x2ec4b6, 1).fillCircle(x + w * 0.3, y - h * 0.12, 1.9);
     this.wantedText.setPosition(x, y - h - 7).setVisible(true);
+  }
+
+  /**
+   * EVOLVE (T20): a golden aura ring under the body plus a small crest above the head so an
+   * evolved Critterkin reads at a glance.
+   */
+  private drawEvolved(g: Phaser.GameObjects.Graphics, p: SnapPlayer, nowMs: number): void {
+    const r = getFighter(p.f).radius;
+    const pulse = 0.5 + Math.sin(nowMs / 260 + p.id) * 0.16;
+    g.fillStyle(0xffc93c, 0.08).fillCircle(p.x, p.y, r * 1.55);
+    g.lineStyle(3, 0xffd23f, pulse).strokeCircle(p.x, p.y, r * 1.4);
+    const top = (this.rigs.get(p.id)?.headTopY ?? p.y - r - 40) - 6;
+    g.fillStyle(0x1b1b2f, 0.85).fillTriangle(p.x - 11, top, p.x + 11, top, p.x, top - 16);
+    g.fillStyle(0xffd23f, 1).fillTriangle(p.x - 8, top - 1, p.x + 8, top - 1, p.x, top - 13);
   }
 
   /**
@@ -419,6 +434,7 @@ export class GameScene extends Phaser.Scene {
         this.rigs.set(p.id, rig);
       }
       rig.setLabel(p.n);
+      rig.setEvolved(Boolean(p.ev));
       rig.sync(p.x, p.y, p.a, Boolean(p.dn));
       rig.setBars(p.hp / p.mhp, p.am, def.ammo, art.color);
       // spawn shield blinks; a KO'd fighter keeps its rig for the death animation;
@@ -493,6 +509,11 @@ export class GameScene extends Phaser.Scene {
         if (victim) this.fx.ko(victim.x, victim.groundY, getArt(this.kinds.get(e.v)).color);
         if (e.v === this.net.id || e.a === this.net.id) this.fx.shake('ko');
         if (e.a === this.net.id) navigator.vibrate?.(45);
+      } else if (e.k === 'passive') {
+        const who = this.rigs.get(e.v);
+        const dest = e.a !== undefined ? this.rigs.get(e.a) : undefined;
+        this.fx.passive(e.p, who?.x ?? e.x, who?.y ?? e.y, dest ? { x: dest.x, y: dest.y } : undefined);
+        if (e.p === 'toon') who?.pancake();
       }
     }
     this.drawLoot(nowMs);

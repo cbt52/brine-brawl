@@ -9,6 +9,9 @@ import type { Projectile } from './combat.ts';
 import { castAbility, hitElement, stepBurrow, stepDash, stepZones, type BurrowState, type DashState, type Zone } from './abilities.ts';
 import { applyElementHit, applyStatus, BURN_DPS, BURN_TICK_SEC, STATUS_SEC, statusSpeedMul } from './elements.ts';
 import { BOUNTY_START, bountyAfterKO, KO_COINS, koPurse } from './bounty.ts';
+import {
+  bountyMulFor, noteAttackHit, onKO, resetOnDeath, resetOnSpawn, stepPassives, takeFlow, toonSave, ultGainMul,
+} from './passives.ts';
 import { canSee, REVEAL_SEC } from './visibility.ts';
 import {
   CHEST_HP, CHEST_RADIUS, CHEST_SPOTS, PICKUP_HEAL, PICKUP_RADIUS, PICKUP_SEC, PICKUP_ULT_FRAC,
@@ -105,6 +108,16 @@ export interface SimPlayer {
   bounty: number;
   /** seconds of continuous flood water under the body (see tide.ts) */
   waterT: number;
+  /** EVOLVE (T20): KOs counted this life and whether the crest is up */
+  evolveKos: number;
+  evolved: boolean;
+  /** FLOW (T20): attack hits inside the window, the window timer and the armed flag */
+  flowHits: number;
+  flowT: number;
+  flowReady: boolean;
+  /** TOON LOGIC (T20): the free save is used per life; `toonLeft` = pancake seconds */
+  toonUsed: boolean;
+  toonLeft: number;
   bot?: boolean;
 }
 
@@ -147,6 +160,7 @@ export class World {
       buffMul: 1, buffLeft: 0, status: null, statusLeft: 0, rootLeft: 0, burnT: 0, trapTook: 0,
       revealT: 0, down: false, respawn: 0, shield: C.SHIELD_SEC, kos: 0, deaths: 0, pendingFighter: null,
       gold: 0, bounty: BOUNTY_START, waterT: 0, bot,
+      evolveKos: 0, evolved: false, flowHits: 0, flowT: 0, flowReady: false, toonUsed: false, toonLeft: 0,
     };
     this.players.set(id, p);
     this.events.push({ k: 'spawn', id });
@@ -232,7 +246,7 @@ export class World {
     if (dmg <= 0 || chest.hp <= 0) return;
     chest.hp -= dmg;
     const a = this.players.get(attacker);
-    if (a) a.uc = Math.min(a.def.ultCharge, a.uc + Math.min(dmg, chest.mhp) * 0.5);
+    if (a) a.uc = Math.min(a.def.ultCharge, a.uc + Math.min(dmg, chest.mhp) * 0.5 * ultGainMul(a));
     if (chest.hp > 0) return;
     chest.hp = 0;
     this.chests = this.chests.filter((c) => c !== chest);
@@ -266,6 +280,7 @@ export class World {
         if (p.statusLeft <= 0) { p.statusLeft = 0; p.status = null; p.trapTook = 0; }
       }
       if (p.rootLeft > 0) p.rootLeft = Math.max(0, p.rootLeft - dt);
+      stepPassives(p, dt);
       // burn: 4 dmg/s, applied in half-second chunks so the damage FX does not run at 30 Hz
       if (p.status === 'burn' && !p.down && p.shield <= 0) {
         p.burnT += dt;
@@ -276,9 +291,10 @@ export class World {
       } else {
         p.burnT = 0;
       }
-      // a bubble trap holds the victim in place; a stun locks input the same way
+      // a bubble trap holds the victim in place; a stun locks input the same way, a toon pancake
+      // only freezes for its half second (TOON LOGIC, T20)
       const trapped = p.status === 'trapped';
-      const disabled = trapped || p.status === 'stun';
+      const disabled = trapped || p.status === 'stun' || p.toonLeft > 0;
       if (disabled) p.dash = null;
       const burrowing = stepBurrow(this, p, dt);
       if (burrowing) { p.fireLatch = false; continue; }
@@ -333,7 +349,12 @@ export class World {
     p.ammo--;
     p.fireCd = C.FIRE_GAP_SEC;
     p.revealT = REVEAL_SEC;
-    castAbility(this, p, p.def.attack, 'attack');
+    // FLOW (T20): an armed combo empowers this attack and shows the ribbon swirl
+    const flow = takeFlow(p);
+    if (flow) {
+      this.events.push({ k: 'passive', v: p.id, p: 'flow', x: Math.round(p.x), y: Math.round(p.y) });
+    }
+    castAbility(this, p, p.def.attack, 'attack', flow ?? undefined);
     this.events.push({
       k: 'shot', id: p.id,
       x: Math.round(p.x + Math.cos(p.aim) * p.r), y: Math.round(p.y + Math.sin(p.aim) * p.r),
@@ -383,6 +404,11 @@ export class World {
             pr.hit.add(v.id);
           } else dead = true;
           this.damage(pr.owner, v, pr.dmg, pr.x, pr.y);
+          // only attack shots feed FLOW; specials and ults do not (T20)
+          if (pr.slot === 'attack' && !v.down) {
+            const a = this.players.get(pr.owner);
+            if (a) noteAttackHit(a);
+          }
           // a spawn shield absorbs the hit entirely: no status either
           if (!v.down && v.shield <= 0) {
             const el = hitElement(pr.element, pr.status ?? null);
@@ -424,7 +450,7 @@ export class World {
     v.hp = Math.max(0, v.hp - dmg);
     this.events.push({ k: 'hit', a: attacker, v: v.id, dmg, x: Math.round(x), y: Math.round(y) });
     const a = this.players.get(attacker);
-    if (a && a.id !== v.id && dealt > 0) a.uc = Math.min(a.def.ultCharge, a.uc + dealt);
+    if (a && a.id !== v.id && dealt > 0) a.uc = Math.min(a.def.ultCharge, a.uc + dealt * ultGainMul(a));
     if (v.status === 'trapped' && v.hp > 0) {
       v.trapTook += dealt;
       if (v.trapTook >= TRAP_BREAK_DMG) {
@@ -435,6 +461,8 @@ export class World {
       }
     }
     if (v.hp > 0) return;
+    // TOON LOGIC (T20): the first lethal hit of a life leaves a 1-HP pancake instead of a KO
+    if (toonSave(v, this.events)) return;
     v.down = true;
     v.respawn = C.RESPAWN_SEC;
     v.deaths++;
@@ -448,8 +476,11 @@ export class World {
     if (a) a.kos++;
     if (a && a.id !== v.id) {
       a.gold += pay;
-      a.bounty = bountyAfterKO(a.bounty);
+      a.bounty = bountyAfterKO(a.bounty, bountyMulFor(a));
     }
+    // faction passives see the KO before the victim's stats reset (EVOLVE / PLUNDER)
+    if (a) onKO(a, v, this.events);
+    resetOnDeath(v);
     v.bounty = BOUNTY_START;
     this.dropCoins(v, KO_COINS);
     this.events.push({ k: 'ko', a: attacker, v: v.id, pay });
@@ -510,6 +541,7 @@ export class World {
     p.statusLeft = 0;
     p.trapTook = 0;
     p.shield = C.SHIELD_SEC;
+    resetOnSpawn(p);
     this.events.push({ k: 'spawn', id: p.id });
   }
 
@@ -571,6 +603,7 @@ export class World {
         am: p.ammo, dn: p.down ? 1 : 0, sh: p.shield > 0 ? 1 : 0, k: p.kos, d: p.deaths, b: p.bounty,
         uc: Math.round(Math.max(0, Math.min(1, p.uc / p.def.ultCharge)) * 100),
         cd: Math.round(p.spcCd * 10) / 10,
+        ev: p.evolved ? 1 : undefined,
       });
     }
     return {

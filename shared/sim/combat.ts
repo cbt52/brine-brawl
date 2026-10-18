@@ -1,3 +1,4 @@
+import type { AbilitySlot } from '../protocol.ts';
 import type { Element, StatusKind } from '../fighters/types.ts';
 
 /** Default-fighter combat numbers (kept for tests and legacy imports; kits carry their own). */
@@ -37,6 +38,8 @@ export interface Projectile {
   /** element of the hit (defaults to the status element) */
   element?: Element;
   statusSec?: number;
+  /** which slot fired it: only `attack` shots feed the FLOW passive (T20) */
+  slot?: AbilitySlot;
   /** enemies already hit by a piercing shot */
   hit?: Set<number>;
 }

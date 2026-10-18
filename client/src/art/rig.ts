@@ -25,6 +25,8 @@ const OUTLINE = 0x1b1b2f;
 const HURT_FACE_MS = 200;
 const ATTACK_MS = 80;
 const KO_SPIN_MS = 420;
+/** on-screen growth of an evolved Critterkin (+12 %, matches `EVOLVE_SIZE`) */
+const EVOLVE_SCALE = 1.12;
 
 /**
  * One fighter on screen: shadow ellipse, SVG body, name plate and HP/ammo bars, all tweened through the
@@ -53,6 +55,8 @@ export class FighterSprite extends Phaser.GameObjects.Container {
   private frozenUntil = 0;
   private ultGlow?: Phaser.GameObjects.Ellipse;
   private ultTween?: Phaser.Tweens.Tween;
+  /** evolved body scale flag (EVOLVE passive, T20) */
+  private evolved = false;
 
   constructor(scene: Phaser.Scene, x: number, y: number, cfg: RigConfig) {
     super(scene, x, y);
@@ -111,7 +115,32 @@ export class FighterSprite extends Phaser.GameObjects.Container {
     if (this.nameText && this.nameText.text !== name) this.nameText.setText(name);
   }
 
-  /** White ring under the local player so "me" stays obvious now that everyone has art. */
+  /** EVOLVE (T20): the golden crest makes the body a touch bigger. */
+  setEvolved(on: boolean): void {
+    if (on === this.evolved) return;
+    this.evolved = on;
+    this.setScale(on ? EVOLVE_SCALE : 1);
+  }
+
+  /** TOON LOGIC (T20): squash flat like a pancake, then spring back up. */
+  pancake(): void {
+    if (this.down) return;
+    this.stopIdle();
+    this.animTween = this.scene.tweens.add({
+      targets: this.sprite,
+      scaleY: this.scaleBase * 0.45,
+      scaleX: this.scaleBase * 1.35,
+      duration: 110,
+      hold: 260,
+      yoyo: true,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        this.sprite.setScale(this.scaleBase);
+        this.startIdle();
+      },
+    });
+  }
+
   setSelf(on: boolean): void {
     if (!on) {
       this.selfRing?.destroy();
