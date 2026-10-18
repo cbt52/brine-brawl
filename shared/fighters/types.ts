@@ -57,11 +57,13 @@ export interface ProjectileAbility extends AbilityBase {
   bounce?: number;
   /** lobbed shot: flies over walls (still stops at the arena border) */
   lob?: boolean;
-  /** damage blob when the projectile expires or hits */
-  aoeOnEnd?: { radius: number; dmg: number };
+  /** damage blob when the projectile expires or hits (optionally carrying a status, Pebble Lob) */
+  aoeOnEnd?: { radius: number; dmg: number; status?: StatusKind; statusSec?: number };
   /** status applied to every enemy it hits (bubble trap) */
   status?: StatusKind;
   statusSec?: number;
+  /** steer toward the nearest enemy in flight (lantern moths) */
+  homing?: boolean;
 }
 
 export interface MeleeAbility extends AbilityBase {
@@ -129,7 +131,7 @@ export interface BuffAbility extends AbilityBase {
   shield?: number;
   /** HP restored (capped at max HP) */
   heal?: number;
-  /** temporary movement multiplier */
+  /** temporary movement multiplier (0 = rooted, Snooze) */
   speedMul?: number;
   /** damage-taken multiplier while the buff runs (0.5 = half damage, Shell Spin) */
   dmgMul?: number;

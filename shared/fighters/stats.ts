@@ -50,6 +50,8 @@ export function abilitySummary(a: AbilityDef): string {
       const parts = [a.count > 1 ? `${a.count}-shot` : 'single shot'];
       if (a.pierce) parts.push('pierces');
       if (a.bounce) parts.push(`bounces ${a.bounce}×`);
+      if (a.lob) parts.push('arcs over walls');
+      if (a.homing) parts.push('homing');
       parts.push(`${a.dmg} dmg`);
       if (a.status) parts.push(`${a.status} ${sec(a.statusSec ?? 1)} s`);
       return parts.join(' · ');
@@ -73,7 +75,9 @@ export function abilitySummary(a: AbilityDef): string {
       if (a.heal) parts.push(`+${a.heal} hp`);
       if (a.shield) parts.push('shield');
       if (a.speedMul) parts.push(`speed ×${a.speedMul}`);
+      else if (a.speedMul === 0) parts.push('rooted');
       if (a.dmgMul) parts.push(`takes ×${a.dmgMul} dmg`);
+      else if (a.dmgMul === 0) parts.push('immune');
       return [...parts, `${sec(a.sec)} s`].join(' · ');
     }
     case 'status':

@@ -215,7 +215,7 @@ export function castAbility(
           vx: Math.cos(a) * def.speed, vy: Math.sin(a) * def.speed,
           left: def.range, dmg, r: def.radius,
           pierce: !!def.pierce, bounces: Math.max(0, Math.floor(def.bounce ?? 0)),
-          lob: !!def.lob, aoeOnEnd: def.aoeOnEnd, hit: new Set(),
+          lob: !!def.lob, aoeOnEnd: def.aoeOnEnd, homing: !!def.homing, hit: new Set(),
           status: def.status, statusSec, element: hitElement(defEl, def.status), slot,
         });
       }
@@ -300,11 +300,11 @@ export function castAbility(
     case 'buff': {
       if (def.shield) p.shield = Math.max(p.shield, def.shield);
       if (def.heal) p.hp = Math.min(p.mhp, p.hp + def.heal);
-      if (def.speedMul) {
+      if (def.speedMul !== undefined) {
         p.buffMul = def.speedMul;
         p.buffLeft = def.sec;
       }
-      if (def.dmgMul) {
+      if (def.dmgMul !== undefined) {
         p.dmgMul = def.dmgMul;
         p.dmgMulLeft = def.sec;
       }

@@ -28,6 +28,18 @@ import {
 export const BASE_SPEED = 240;
 /** default body radius (kits carry their own `radius`) */
 export const PLAYER_RADIUS = 32;
+/** how fast a homing shot turns (rad/s) and how far it looks for a target */
+const HOMING_TURN = 6;
+const HOMING_RANGE = 340;
+
+/** wrap an angle difference into (-π, π] */
+function wrapAngle(a: number): number {
+  const t = Math.PI * 2;
+  let x = a % t;
+  if (x > Math.PI) x -= t;
+  if (x < -Math.PI) x += t;
+  return x;
+}
 
 /** A low-tide treasure chest: destructible scenery that drops one reward. */
 export interface Chest {
@@ -479,9 +491,30 @@ export class World {
     });
   }
 
+  /** Homing moths (Lantern Swarm): turn the velocity toward the nearest enemy, keeping the speed. */
+  private steer(pr: Projectile, dt: number): void {
+    let best: SimPlayer | null = null;
+    let bestD = HOMING_RANGE;
+    for (const v of this.players.values()) {
+      if (v.id === pr.owner || v.down || v.burrow) continue;
+      if (this.friendly(pr.owner, v)) continue;
+      const d = Math.hypot(v.x - pr.x, v.y - pr.y);
+      if (d < bestD) { bestD = d; best = v; }
+    }
+    if (!best) return;
+    const want = Math.atan2(best.y - pr.y, best.x - pr.x);
+    const cur = Math.atan2(pr.vy, pr.vx);
+    const maxTurn = HOMING_TURN * dt;
+    const a = cur + Math.max(-maxTurn, Math.min(maxTurn, wrapAngle(want - cur)));
+    const sp = Math.hypot(pr.vx, pr.vy) || 1;
+    pr.vx = Math.cos(a) * sp;
+    pr.vy = Math.sin(a) * sp;
+  }
+
   private stepProjectiles(dt: number): void {
     const keep: Projectile[] = [];
     for (const pr of this.projs) {
+      if (pr.homing) this.steer(pr, dt);
       const sp = Math.hypot(pr.vx, pr.vy) || 1;
       const dist = Math.min(pr.left, sp * dt);
       const n = Math.max(1, Math.ceil(dist / 15));
@@ -556,8 +589,9 @@ export class World {
         this.zones.push({
           id: this.newProjId(), owner: pr.owner, x: pr.x, y: pr.y, r: pr.aoeOnEnd.radius,
           delay: 0, dur: 0, dmg: pr.aoeOnEnd.dmg, tickDmg: 0, push: 0, pull: 0, tickPull: 0,
-          coneDeg: 0, aim: 0, status: null, statusSec: 0, selfHeal: 0, rootSec: 0, dropGold: 0,
-          tickT: 0, fired: false, slot: pr.slot,
+          coneDeg: 0, aim: 0, status: pr.aoeOnEnd.status ?? null, statusSec: pr.aoeOnEnd.statusSec ?? 0,
+          selfHeal: 0, rootSec: 0, dropGold: 0,
+          element: hitElement(pr.element, pr.aoeOnEnd.status ?? null), tickT: 0, fired: false, slot: pr.slot,
         });
       }
       if (!dead && pr.left > 0) keep.push(pr);
@@ -572,6 +606,8 @@ export class World {
     if (this.friendly(attacker, v)) return;
     // Shell Spin and friends take less damage while their buff runs
     if (v.dmgMulLeft > 0) dmg *= v.dmgMul;
+    // Hunker turns the body to stone: a 0 multiplier lands no hit event at all
+    if (dmg <= 0) return;
     const dealt = Math.max(0, Math.min(v.hp, dmg));
     v.hp = Math.max(0, v.hp - dmg);
     this.events.push({ k: 'hit', a: attacker, v: v.id, dmg, x: Math.round(x), y: Math.round(y) });

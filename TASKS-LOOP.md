@@ -367,7 +367,8 @@ Each fighter task: SVG + hurt SVG, data kit, hooks if needed, unit test per abil
 
 ### CP8 — "Volle Crew: 24 Kämpfer"
 
-- [ ] **T29 — Critterkin: Gloomoth, Pebblor, Dozelump** (Test: gallery shot + check)
+- [x] **T29 — Critterkin: Gloomoth, Pebblor, Dozelump** (Test: gallery shot + check)
+  - Note: three kits in `shared/fighters/{gloomoth,pebblor,dozelump}.ts`. Gloomoth: Dust Puff (melee cone + Heavy 2 s) / Phase Flutter (burrow/blink 250 u, 0.8 s untargetable) / Lantern Swarm (5 homing moths). Pebblor: Pebble Lob (lob over walls, landing AoE 95 + Heavy) / Hunker (`buff dmgMul 0` = 1 s immune) / Avalanche Egg (piercing boulder). Dozelump: Belly Bump (wide shove) / Snooze (heal 40, `speedMul 0` = rooted 2 s) / Body Slam (burrow onto the aim, AoE 150). New generic bits: projectile `homing` (steer toward the nearest enemy, `shared/sim/world.ts` `steer()`, 6 rad/s, 340 u) and `aoeOnEnd.status` so a lob can land a status; `buff` now honours `speedMul 0`/`dmgMul 0` (`!== undefined`) and `damage()` returns early on 0 damage. 11 tests in `tests/unit/critterkin.test.ts`; gallery shot T29-0 shows all three (name plates still overlap the faction badge — T33). Also de-flaked `tests/unit/teams.test.ts` (unseeded bot aim jitter).
 - [ ] **T30 — Weavers: Ashka Flameheart, Kip Boomer, Uncle Tobo** (boomerang = projectile `returns:true`, can hit twice)
 - [ ] **T31 — Saltwind: Nova Chartwind, Longshot Lenny, Doc Fawnsworth** (new primitive `summon{decoy|turret}` if needed; heal on ally)
 - [ ] **T32 — Bubblebottom: Lumpy, Squall Mopefin, Teeny Krill** (turret via `summon`)
@@ -488,6 +489,7 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 
 ---
 ## 6. LOG (one line per task/hotfix; archive older lines to `.loop/log-archive.md` if >40 lines)
+- T29 ✅ 2026-10-18 — Gloomoth (Dust Puff/Phase Flutter/Lantern Swarm), Pebblor (Pebble Lob/Hunker/Avalanche Egg), Dozelump (Belly Bump/Snooze/Body Slam); `homing`+`aoeOnEnd.status`-Primitive, buff 0-Multiplikatoren; 11 Tests, check 440+shot grün
 - T24 ✅ 2026-10-18 — Pinchpenny (piercing coins, claw pull, coin slam) + Hammy (chop, tank dash, slow field); dropGold bit; 394 green
 - T16 ✅ 2026-10-18 — client prediction (ack-rollback, 100 ms blend, 120 u snap), ping HUD, ?lag=ms; e2e green; CP4 checkpoint
 - T00 ✅ 2026-10-18 — scaffold+MCP done; .claude/settings.json write was denied by harness (add manually, MCP works anyway)

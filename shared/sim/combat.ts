@@ -31,8 +31,10 @@ export interface Projectile {
   bounces?: number;
   /** ignores walls */
   lob?: boolean;
-  /** damage blob on expiry or first hit */
-  aoeOnEnd?: { radius: number; dmg: number };
+  /** damage blob on expiry or first hit (status optional) */
+  aoeOnEnd?: { radius: number; dmg: number; status?: StatusKind; statusSec?: number };
+  /** steers toward the nearest enemy in flight (lantern moths) */
+  homing?: boolean;
   /** status applied to every enemy it hits (bubble trap) */
   status?: StatusKind;
   /** element of the hit (defaults to the status element) */

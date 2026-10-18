@@ -6,6 +6,7 @@ import { applyElementHit } from '../../shared/sim/elements.ts';
 import { BotBrain } from '../../shared/sim/bot.ts';
 import { Room } from '../../server/rooms.ts';
 import { getFighter } from '../../shared/fighters/index.ts';
+import { seeded } from '../../scripts/lib/balance.ts';
 import { TICK_HZ } from '../../shared/constants.ts';
 
 const inp = (o: Partial<SimInput> = {}): SimInput => ({
@@ -122,7 +123,8 @@ describe('teams (T26)', () => {
     bot.x = 1000; bot.y = 1000; bot.shield = 0;
     ally.x = 1040; ally.y = 1000; ally.shield = 0;
     foe.x = 1150; foe.y = 1000; foe.shield = 0;
-    const brain = new BotBrain(1, 'normal');
+    // a seeded brain keeps the aim jitter deterministic (this test used to flake on Math.random)
+    const brain = new BotBrain(1, 'normal', seeded(3));
     for (let i = 0; i < 10; i++) w.setInput(1, brain.think(w, 1 / TICK_HZ));
     // aiming at the enemy, not at the closer ally (aim is stored raw in the input)
     const input = brain.think(w, 1 / TICK_HZ);
