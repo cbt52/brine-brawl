@@ -13,23 +13,33 @@ export interface LocalStats {
   bestBounty: number;
   /** rounds per fighter id */
   plays: Record<string, number>;
+  /** rounds won per fighter id (rounds before this field existed count as not won) */
+  wonBy: Record<string, number>;
+  /** `room:round` of the round that set `bestBounty` (drives the "new best" tag) */
+  bestKey: string;
   /** `room:round` of the last counted round, so a reload on the results screen does not count twice */
   last: string;
 }
 
-export const EMPTY_STATS: LocalStats = { matches: 0, wins: 0, kos: 0, bestBounty: 0, plays: {}, last: '' };
+export const EMPTY_STATS: LocalStats = {
+  matches: 0, wins: 0, kos: 0, bestBounty: 0, plays: {}, wonBy: {}, bestKey: '', last: '',
+};
 
 /** Adds one finished round for `selfId`; returns the same object when nothing changes. */
 export function addRound(s: LocalStats, rows: ScoreRow[], selfId: number, key: string): LocalStats {
   if (s.last === key) return s;
   const me = rows.find((r) => r.id === selfId);
   if (!me) return s;
+  const won = rows[0]?.id === selfId;
   return {
     matches: s.matches + 1,
-    wins: s.wins + (rows[0]?.id === selfId ? 1 : 0),
+    wins: s.wins + (won ? 1 : 0),
     kos: s.kos + me.k,
     bestBounty: Math.max(s.bestBounty, me.b),
+    // strictly higher only: matching the record is not a new best
+    bestKey: me.b > s.bestBounty ? key : s.bestKey,
     plays: { ...s.plays, [me.f]: (s.plays[me.f] ?? 0) + 1 },
+    wonBy: won ? { ...s.wonBy, [me.f]: (s.wonBy[me.f] ?? 0) + 1 } : s.wonBy,
     last: key,
   };
 }
@@ -43,6 +53,17 @@ export function favoriteFighter(s: LocalStats): string | undefined {
   return best;
 }
 
+/** Share of rounds won with one fighter, in whole percent (0 when never played). */
+export function fighterWinRate(s: LocalStats, id: string): number {
+  const n = s.plays[id] ?? 0;
+  return n ? Math.min(100, Math.round((100 * (s.wonBy[id] ?? 0)) / n)) : 0;
+}
+
+/** The new record bounty if round `key` set it, otherwise 0 (no tag). */
+export function newBestFor(s: LocalStats, key: string): number {
+  return s.bestKey === key ? s.bestBounty : 0;
+}
+
 const num = (v: unknown): number => (typeof v === 'number' && Number.isFinite(v) && v >= 0 ? v : 0);
 
 /** Reads the saved stats; anything unreadable (corrupt JSON, private mode) starts from zero. */
@@ -54,12 +75,18 @@ export function loadStats(): LocalStats {
     if (raw.plays && typeof raw.plays === 'object') {
       for (const [id, n] of Object.entries(raw.plays)) plays[id] = num(n);
     }
+    const wonBy: Record<string, number> = {};
+    if (raw.wonBy && typeof raw.wonBy === 'object') {
+      for (const [id, n] of Object.entries(raw.wonBy)) wonBy[id] = num(n);
+    }
     return {
       matches: num(raw.matches),
       wins: num(raw.wins),
       kos: num(raw.kos),
       bestBounty: num(raw.bestBounty),
       plays,
+      wonBy,
+      bestKey: typeof raw.bestKey === 'string' ? raw.bestKey : '',
       last: typeof raw.last === 'string' ? raw.last : '',
     };
   } catch {

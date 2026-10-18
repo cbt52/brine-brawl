@@ -1,5 +1,5 @@
 import { getFighter } from '../../../shared/fighters/index.ts';
-import { currentStats, favoriteFighter } from './stats.ts';
+import { currentStats, favoriteFighter, fighterWinRate } from './stats.ts';
 import { escapeHtml } from './util.ts';
 
 /** Local stats panel (backlog #9): opened from the lobby and the in-game ☰ menu. */
@@ -10,7 +10,7 @@ export function showStats(): void {
   const winRate = s.matches ? Math.round((100 * s.wins) / s.matches) : 0;
   const plays = Object.entries(s.plays)
     .sort((a, b) => b[1] - a[1])
-    .map(([id, n]) => `<li><span>${escapeHtml(getFighter(id).name)}</span><b>${n}</b></li>`)
+    .map(([id, n]) => `<li><span>${escapeHtml(getFighter(id).name)}</span><b>${n} · ${fighterWinRate(s, id)}% won</b></li>`)
     .join('');
   const el = document.createElement('div');
   el.id = 'stats';

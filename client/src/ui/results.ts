@@ -64,8 +64,11 @@ export interface ResultsActions {
 /** Footer line under the buttons: the room restarts by itself when the countdown runs out (backlog #15). */
 const nextText = (t: number): string => `Next round in ${t}s`;
 
-/** Show the results overlay once per round and drop it as soon as the next countdown starts. */
-export function syncResults(m: MatchInfo | undefined, actions: ResultsActions = {}): void {
+/**
+ * Show the results overlay once per round and drop it as soon as the next countdown starts.
+ * `newBest` > 0 tags the round as the player's new record bounty (backlog #23).
+ */
+export function syncResults(m: MatchInfo | undefined, actions: ResultsActions = {}, newBest = 0): void {
   const el = document.getElementById('results');
   if (m?.st === 'results' && m.res) {
     if (dismissed === m.r) { el?.remove(); return; }
@@ -84,6 +87,7 @@ export function syncResults(m: MatchInfo | undefined, actions: ResultsActions = 
     div.setAttribute('data-testid', 'results');
     div.innerHTML = `${confetti()}
       <h2 data-testid="results-title">🏆 ${escapeHtml(win?.n ?? 'Nobody')} wins!</h2>
+      ${newBest ? `<small class="new-best" data-testid="results-best">★ New best bounty · ${newBest} 🪙</small>` : ''}
       <ol class="rank-list" data-testid="results-list">${rows.map((r, i) => row(r, i + 1)).join('')}</ol>
       <div class="row">
         <button class="big" data-testid="results-rematch">Rematch</button>

@@ -14,7 +14,7 @@ import {
 } from '../fx/statusFx.ts';
 import { HudScene } from './HudScene.ts';
 import { syncResults } from '../ui/results.ts';
-import { countRound } from '../ui/stats.ts';
+import { countRound, currentStats, newBestFor } from '../ui/stats.ts';
 import { getFighter } from '../../../shared/fighters/index.ts';
 import { hasStatus, type Element } from '../../../shared/fighters/types.ts';
 import { FighterSprite, preloadArt } from '../art/rig.ts';
@@ -196,11 +196,16 @@ export class GameScene extends Phaser.Scene {
     this.hud.setMatch(this.net.last?.m, view, this.net.id, this.net.ping, this.net.last?.tide, this.net.last?.tr);
     const m = this.net.last?.m;
     // local stats (backlog #9): countRound is a no-op after the first call for this round
-    if (m?.st === 'results' && m.res) countRound(m.res, this.net.id, `${this.net.room}:${m.r}`);
+    let newBest = 0;
+    if (m?.st === 'results' && m.res) {
+      const key = `${this.net.room}:${m.r}`;
+      countRound(m.res, this.net.id, key);
+      newBest = newBestFor(currentStats(), key);
+    }
     syncResults(m, {
       rematch: () => this.net.send({ t: 'rematch' }),
       changeFighter: () => window.dispatchEvent(new CustomEvent('brawl:menu')),
-    });
+    }, newBest);
   }
 
   /** Showdown (backlog #6): the closing ring as a bright edge; bodies outside it take edge damage. */

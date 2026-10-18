@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
 import {
-  EMPTY_STATS, STATS_KEY, addRound, countRound, currentStats, favoriteFighter, loadStats, type LocalStats,
+  EMPTY_STATS, STATS_KEY, addRound, countRound, currentStats, favoriteFighter, fighterWinRate, loadStats,
+  newBestFor, type LocalStats,
 } from '../../client/src/ui/stats.ts';
 import type { ScoreRow } from '../../shared/protocol.ts';
 
@@ -43,6 +44,36 @@ describe('local stats (backlog #9)', () => {
     expect(b).toMatchObject({ matches: 2, wins: 2, kos: 2, bestBounty: 120, plays: { voltbun: 2 } });
   });
 
+  it('counts wins per fighter and gives the win share of each', () => {
+    const a = addRound(EMPTY_STATS, ROUND, 1, 'room:1');
+    const b = addRound(a, ROUND, 1001, 'room:2');
+    expect(b.wonBy).toEqual({ voltbun: 1 });
+    expect(fighterWinRate(b, 'voltbun')).toBe(100);
+    expect(fighterWinRate(b, 'sudsy')).toBe(0);
+    expect(fighterWinRate(b, 'nobody')).toBe(0);
+  });
+
+  it('rounds the win share to whole percent', () => {
+    const s: LocalStats = { ...EMPTY_STATS, plays: { x: 3 }, wonBy: { x: 2 } };
+    expect(fighterWinRate(s, 'x')).toBe(67);
+  });
+
+  it('marks the round that beats the saved best bounty as the new best', () => {
+    const a = addRound(EMPTY_STATS, ROUND, 1, 'room:1');
+    expect(newBestFor(a, 'room:1')).toBe(120);
+    const b = addRound(a, [row(1, 'voltbun', 100, 0), row(2, 'sudsy', 10, 0)], 1, 'room:2');
+    expect(newBestFor(b, 'room:2')).toBe(0);
+    expect(newBestFor(b, 'room:1')).toBe(120);
+  });
+
+  it('does not tag a round that only matches the record, or one with no bounty', () => {
+    const a = addRound(EMPTY_STATS, ROUND, 1, 'room:1');
+    const tie = addRound(a, [row(1, 'voltbun', 120, 0)], 1, 'room:2');
+    expect(newBestFor(tie, 'room:2')).toBe(0);
+    const none = addRound(EMPTY_STATS, [row(1, 'voltbun', 0, 0)], 1, 'room:3');
+    expect(newBestFor(none, 'room:3')).toBe(0);
+  });
+
   it('picks the most played fighter, first one played on a tie', () => {
     const none: LocalStats = { ...EMPTY_STATS };
     expect(favoriteFighter(none)).toBeUndefined();
@@ -51,7 +82,9 @@ describe('local stats (backlog #9)', () => {
 
   it('reads saved stats and clamps bad values to zero', () => {
     stubStorage('{"matches":3,"wins":"x","kos":-4,"plays":{"sudsy":-2,"tide":4},"last":5}');
-    expect(loadStats()).toEqual({ matches: 3, wins: 0, kos: 0, bestBounty: 0, plays: { sudsy: 0, tide: 4 }, last: '' });
+    expect(loadStats()).toEqual({
+      matches: 3, wins: 0, kos: 0, bestBounty: 0, plays: { sudsy: 0, tide: 4 }, wonBy: {}, bestKey: '', last: '',
+    });
   });
 
   it('starts from zero when the saved value is corrupt or missing', () => {
