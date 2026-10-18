@@ -17,7 +17,8 @@ export type SfxName =
   | 'pickup'
   | 'countdown'
   | 'horn'
-  | 'react';
+  | 'react'
+  | 'bubble';
 
 /** A hit louder than this gets the heavy "bonk" instead of the element sound. */
 export const HEAVY_HIT = 25;
@@ -78,6 +79,9 @@ export function cueForEvent(
       return e.s === 'trapped' ? { name: 'pop' } : null;
     case 'react':
       return { name: 'react', x: e.x, y: e.y };
+    case 'purrl':
+      // Purrl's patch-up (backlog #38): a soft bubble chime, quiet so it never drowns out a hit
+      return { name: 'bubble', x: e.x, y: e.y };
     case 'chest':
       // a chest popping open: the reward chime, not another hit thud
       return { name: 'pickup', x: e.x, y: e.y };

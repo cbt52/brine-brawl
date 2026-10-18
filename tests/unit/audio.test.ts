@@ -42,6 +42,11 @@ describe('event → preset mapping', () => {
     expect(cueForEvent({ k: 'spawn', id: 2 }, elementOf)).toBeNull();
   });
 
+  it('plays a soft bubble chime at the fighter Purrl patched up', () => {
+    expect(cueForEvent({ k: 'purrl', v: 2, n: 30, x: 300, y: 400 }, elementOf)).toEqual({ name: 'bubble', x: 300, y: 400 });
+    expect(PRESETS.bubble.every((v) => v.gain <= 0.06)).toBe(true);
+  });
+
   it('falls back to the neutral preset for unknown fighters', () => {
     expect(elementSfx(undefined)).toBe('shoot');
     expect(cueForEvent({ k: 'shot', id: 99, x: 0, y: 0, a: 0 })?.name).toBe('shoot');
@@ -70,7 +75,7 @@ describe('distance attenuation', () => {
 
 describe('presets', () => {
   it('every cue name has at least one voice with a positive gain and duration', () => {
-    const names = ['shoot', 'zap', 'splash', 'bonk', 'whip', 'pop', 'ko', 'ult', 'pickup', 'countdown', 'horn'] as const;
+    const names = ['shoot', 'zap', 'splash', 'bonk', 'whip', 'pop', 'ko', 'ult', 'pickup', 'countdown', 'horn', 'bubble'] as const;
     for (const n of names) {
       const voices = PRESETS[n];
       expect(voices.length, n).toBeGreaterThan(0);

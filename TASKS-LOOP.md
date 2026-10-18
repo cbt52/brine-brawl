@@ -457,7 +457,6 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 ## 5. IMPROVEMENT BACKLOG (ordered; T99 takes from the top; user feedback goes first)
 11. Optional ONLY if the user asks: ComfyUI portraits (127.0.0.1:8188, 2–7 min/img, 16 GB RAM, never while the user is using it).
 
-38. Purrl chime: the snail's patch-up has no sound, so add a soft bubble chime for the `purrl` event in `client/src/audio/map.ts` (the heal ring and pop are visual only), kept quiet so it does not drown out hits.
 39. Cannon hit cause: a volley's `hit` event carries attacker -1, the same as burn and edge damage, so the client cannot tell a cannon hit from a burn tick. Give cannon damage its own slot or cause in the event and a short thud in `client/src/audio/map.ts`, so the bar's hit reads as a cannon hit.
 40. Knockback vs stone walls: `shove()` in `shared/sim/abilities.ts` resolves only the arena scenery, so a melee or AoE knockback can shove a fighter into a Brak slab (dashes and burrows already stop at slabs). Resolve shoves against the stone walls too, plus a walls test "a knockback does not push through the slab".
 41. Arena defaults are a footgun: `waterRects`/`inWater`/`waterSpeedMul`, `inBush`/`canSee`, `stepPurrl` and `stepMove` fall back to the docks lists when no arena is passed. Once the Galleon ships, make the arena argument required at every call site (the compiler then finds a forgotten one) and drop the docks defaults.
@@ -476,6 +475,7 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 53. Killcam flake, root cause open: #35 made `KillCam.playing(now)` judge the replay on its clock (`replaying` no longer waits for the next `GameScene.update`), but the render-loop stall was never reproduced (0 failures in 24 runs). If the killcam e2e flakes again, log `game.loop.actualFps` and the time of the last `GameScene.update` next to the failure to see whether the loop stopped.
 54. Best-run tag: when a round's best KO run beats the saved `bestRun`, the results poster shows a "New best run" tag like the bounty tag (`newBestFor` in `client/src/ui/stats.ts`, a `bestRunKey` next to `bestKey`), so a streak record is celebrated the same way.
 55. Emote cooldown ring: the wheel greys out for `EMOTE_COOLDOWN_MS` (1.2 s) but shows no timer, so players cannot tell when the next sticker is ready. Draw a thin ring on each wheel button that fills over the cooldown (`client/src/ui/` emote wheel, driven by the same clock as `emoteReady`), with a unit test on the fill fraction helper.
+56. Heal sound: the `heal` event (Remedy Dart, Field Surgery) is silent, the same gap #38 closed for Purrl, because `cueForEvent` has no `heal` case. Give it the soft bubble chime (`bubble` preset in `client/src/audio/sfx.ts`) or its own quiet preset, with a unit test in `tests/unit/audio.test.ts`.
 
 ---
 
@@ -520,3 +520,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T99 ✅ 2026-10-18 — Killcam flake (backlog #35): `KillCam.playing(now)` judges the replay on its clock, `replaying` uses it; the stall did not reproduce (16/16 + 8/8 e2e), so the root cause is open → §5 #53; 1 unit, check 768 grün, killcam e2e 8/8 grün
 - T99 ✅ 2026-10-18 — Best KO run (backlog #36): `run`/`bestRun` per fighter in the sim (KOs since last death, reset on death and round), `ScoreRow.run` in the ranking, pirate log "Best run" row; 5 new unit tests, check 772 grün → §5 #54
 - T99 ✅ 2026-10-18 — Streak sticker never silenced (backlog #37): streak stickers skip the wheel cooldown and don't start it (`answerStreak` calls `world.emote` directly; once-per-round `streakSent` is the limit); 1 unit test rewritten, check 772 grün → §5 #55
+- T99 ✅ 2026-10-18 — Purrl chime (backlog #38): `purrl` event → soft `bubble` preset (two quiet sines, gain ≤0.05) via `cueForEvent`; 1 unit test + presets list, check 773 grün → §5 #56 (heal sound)
