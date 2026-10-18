@@ -179,11 +179,11 @@ export class World {
       if (!disabled && (p.fireLatch || i?.atk) && p.ammo > 0 && p.fireCd <= 0) this.fire(p);
       p.fireLatch = false;
       // specials/ults are hold-to-cast, gated by cooldown / charge (works the same for bots)
-      if (!disabled && i?.spc && p.spcCd <= 0 && castAbility(this, p, p.def.special)) {
+      if (!disabled && i?.spc && p.spcCd <= 0 && castAbility(this, p, p.def.special, 'special')) {
         p.spcCd = p.def.special.cd > 0 ? p.def.special.cd : 1;
         p.revealT = REVEAL_SEC;
       }
-      if (!disabled && i?.ult && p.uc >= p.def.ultCharge && castAbility(this, p, p.def.ult)) {
+      if (!disabled && i?.ult && p.uc >= p.def.ultCharge && castAbility(this, p, p.def.ult, 'ult')) {
         p.uc = 0;
         p.revealT = REVEAL_SEC;
       }
@@ -205,7 +205,7 @@ export class World {
     p.ammo--;
     p.fireCd = C.FIRE_GAP_SEC;
     p.revealT = REVEAL_SEC;
-    castAbility(this, p, p.def.attack);
+    castAbility(this, p, p.def.attack, 'attack');
     this.events.push({
       k: 'shot', id: p.id,
       x: Math.round(p.x + Math.cos(p.aim) * p.r), y: Math.round(p.y + Math.sin(p.aim) * p.r),

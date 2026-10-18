@@ -1,4 +1,4 @@
-import type { SimEvent } from '../protocol.ts';
+import type { AbilitySlot, SimEvent } from '../protocol.ts';
 import type { AbilityDef, StatusKind } from '../fighters/types.ts';
 import { OBSTACLES } from '../arena/docks.ts';
 import { resolveWalls } from './collide.ts';
@@ -131,7 +131,12 @@ const wrapPi = (a: number): number => {
 };
 
 /** Cast any ability primitive. Returns false when the def is degenerate (nothing happened). */
-export function castAbility(h: CastHost, p: SimPlayer, def: AbilityDef): boolean {
+export function castAbility(
+  h: CastHost,
+  p: SimPlayer,
+  def: AbilityDef,
+  slot: AbilitySlot = 'special',
+): boolean {
   const ax = Math.cos(p.aim);
   const ay = Math.sin(p.aim);
 
@@ -235,7 +240,7 @@ export function castAbility(h: CastHost, p: SimPlayer, def: AbilityDef): boolean
 
   h.events.push({
     k: 'cast', id: p.id, ab: def.kind,
-    x: Math.round(p.x), y: Math.round(p.y), a: Math.round((p.aim * 180) / Math.PI),
+    x: Math.round(p.x), y: Math.round(p.y), a: Math.round((p.aim * 180) / Math.PI), slot,
   });
   return true;
 }

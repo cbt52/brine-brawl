@@ -1,7 +1,7 @@
 import type { Net } from '../net.ts';
 import { copyText, inviteUrl } from './rooms.ts';
 import { fighterRowHtml, markFighterRow, saveFighter, savedFighter } from './select.ts';
-import { setShakeEnabled, shakeEnabled } from './settings.ts';
+import { setShakeEnabled, shakeEnabled, setSfxEnabled, sfxEnabled, setMusicEnabled, musicEnabled } from './settings.ts';
 
 /** Invite panel: full URL, copy button (with HTTP fallback), share if available. */
 export function showInvite(room: string): void {
@@ -46,6 +46,8 @@ export function mountMenu(net: Net): void {
     <button class="big sm alt" data-testid="menu-bot-plus">+ Bot</button></div>
     <small>Bots: host only</small>
     <button class="big sm alt" data-testid="menu-shake">Screenshake</button>
+    <button class="big sm alt" data-testid="menu-sfx">Sound</button>
+    <button class="big sm alt" data-testid="menu-music">Music</button>
     <button class="big sm alt" data-testid="menu-leave">Leave</button>`;
   document.body.append(btn, panel);
   const sbBtn = document.createElement('button');
@@ -89,6 +91,14 @@ export function mountMenu(net: Net): void {
   const syncShake = () => { shakeBtn.textContent = `Screenshake: ${shakeEnabled() ? 'On' : 'Off'}`; };
   shakeBtn.addEventListener('click', () => { setShakeEnabled(!shakeEnabled()); syncShake(); });
   syncShake();
+  const sfxBtn = q('menu-sfx') as HTMLButtonElement;
+  const syncSfx = () => { sfxBtn.textContent = `Sound: ${sfxEnabled() ? 'On' : 'Off'}`; };
+  sfxBtn.addEventListener('click', () => { setSfxEnabled(!sfxEnabled()); syncSfx(); });
+  syncSfx();
+  const musicBtn = q('menu-music') as HTMLButtonElement;
+  const syncMusic = () => { musicBtn.textContent = `Music: ${musicEnabled() ? 'On' : 'Off'}`; };
+  musicBtn.addEventListener('click', () => { setMusicEnabled(!musicEnabled()); syncMusic(); });
+  syncMusic();
   q('menu-invite').addEventListener('click', () => { panel.style.display = 'none'; showInvite(net.room); });
   q('menu-leave').addEventListener('click', () => { location.href = '/'; });
   setInterval(() => { if (panel.style.display !== 'none') refresh(); }, 500);

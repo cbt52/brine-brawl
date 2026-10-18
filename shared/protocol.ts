@@ -98,13 +98,15 @@ export interface SnapProj {
   o: number;
 }
 
+export type AbilitySlot = 'attack' | 'special' | 'ult';
+
 export type SimEvent =
   | { k: 'shot'; id: number; x: number; y: number; a: number }
   | { k: 'hit'; a: number; v: number; dmg: number; x: number; y: number }
   | { k: 'ko'; a: number; v: number }
   | { k: 'spawn'; id: number }
-  /** an ability was cast (cosmetic hook for the FX pass) */
-  | { k: 'cast'; id: number; ab: string; x: number; y: number; a: number }
+  /** an ability was cast (cosmetic hook for the FX + audio passes); `slot` lets the client pick ult sfx */
+  | { k: 'cast'; id: number; ab: string; x: number; y: number; a: number; slot?: AbilitySlot }
   /** a status landed on a victim */
   | { k: 'status'; v: number; s: string; sec: number };
 

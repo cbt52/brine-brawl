@@ -279,7 +279,13 @@ Each reaction shows a big popup word ("SHOCK!").
     - Unit test for the visibility filter.
   - Test: `npm run check && npm run shot -- --name T14 --query "room=shot&bots=3" --device "iPhone 13"`
 
-- [ ] **T15 — Audio (procedural, no files)**
+- [x] **T15 — Audio (procedural, no files)**
+  - Done: `client/src/audio/` — `sfx.ts` WebAudio-Synth (11 Presets aus Oszillatoren + Rausch-Buffer,
+    Hüllkurven, 28-Voice-Cap, iOS-Unlock beim ersten Input), `map.ts` (reine Event→Preset-Zuordnung,
+    Element-Sounds, Distanz-Dämpfung), `music.ts` (8-Takt-Sea-Shanty, Triangle-Lead + Square-Bass,
+    40 ms Lookahead-Scheduler); Countdown-Beeps + Horn an Match-Phasen; ☰-Menü: Sound/Music-Toggles
+    in localStorage; `cast`-Event trägt jetzt `slot` (attack/special/ult) für den Ult-Sound;
+    cp1-e2e-Duell aus dem Kelp-Busch (900/1100, y=1000) in offenes Wasser verschoben (war rot seit T14).
   - Do:
     - `client/src/audio/sfx.ts` WebAudio synth (oscillators + noise + envelopes). Presets: shoot, zap, splash, bonk, whip, bubble-pop, ko, ult, pickup, countdown, horn.
     - Mapped to snapshot events, with distance attenuation.
@@ -530,3 +536,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T12 ✅ 2026-10-18 — Charakterauswahl (Karten mit Stats/Moves im Lobby-Menü, localStorage, ☰-Wechsel ab Respawn); CP3, e2e+healthz grün
 - T13 ✅ 2026-10-18 — Juice-Pass: Partikel (Mündungsfeuer, Impact-Ringe, Funken, Staub, KO-Sterne), Hitstop, Screenshake-Toggle, Vignette, lowfx-Budget; check+e2e+shot grün
 - T14 ✅ 2026-10-18 — Arena-Art in RenderTexture (Sand/Planken/Korallen/Shallows/Waves), Kelp-Büsche verstecken Kämpfer (200 u / 1 s Reveal, Bots+Snapshot gefiltert); check+shot grün
+- T15 ✅ 2026-10-18 — Prozedurales Audio (11 Presets, Distanz-Dämpfung, iOS-Unlock, Shanty-Loop, ☰ Sound/Music-Toggles, cast-slot für Ult-SFX); cp1-e2e-Position aus dem Busch; check+e2e grün

@@ -26,10 +26,10 @@ test('two players: move, shoot, KO', async ({ browser }) => {
   const idB = await myId(b);
   await expect.poll(async () => (await players(b)).length).toBe(2);
 
-  // movement: A holds d, B sees A.x grow
-  await dbg(a, 'tp', { x: 900, y: 1000 });
-  await dbg(b, 'tp', { x: 1100, y: 1000 });
-  await expect.poll(async () => Math.round((await find(b, idA)).x)).toBe(900);
+  // movement: A holds d, B sees A.x grow (open water: 900/1100 y=1000 sits inside a kelp bush)
+  await dbg(a, 'tp', { x: 760, y: 760 });
+  await dbg(b, 'tp', { x: 960, y: 760 });
+  await expect.poll(async () => Math.round((await find(b, idA)).x)).toBe(760);
   const x0 = (await find(b, idA)).x;
   await a.keyboard.down('d');
   await a.waitForTimeout(600);

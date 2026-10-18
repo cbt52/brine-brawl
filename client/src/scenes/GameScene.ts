@@ -10,11 +10,14 @@ import { elementColor } from '../fx/style.ts';
 import { HudScene } from './HudScene.ts';
 import { syncResults } from '../ui/results.ts';
 import { getFighter } from '../../../shared/fighters/index.ts';
-import { STATUS_CODE } from '../../../shared/fighters/types.ts';
+import { STATUS_CODE, type Element } from '../../../shared/fighters/types.ts';
 import { FighterSprite, preloadArt } from '../art/rig.ts';
 import { getArt } from '../art/manifest.ts';
 import { ArenaArt } from '../art/arena.ts';
-import { shakeEnabled } from '../ui/settings.ts';
+import { musicEnabled, sfxEnabled, shakeEnabled } from '../ui/settings.ts';
+import { Sfx } from '../audio/sfx.ts';
+import { Shanty } from '../audio/music.ts';
+import { cueForEvent } from '../audio/map.ts';
 
 const INTERP_DELAY_MS = 100;
 /** how long the taffy arm stays stretched out after a punch */
@@ -45,6 +48,11 @@ export class GameScene extends Phaser.Scene {
   private names = new Map<number, string>();
   private lastPos = new Map<number, { x: number; y: number }>();
   private dustAt = new Map<number, number>();
+  private sfx!: Sfx;
+  private music!: Shanty;
+  /** last countdown second we played a beep for (0 = none) */
+  private lastCdBeep = 0;
+  private lastSoundPhase = '';
 
   constructor(private net: Net, private viewH: number, private fxOpts: GameFxOptions = {}) {
     super('game');
@@ -64,7 +72,13 @@ export class GameScene extends Phaser.Scene {
     this.scale.on('resize', () => this.applyZoom());
     this.controls = new Controls(this, this.net, () => this.self);
     this.fx = new CombatFx(this, { ...this.fxOpts, shake: shakeEnabled() });
+    this.sfx = new Sfx();
+    this.sfx.setEnabled(sfxEnabled());
+    this.music = new Shanty(this.sfx);
+    if (musicEnabled()) this.music.start();
     window.addEventListener('brawl:shake', this.onShakeSetting as EventListener);
+    window.addEventListener('brawl:sfx', this.onSfxSetting as EventListener);
+    window.addEventListener('brawl:music', this.onMusicSetting as EventListener);
     this.hud = this.scene.get('hud') as HudScene;
     this.scene.launch('hud'); // Phaser auto-starts only the first scene in the config list
   }
@@ -76,6 +90,28 @@ export class GameScene extends Phaser.Scene {
   private onShakeSetting = (e: CustomEvent<boolean>): void => {
     this.fx.setShake(Boolean(e.detail));
   };
+
+  private onSfxSetting = (e: CustomEvent<boolean>): void => {
+    this.sfx.setEnabled(Boolean(e.detail));
+  };
+
+  private onMusicSetting = (e: CustomEvent<boolean>): void => {
+    this.music.setEnabled(Boolean(e.detail));
+  };
+
+  /** Countdown beeps and the kick-off horn, driven by the match phase. */
+  private playMatchSounds(): void {
+    const m = this.net.last?.m;
+    const phase = m?.st ?? '';
+    const cd = phase === 'countdown' ? Math.max(1, m?.t ?? 1) : 0;
+    if (cd && cd !== this.lastCdBeep) {
+      this.lastCdBeep = cd;
+      this.sfx.play('countdown');
+    }
+    if (!cd) this.lastCdBeep = 0;
+    if (phase === 'playing' && this.lastSoundPhase === 'countdown') this.sfx.play('horn');
+    this.lastSoundPhase = phase;
+  }
 
   /** HUD lives in its own scene (screen space) — just feed it the current view. */
   private updateHud(view: SnapPlayer[]): void {
@@ -180,7 +216,14 @@ export class GameScene extends Phaser.Scene {
       pg.lineStyle(3, 0x1b1b2f, 1).strokeCircle(pr.x, pr.y, 9);
     }
     const evs = this.net.events.splice(0);
+    const elementOf = (id: number): Element => getArt(this.kinds.get(id)).element;
     for (const e of evs) {
+      const cue = cueForEvent(e, elementOf);
+      if (cue) {
+        // `ko` carries no position: use the victim rig so the sound still comes from the right spot
+        const pos = e.k === 'ko' ? this.rigs.get(e.v) : null;
+        this.sfx.play(cue.name, pos ? { x: pos.x, y: pos.y } : cue);
+      }
       if (e.k === 'shot') {
         this.rigs.get(e.id)?.attack();
         this.fx.muzzle(e.x, e.y, e.a, elementColor(getArt(this.kinds.get(e.id)).element));
@@ -211,6 +254,8 @@ export class GameScene extends Phaser.Scene {
     }
     this.drawOverlays(view, nowMs);
     this.controls.setCooldowns(view.find((p) => p.id === this.net.id));
+    if (this.self) this.sfx.setListener(this.self.x, this.self.y);
+    this.playMatchSounds();
     this.fx.sample(this.game.loop.actualFps, this.game.loop.delta);
     this.hud.addEvents(evs, (id) => this.names.get(id) ?? '?');
     this.updateHud(view);
