@@ -12,6 +12,7 @@ Markers: `[ ]` todo · `[x]` done · `[!]` blocked (reason in Log) · `[~]` skip
    If `git status` is dirty (left over from a crashed iteration): if the changes belong to the current task, continue. Otherwise, if `npm run check` is green, commit them as `WIP: recover`. Else run `git stash push -u -m "loop-recover-<date>"`. Never discard work.
 2. **Feedback first**: if `.loop/feedback.md` exists, read the lines not marked `✓`. If something is broken (can't join, crash, controls unusable on phone), fix it first as a hotfix (commit `HF: …`) and mark the line `✓`. Wishes and ideas go into §5 Backlog (top if the user asked for them), then mark `✓`.
 3. **Pick** the FIRST `- [ ]` task in §3, going top-down. Do ONLY that task. T99 is recurring and never ticked.
+   A CP header followed by a `**Gate:**` line is only eligible when its condition holds; otherwise skip that whole CP (T99 still runs).
 4. **Implement** within scope. `CLAUDE.md` holds architecture, commands and originality rules and must be followed. Keep files small and focused. No unrelated refactors.
 5. **Verify** before committing (everything must be green):
    - `npm run check` (typecheck + lint + ip-check + vitest)
@@ -141,6 +142,103 @@ Each reaction shows a big popup word ("SHOCK!").
 - **Rising Tide** cycle: low 35 s → rising 5 s → high 15 s → falling 5 s.
 - At high tide the shallows flood: ×0.7 speed, Wet.
 - At low tide, chests spawn in the tide pools.
+
+**2.11 Art direction — 3D-rendered sprites (binding from CP9; plan by Opus 2026-10-18)**
+
+**Camera and frames**
+- Camera: orthographic, pitched 35° down, looking from screen-south.
+- Fighters render 5 directions: S, SE, E, NE, N. W, SW and NW are the E-side frames mirrored (`flipX`). A spec can set `dirs: 8` when the costume is too lopsided to mirror.
+- Frame cell: 128×128 px at 1×, rendered at 256 px and downsampled. Origin (0.5, 1); feet line at y = 112. The figure is 96–104 px tall; prop and width stay ≤ 120 px.
+- Animations are rigid puppet parts with no skinning:
+
+  | Anim | Frames | fps | Loop |
+  |---|---|---|---|
+  | idle | 4 | 6 | yes |
+  | run | 6 | 12 | yes |
+  | attack | 3 (windup, strike, recover) | 16 | no |
+  | hurt | 1 (hurt face + squash) | — | — |
+
+  That gives 14 frames × 5 dirs = 70 frames. KO, special/ult, evolve and wobble stay as rig tweens and FX on top of the frames.
+
+**Look: chunky toy toon**
+- Shading and outline:
+  - Render with EEVEE, using toon shading (Shader-to-RGB into a constant ColorRamp) with 3 bands:
+    - shadow: base colour ×0.68 lightness, hue shifted −8° toward blue;
+    - base: the palette colour;
+    - highlight: +12 % lightness, only on up-facing surfaces (normal z > 0.85).
+  - A thin white Fresnel rim at 35 %.
+  - Eyes are emissive: white, black pupil, one glint.
+  - Fighters have no textures, only flat palette colours.
+  - Outline: an inverted-hull mesh in `#1b1b2f`, 3 px thick at 1×.
+- Colour and light:
+  - Colour management must be `view_transform='Standard'`; AgX and Filmic are forbidden. Palette hex values from `scripts/art-models.mjs` must come out exactly.
+  - Film is transparent. Don't bake in a ground shadow; the rig draws the contact shadow.
+  - Light: one sun from above, slightly in front of the camera and centred left-to-right, so mirrored frames stay correct. For 3D sprites this replaces the "top-left" rule in `client/public/art/README.md`.
+
+**Faction palettes**
+- `trim` is the faction accent. It must sit on one large part that still reads at 48 px (scarf, collar, hat band).
+- Critterkin: warm fur and cream tones, plus gold.
+- Weavers: teal and earthy cloth.
+- Saltwind: navy, red, sailor stripes.
+- Bubblebottom: pastel pinks and aquas, round shapes.
+
+**Readability**
+- Arena saturation stays ≤ 45 % and fighters ≥ 55 %. No large arena area may use a faction accent, and no pure black is used anywhere.
+- Every silhouette must be unique at 48 px. Check this on the grayscale 48 px row of the contact sheet.
+- Team colour is never baked into a sprite. Teams are shown only by the crew ring and the name plate.
+- Status effects reuse what exists today:
+  - hit flash stays `setTintFill(0xffffff)`;
+  - status tints and overlays stay unchanged;
+  - evolved stays at +12 % scale with the rig's aura and crest.
+
+**Arena**
+- Ground: a straight top-down ortho render of the 2400×1600 world, saved at 0.75× as `docks-ground.jpg` (1800×1200). It holds only flat things: sand, lagoon, planks, tide-pool beds, shadow decals.
+- Tall things (coral walls, barrels/crates, kelp) are separate sprites, rendered with the 35° camera. Each sprite's base sits on the bottom edge of its collision rect, and they are y-sorted together with the fighters.
+
+**Performance budget** (enforced by `tests/unit/art-budget.test.ts`)
+
+| Asset | Limit |
+|---|---|
+| Fighter atlas | ≤ 1024², ≤ 350 KB (palette PNG) |
+| `docks-ground.jpg` | ≤ 450 KB |
+| Props atlas | ≤ 1024², ≤ 300 KB |
+| Water tile | ≤ 60 KB |
+| FX atlas | ≤ 512², ≤ 150 KB |
+| Extra download for the pilot | ≤ 2.5 MB |
+| GPU memory in a match | ≈ 50 MB |
+
+- After the rollout, atlases load on demand.
+- In a 20 s bot match on the iPhone 13 profile, the lowfx watchdog must not trip.
+
+**Pipeline**
+
+| Part | Location / command |
+|---|---|
+| Blender scripts | `scripts/blender/{lib,specs,vendor,textures}` |
+| Orchestrator | `scripts/art3d.mjs` (`npm run art:3d -- <id…> [--still] [--contact]`) |
+| Arena render | `npm run art:arena -- docks` |
+| FX render | `npm run art:fx` |
+| Atlas packer | `scripts/lib/pack.mjs` (uses `sharp`) |
+| ComfyUI client (optional) | `scripts/comfy.mjs` |
+
+- Blender is called as `${BLENDER:-blender} -b --factory-startup --python <script> -- <args>`. Use one Blender call per id, each under 8 min. `npm run check` never needs Blender.
+- Spec format: `scripts/blender/specs/<id>.json` = `{id, pal, dirs, scale, parts[{name, parent, prims[], remesh?}], features[], face, anim}`.
+  - `pal` must equal the art-models `pal` for that id; a unit test enforces this.
+  - Each part's primitives are joined, then voxel-remeshed and subdivided to get the vinyl-toy look.
+- Rigs and animation: procedural rigs only. Quaternius or Mixamo humanoid rigs are rejected, because half the roster are creatures, headless retargeting is fragile, and the fighter meshes must be our own work.
+- CC0 packs (Kenney Pirate and Nature kits) are allowed for arena props only, never for fighters. Commit only the GLBs actually used, plus `License.txt`, and add each to ASSETS.md. Vendored files total ≤ 2 MB.
+- Commit final atlases, the ground JPG and the vendor GLBs. Raw frames go to `.loop/tmp/art3d/` (gitignored). Never commit `.blend` files.
+- Re-render only the ids you changed: EEVEE output is not byte-stable, so a blanket re-render just produces git churn.
+- Runtime: `client/src/art/sheets.ts` defines `SHEET_IDS`, `ANIMS`, and `sheetDir(aimDeg, prevDir)` (45° sectors, ±8° hysteresis). In `rig.ts` the fighter is a Sprite that plays the atlas when it exists.
+  - `?art=svg` forces the old SVG look and is the fallback.
+  - Skins are recoloured with `recolorPixels` (in `shared/skins.ts`) into a lazily built atlas.
+  - Depth is `20 + y/WORLD_H`.
+  - Debug: `?rects=1` shows collision rects; `botf=<ids>` pins bot fighters (needs ALLOW_DEBUG).
+- ComfyUI is optional and used only for tileable ground and water textures:
+  - If `:8188/system_stats` already answers, the user is using ComfyUI, so skip.
+  - Otherwise start it with `open -a "Comfy Desktop"` and write `.loop/tmp/comfy.started`. Quit it afterwards only if that file exists.
+  - Never run ComfyUI and Blender at the same time (16 GB RAM). FLUX.2 klein takes about 108 s per image; generate ≤ 6 per task.
+- Iteration discipline: at most 2 render→look→fix cycles per fighter per iteration, then commit and note the remaining look issues in the Log.
 
 ---
 ## 3. TASKS
@@ -357,6 +455,186 @@ Each fighter task: SVG + hurt SVG, data kit, hooks if needed, unit test per abil
   - Do: character select with faction tabs and a "Random" button, short bios, a mobile-friendly scroll; `npm run balance` full pass; gallery review of all 24 (one shot, fix the worst 2 readability problems); PWA manifest + generated icon so the game can be "added to home screen".
   - Checkpoint: "CP8 ✅ 24 Kämpfer", plus tips on what's fun to try.
   - Test: `npm run check && npm run balance -- --quick && npm run e2e:all`
+
+### CP9 — "Art-Upgrade Pilot: 4 Kämpfer + Docks in Blender-Optik" (model: opus)
+
+Rules for every task:
+- Follow §2.11, and `npm run check` must be green.
+- View ≤ 2 PNGs per task (contact sheets count).
+- Do ≤ 2 render→look→fix cycles per fighter, then commit and note open look issues in the Log.
+- Never re-render fighters you didn't change.
+
+- [ ] **T34 — Blender toolchain spike**
+  - Do:
+    - Create `scripts/blender/{lib/toon.py,lib/cam.py,lib/build.py,render_fighter.py}` and `scripts/blender/specs/selftest.json` (capsule body + sphere head + cone prop).
+    - Create `scripts/art3d.mjs`: finds `$BLENDER` or `blender`, exits with a clear error if it is missing, makes one Blender call per id.
+    - Create `scripts/lib/pack.mjs` with a pure `layoutShelves`. Add devDep `sharp` and npm scripts `art:3d` and `art:selftest`.
+    - Render setup: EEVEE, Standard view transform, transparent film, inverted-hull outline 3 px at 1×, 3-band toon, 5 dirs.
+    - Output goes to `.loop/tmp/art3d/selftest/`, packed to `.loop/tmp/art3d/selftest.{png,json}` (not committed).
+    - If EEVEE fails headless, try once with `--gpu-backend metal`. If that also fails, fall back to Workbench (flat + outline) and note it in the Log.
+    - Extend `scripts/ip-check.mjs` to cover `scripts/` and `.py` (skip ip-check itself).
+    - Add the new commands and the dir map to CLAUDE.md, and a §3D section to `client/public/art/README.md`.
+  - Accept:
+    - `npm run art:selftest` takes < 3 min.
+    - The contact sheet `.loop/shots/T34-contact.png` shows 5 directions, visible toon bands and a dark outline.
+    - Palette hex comes out exactly: the script samples a pixel and prints it.
+    - `tests/unit/art3d.test.ts` covers `layoutShelves` (no overlap, ≤ max, deterministic) and `validateSpec`.
+  - Test: `npm run check && npm run art:selftest -- --contact`
+
+- [ ] **T35 — Voltbun model (stills)**
+  - Do:
+    - Write `scripts/blender/specs/voltbun.json` per §4: round cream bunny, teal zigzag ear tips, battery tail, grin. Use the `pal` from art-models.
+    - Add feature generators `earsLong` and `tailBattery`, plus the face (eyes, brows, mouth, `hurt` variant), in `lib/build.py`.
+    - Voxel-remesh and subdivide each part for the vinyl-toy look. Add an `anim.style: biped` stub.
+  - Accept:
+    - The `--still --contact` sheet reads as Voltbun at 48 px in both the colour and the grayscale row.
+    - The faction gold sits on a big part. No flat-grey mush. The outline is continuous.
+    - Update the LIKENESS.md row if a cue moved.
+    - Unit test: spec `pal` == MODELS `pal`.
+  - Test: `npm run check && npm run art:3d -- voltbun --still --contact`
+
+- [ ] **T36 — Puppet animation + Voltbun atlas**
+  - Do:
+    - Write `lib/puppet.py`: idle 4 / run 6 / attack 3 / hurt 1 frames, styles `biped|blob|hover`, overridable per spec.
+    - Do the full render to `client/public/art/sprites/voltbun.{png,json}`. Frame names are `<anim>_<dir>_<i>`, sourceSize 128².
+  - Accept:
+    - The atlas is ≤ 1024² and ≤ 350 KB, and all 70 frame names are present (vitest reads the JSON).
+    - The contact sheet shows a readable run cycle and a clear attack lunge.
+    - The feet stay on the y ≈ 112 line in every frame. Test: frame bottom = 112 ± 3 via `spriteSourceSize`.
+  - Test: `npm run check && npm run art:3d -- voltbun --contact`
+
+- [ ] **T37 — Rig plays sprite sheets (SVG fallback kept)**
+  - Do:
+    - Create `client/src/art/sheets.ts` with `SHEET_IDS=['voltbun']`, `ANIMS`, and `sheetDir` (±8° hysteresis).
+    - In the rig, change Image to Sprite. Create anims per id and dir, use the hurt frame on hit, and mirror the W side with `flipX`.
+    - `?art=svg` forces the SVG look.
+    - Add `recolorPixels` in `shared/skins.ts` and `client/src/art/skinSheet.ts` (builds the skinned atlas lazily).
+    - Set depth to `20 + y/WORLD_H`.
+    - Show the sheets in the gallery.
+    - Add the debug join param `botf=<ids>` (needs ALLOW_DEBUG, same path as `tide`).
+  - Accept:
+    - Unit tests for `sheetDir` (8 sectors + hysteresis), for `recolorPixels` == `recolorSvg` on sample colours (outline unchanged), and for sheets↔disk consistency.
+    - In game, Voltbun turns with the aim, runs, attacks, flashes white on hit, and skins 1/2 recolour.
+    - Fighters without a sheet are unchanged.
+  - Test: `npm run check && npm run e2e && npm run shot -- --name T37 --path /gallery.html --query "" && npm run shot -- --name T37m --device "iPhone 13" --query "room=shot&fighter=voltbun&bots=3&botf=voltbun"`
+
+- [ ] **T38 — Mira Tidecaller (model + anims + atlas)**
+  - Do:
+    - Write the spec per §4: shell-bead braid, teal parka with wave trim, water ribbon around the hands. Human chibi: big head, hair as merged blobs.
+    - Add her to `SHEET_IDS` and add a LIKENESS row.
+  - Accept: same as T35+T36 (reads at 48 px, within budget, 70 frames). Her silhouette is distinct from Voltbun's in the 48 px row.
+  - Test: `npm run check && npm run art:3d -- mira --contact`
+
+- [ ] **T39 — Cap'n Noodle (model + anims + atlas)**
+  - Do:
+    - Write the spec per §4: lanky, seashell tricorn (NOT a straw hat), teal striped shirt, rubbery grin. Respect the §2.8 don'ts.
+    - Add him to `SHEET_IDS` and add a LIKENESS row.
+  - Accept: same as T38. The in-game taffy arm still starts at the sprite's shoulder (shot with `fighter=noodle`).
+  - Test: `npm run check && npm run art:3d -- noodle --contact`
+
+- [ ] **T40 — Sudsy Loofah (model + anims + atlas)**
+  - Do:
+    - Write the spec per §4: ROUND pink loofah, fry-cook apron, spatula, gap tooth. It must not read as a square yellow sponge.
+    - Use `anim.style: blob`. Add it to `SHEET_IDS` and add a LIKENESS row.
+  - Accept: same as T38. The gallery shot shows all 4 pilot sheets together, clearly distinct from each other.
+  - Test: `npm run check && npm run art:3d -- sudsy --contact && npm run shot -- --name T40 --path /gallery.html --query ""`
+
+- [ ] **T41 — ComfyUI ground textures (optional)**
+  - Do:
+    - Write `scripts/comfy.mjs` and `npm run comfy`.
+    - Use the API workflow `~/AI/ComfyUI-Shared/api/flux2-klein-t2i.json`. If it is missing, build it from the UI workflow via `/object_info`; give up after 20 min.
+    - Skip with `[~]` if ComfyUI is already running (the user is using it) or doesn't answer within 3 min.
+    - Generate ≤ 6 seamless 1024² tiles: dry sand, wet sand, sun-bleached planks, lagoon water. Downscale them to 512² and save as `scripts/blender/textures/*.jpg`, ≤ 150 KB each.
+    - Quit ComfyUI only if this task started it.
+    - ASSETS.md: "generated locally, FLUX.2 klein 4B (licence per model card), own prompts".
+  - Accept: a 2×2 tiled preview shows no visible seams, and the tiles contain no text and no figures.
+  - Test: `npm run check`
+
+- [ ] **T42 — Docks ground render**
+  - Do:
+    - Write `render_arena.py` and `npm run art:arena -- docks`. The layout is exported from `shared/arena/docks.ts` via tsx.
+    - Render a top-down ortho of the 2400×1600 world to `client/public/art/arena/docks-ground.jpg` at 1800×1200, ≤ 450 KB.
+    - Contents: lagoon with depth bands and shore foam, sand island (T41 tiles or Blender noise), plank piers, tide-pool beds at `SHALLOWS`, soft contact shadows under walls, decor and bushes.
+    - `ArenaArt` uses the image when the texture exists (Docks only); otherwise it keeps the old paint.
+  - Accept: meets the §2.11 saturation rule (sand and water muted, fighters pop). A `?rects=1` shot shows the beds and shadows sitting on their rects.
+  - Test: `npm run check && npm run shot -- --name T42 --query "room=shot&bots=3&rects=1" && npm run shot -- --name T42m --device "iPhone 13" --query "room=shot&bots=3"`
+
+- [ ] **T43 — Docks props: coral walls, barrels/crates, kelp**
+  - Do:
+    - Use Kenney CC0 Pirate/Nature GLBs where useful. Vendor only the files used into `scripts/blender/vendor/`, with `License.txt` and ASSETS.md rows.
+    - Make the coral walls procedural, with 3 shapes for the 3 rect sizes.
+    - Render each instance at the 35° camera with its base on the rect bottom. Output `client/public/art/arena/docks-props.{png,json}`, plus a world anchor per frame.
+    - Y-sort the props together with the rigs.
+    - Kelp sprites go at depth 26 (alpha rules unchanged) with a slow sway tween, off in lowfx.
+  - Accept:
+    - In a `?rects=1` shot, every footprint matches its collision rect within 6 u.
+    - A fighter behind a wall is covered by it; a fighter in front is drawn over it.
+    - The props atlas is ≤ 1024² and ≤ 300 KB.
+  - Test: `npm run check && npm run e2e && npm run shot -- --name T43 --query "room=shot&bots=5&rects=1"`
+
+- [ ] **T44 — Water + tide states**
+  - Do:
+    - Make a 256² seamless water tile (Blender or T41) and use it as a scrolling TileSprite in the lagoon band.
+    - Restyle the flood overlay in `paintTide`: toon water fill, foam rim, ripples. Keep the same `waterRects` logic.
+    - In lowfx the water is static.
+  - Accept: shots at low and high tide read clearly, with the flooded shallows obviously slow water. No FPS drop in lowfx.
+  - Test: `npm run check && npm run shot -- --name T44h --query "room=shot&bots=3&tide=high" && npm run shot -- --name T44l --query "room=shot&bots=3&tide=low"`
+
+- [ ] **T45 — Loot + pilot projectile sprites**
+  - Do:
+    - Write `render_props.py` and `npm run art:fx`, output `client/public/art/fx/fx.{png,json}` (≤ 512², ≤ 150 KB).
+    - Contents: chest, coin, heal/ult pickups, volt bolt, bubble, water drop, taffy fist.
+    - `drawLoot` and projectile drawing use the sprites when present, otherwise the current graphics.
+  - Accept: chests and pickups are readable at phone zoom. Unit test for the sprite-key mapping.
+  - Test: `npm run check && npm run shot -- --name T45 --device "iPhone 13" --query "room=shot&bots=3&tide=low"`
+
+- [ ] **T46 — Budget + perf pass**
+  - Do:
+    - Write `tests/unit/art-budget.test.ts` covering all §2.11 file and dimension budgets.
+    - Add a `window.__brawl.fps` sample.
+    - Run a 20 s iPhone 13 bot match; the lowfx watchdog must not trip.
+    - Measure time to first frame against `?art=svg` on desktop Chromium.
+  - Accept: the budget test is green, and the numbers are in the Log line. Any overshoot is fixed (lower quality or size) or noted.
+  - Test: `npm run check && npm run e2e:all`
+
+- [ ] **T47 — CP9 Pilot-Abnahme** · CP: yes
+  - Do:
+    - Take side-by-side shots, `?art=svg` vs new, on desktop and iPhone 13, with the bots pinned to the 4 pilots.
+    - Run `scripts/serve.sh`.
+    - Write `.loop/checkpoint.md`:
+      - line 1: `ACTION NEEDED: Pilot-Abnahme Art-Upgrade`;
+      - then links: gallery, play URL, and the `?art=svg` comparison;
+      - then "Antwort: `ART-PILOT: OK` oder Änderungswünsche mit `ART:` in feedback.md".
+    - Tick `[x]`, then `touch .loop/STOP` (the runner halts; restarting is the user's or Astra's call).
+  - Test: `npm run check && npm run e2e`
+
+### CP10 — "Art-Rollout: volle Crew + Arenen" (model: sonnet)
+
+**Gate:** only when `.loop/feedback.md` has a line starting `ART-PILOT: OK`. Handle `ART:` lines first, in T48.
+
+- [ ] **T48 — Apply pilot feedback**: all `ART:` lines; re-render only the affected ids; mark each line ✓.
+- [ ] **T49 — Load sheets on demand**:
+  - An atlas loads when its fighter is picked in the select screen or appears in a snapshot. The SVG shows until it has loaded.
+  - No eager preload beyond the player's own fighter.
+  - Test: e2e + unit (the loader queue de-dupes).
+- [ ] **T50 — Critterkin batch A: embercub, mossback** (spec + atlas + LIKENESS row each; one contact sheet per id, view ≤ 2)
+- [ ] **T51 — Critterkin batch B: gloomoth, pebblor, dozelump**
+- [ ] **T52 — Weavers batch A: pip, brak, ashka**
+- [ ] **T53 — Weavers batch B: kip, tobo**
+- [ ] **T54 — Saltwind batch A: sable (`dirs: 8`), bisque, nova**
+- [ ] **T55 — Saltwind batch B: lenny, fawnsworth**
+- [ ] **T56 — Bubblebottom batch A: lumpy, squall, pinchpenny**
+- [ ] **T57 — Bubblebottom batch B: hammy, krill, default (Deckhand)**, plus a gallery shot of all 24
+- [ ] **T58 — Portraits**:
+  - `render_fighter.py --portrait` renders a front bust at 256² to `client/public/art/portraits/<id>.png`.
+  - Select cards, the ☰ fighter row and the WANTED posters use them, with skins via `recolorPixels` on a canvas.
+  - SVG fallback stays.
+- [ ] **T59 — Summons/critters/hazards**: decoy, turret, Purrl, jellies and cannons as sprites (in the `art:fx` atlas or a second one).
+- [ ] **T60 — Galleon arena**: ground + props via `art:arena -- galleon` (Kenney Pirate Kit), same rules as T42/T43.
+- [ ] **T61 — Lobby/select background**: a blurred Docks render behind the DOM menus (≤ 150 KB).
+- [ ] **T62 — CP10 roster check + budgets** · CP: yes
+  - Run the budget test over all assets and `npm run e2e:all`.
+  - Checkpoint: "CP10 ✅ Neue Optik für alle 24".
 
 ### Recurring
 
