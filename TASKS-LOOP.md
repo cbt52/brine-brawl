@@ -645,6 +645,61 @@ Rules for every task:
   - Run the budget test over all assets and `npm run e2e:all`.
   - Checkpoint: "CP10 ✅ Neue Optik für alle 24".
 
+### CP11 — "Kampf-Gefühl: Attacken, Effekte, Maps" (model: opus)
+
+**Auftrag (Nutzer, 2026-10-18):** einige Kämpfer führen sichtbar keine Attacke aus bzw. haben keine Animation;
+Attacken sollen zum Charakter passen (Noodles Gummarm wie ein Schwertschlag geführt), mehr AoE,
+schnellere Projektile, lebendigere Attack-Animationen, mehr Effekte inkl. On-Hit; danach neue Maps.
+
+- [ ] **T63 — Attack-Animation-Audit über alle 24**
+  - Do: `ROSTER` × {attack, special, ult} durchzählen; je Slot prüfen, ob der Rig eine Animation spielt
+    (wind-up → strike → recover) und ob das FX-Event feuert. Neuer Test `tests/unit/attack-anim.test.ts`,
+    der für jeden fehlenden Slot rot wird. Gefundene Lücken sofort schließen (mindestens Noodle).
+  - Accept: 24 × 3 Slots haben eine sichtbare Bewegung; kein Slot schießt nur ein Projektil ohne Körperbewegung.
+  - Test: `npm run check && npm run e2e`
+
+- [ ] **T64 — Waffen-/Körpergerechte Schlagbibliothek**
+  - Do: `weapon`/`motion` je Kämpfer in `shared/fighters` (sword arc, axe overhead, spear thrust, claw rake,
+    tentacle/rubber stretch, boomerang throw, cast/summon). Noodle: Gummarm zieht 1,6× lang, schnappt zurück,
+    Peitschenknall + Rückstoß. Die Bewegungen in `client/src/fx` bzw. Rig-Animationen hinterlegen.
+  - Accept: alle 24 haben eine zugeordnete Motion; Schwert, Faust und Peitsche sind bei 48 px unterscheidbar;
+    keine zwei Kämpfer derselben Rolle teilen exakt dieselbe Silhouette.
+  - Test: `npm run check`, 1 Kontaktbogen mit 6 Schlüsselpunkten pro Motion-Familie.
+
+- [ ] **T65 — Projektile schneller + Schweif**
+  - Do: Basisgeschwindigkeit +35 % (≥ 900 u/s), kurzer Sprite-Schweif, Vorhersage und Server-Tick bleiben
+    deckungsgleich; Reisetests in `tests/unit`.
+  - Accept: gemessene Flugzeit sinkt um ≥ 25 %; Prediction zeigt keinen Versatz; lowfx ohne Schweif.
+  - Test: `npm run check && npm run e2e`
+
+- [ ] **T66 — Mehr AoE**
+  - Do: mindestens 8 Kits bekommen/erweitern AoE (Kegel, Bogen, Zone, Splash) mit Radius + Falloff in
+    `shared/sim/abilities.ts`; Telegraph im Client.
+  - Accept: Balance-Harness bleibt 24/24 in 40–60 %; AoE trifft mehrere Ziele nachweisbar (Test mit 3 Zielen).
+  - Test: `npm run check && npm run balance`
+
+- [ ] **T67 — On-Hit-Effekte**
+  - Do: elementspezifische Trefferfunken (Wasser spritzt, Volt kracht, Feuer glimmt, Erde staubt), 60 ms
+    Hitstop, kleiner Kamera-Kick bei schweren Treffern, Schadenszahlen, Bodenspritzer.
+  - Accept: jeder Treffer erzeugt sichtbares Feedback; FX-Budget §2.11 hält; lowfx reduziert auf Funken.
+  - Test: `npm run check`, `npm run perf` (kein FPS-Einbruch > 5 %).
+
+- [ ] **T68 — Zwei neue Maps**
+  - Do: `Kelp Forest` und `Shipwreck Cove` über die bestehende `Arena`-Schnittstelle (Spawns, Kollision,
+    Büsche, Tide, Sichtbarkeit), Boden/Props per `npm run art:arena`; Lobby-Auswahl listet 4 Arenen.
+  - Accept: beide im Lobby-Picker wählbar, Bots laufen sauber, Kollision deckt sich mit der Grafik.
+  - Test: `npm run check && npm run e2e`, je 1 Screenshot pro Map.
+
+- [ ] **T69 — Attack-Juice**
+  - Do: Anticipation (Squash), Streckung beim Release, Motion-Smear für schnelle Schläge, Rückstoß am Angreifer,
+    klare Telegraphs für AoE.
+  - Accept: Schläge wirken vor dem Treffer angekündigt und danach nachhallend; keine Animation > 400 ms.
+  - Test: `npm run check`, 1 Kontaktbogen.
+
+- [ ] **T70 — CP11-Abnahme** · CP: yes
+  - Budget-Test über alle neuen FX, `npm run e2e:all`, Balance-Lauf, Shots Desktop + iPhone 13.
+  - Checkpoint: "CP11 ✅ Attacken, Effekte, Maps".
+
 ### Recurring
 
 - [ ] **T99 — Keep improving (NEVER tick)**
