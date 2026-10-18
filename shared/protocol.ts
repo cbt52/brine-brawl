@@ -177,6 +177,19 @@ export interface SnapWall {
   mhp: number;
 }
 
+/** A decoy or turret standing in the arena (T31). */
+export interface SnapSummon {
+  id: number;
+  x: number;
+  y: number;
+  /** 0 = decoy, 1 = turret */
+  k: 0 | 1;
+  hp: number;
+  mhp: number;
+  /** owner player id */
+  o: number;
+}
+
 /** A reward dropped by a broken chest. */
 export interface SnapPickup {
   id: number;
@@ -206,6 +219,8 @@ export type SimEvent =
   | { k: 'passive'; v: number; p: 'evolve' | 'flow' | 'plunder' | 'toon'; x: number; y: number; a?: number }
   /** a stone wall crumbled (T22) */
   | { k: 'wall'; x: number; y: number }
+  /** a teammate was patched up (Remedy Dart, Field Surgery; T31) */
+  | { k: 'heal'; v: number; n: number; x: number; y: number }
   /** two teammates' ults paired up into a Crew Combo (T28) */
   | { k: 'combo'; a: number; b: number; v: number; n: string; x: number; y: number };
 
@@ -226,6 +241,8 @@ export interface SnapMsg {
   picks?: SnapPickup[];
   /** standing stone walls (T22) */
   walls?: SnapWall[];
+  /** standing decoys and turrets (T31) */
+  sum?: SnapSummon[];
   /** Treasure Tide crew totals + escape countdown (T27) */
   tr?: TreasureInfo;
   /** match phase + timer (added by the room) */

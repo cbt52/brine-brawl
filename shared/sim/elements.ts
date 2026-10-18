@@ -173,7 +173,7 @@ export function applyElementHit(
       h.zones.push({
         id: h.newProjId(), owner: srcId, x: v.x, y: v.y, r: STEAM_RADIUS,
         delay: 0, dur: STEAM_SEC, dmg: 0, tickDmg: 0, push: 0, pull: 0, tickPull: 0,
-        coneDeg: 0, aim: 0, status: null, statusSec: 0, selfHeal: 0, rootSec: 0, dropGold: 0, tickT: 0, fired: true, hides: true,
+        coneDeg: 0, aim: 0, status: null, statusSec: 0, selfHeal: 0, rootSec: 0, dropGold: 0, allyHeal: 0, tickT: 0, fired: true, hides: true,
       });
       break;
     }

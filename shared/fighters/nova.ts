@@ -1,0 +1,60 @@
+import type { FighterDef } from './types.ts';
+
+/** Saltwind Crew · Air · controller — a navigator whose compass staff stirs up fog and squalls. */
+export const NOVA: FighterDef = {
+  id: 'nova',
+  name: 'Nova Chartwind',
+  faction: 'saltwind',
+  element: 'air',
+  role: 'support',
+  blurb: 'A chart-mad navigator with a compass staff; she soaks the deck and then drops the sky on it.',
+  moves: { attack: 'Mist Orb', special: 'Storm Cloud', ult: 'Lightning Chart' },
+  radius: 30,
+  maxHp: 112,
+  speedMul: 1.08,
+  ammo: 3,
+  reload: 1.1,
+  // Mist Orb: a slow ball of sea fog that leaves the target soaking wet
+  attack: {
+    kind: 'projectile',
+    count: 1,
+    spread: 0,
+    speed: 620,
+    range: 460,
+    dmg: 14,
+    radius: 11,
+    status: 'wet',
+    statusSec: 3,
+    element: 'water',
+    fx: 'mist-orb',
+  },
+  // Storm Cloud: a rain cloud parks where she points and wets everybody underneath
+  special: {
+    kind: 'aoe',
+    at: 'aim',
+    range: 300,
+    radius: 132,
+    delay: 0.35,
+    dmg: 0,
+    zoneSec: 3,
+    status: 'wet',
+    statusSec: 1.5,
+    element: 'water',
+    cd: 8,
+    fx: 'storm-cloud',
+  },
+  // Lightning Chart: five bolts charted across the aim cone, each striking its own patch
+  ult: {
+    kind: 'aoe',
+    at: 'aim',
+    range: 320,
+    radius: 62,
+    delay: 0.45,
+    dmg: 22,
+    strikes: 5,
+    strikeSpreadDeg: 100,
+    element: 'volt',
+    fx: 'lightning-chart',
+  },
+  ultCharge: 130,
+};

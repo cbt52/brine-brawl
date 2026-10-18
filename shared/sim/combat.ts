@@ -39,6 +39,8 @@ export interface Projectile {
   returns?: boolean;
   /** set once the outbound leg is done (the return leg re-arms the hit list) */
   returning?: boolean;
+  /** HP restored to a teammate it reaches instead of hurting it (Remedy Dart, T31) */
+  allyHeal?: number;
   /** status applied to every enemy it hits (bubble trap) */
   status?: StatusKind;
   /** element of the hit (defaults to the status element) */

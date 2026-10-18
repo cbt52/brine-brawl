@@ -4,12 +4,15 @@ import { BRAK } from './brak.ts';
 import { DEFAULT_FIGHTER } from './default.ts';
 import { DOZELUMP } from './dozelump.ts';
 import { EMBERCUB } from './embercub.ts';
+import { FAWNSWORTH } from './fawnsworth.ts';
 import { GLOOMOTH } from './gloomoth.ts';
 import { HAMMY } from './hammy.ts';
 import { KIP } from './kip.ts';
+import { LENNY } from './lenny.ts';
 import { MIRA } from './mira.ts';
 import { MOSSBACK } from './mossback.ts';
 import { NOODLE } from './noodle.ts';
+import { NOVA } from './nova.ts';
 import { PEBBLOR } from './pebblor.ts';
 import { PINCHPENNY } from './pinchpenny.ts';
 import { PIP } from './pip.ts';
@@ -21,7 +24,8 @@ import type { FighterDef } from './types.ts';
 
 const DEFS: FighterDef[] = [
   DEFAULT_FIGHTER, VOLTBUN, EMBERCUB, MOSSBACK, GLOOMOTH, PEBBLOR, DOZELUMP,
-  MIRA, PIP, BRAK, ASHKA, KIP, TOBO, NOODLE, SABLE, BISQUE, SUDSY, PINCHPENNY, HAMMY,
+  MIRA, PIP, BRAK, ASHKA, KIP, TOBO, NOODLE, SABLE, BISQUE, NOVA, LENNY, FAWNSWORTH,
+  SUDSY, PINCHPENNY, HAMMY,
 ];
 
 const BY_ID = new Map(DEFS.map((d) => [d.id, d]));
@@ -32,12 +36,15 @@ export { BRAK } from './brak.ts';
 export { DEFAULT_FIGHTER } from './default.ts';
 export { DOZELUMP } from './dozelump.ts';
 export { EMBERCUB } from './embercub.ts';
+export { FAWNSWORTH } from './fawnsworth.ts';
 export { GLOOMOTH } from './gloomoth.ts';
 export { HAMMY } from './hammy.ts';
 export { KIP } from './kip.ts';
+export { LENNY } from './lenny.ts';
 export { MIRA } from './mira.ts';
 export { MOSSBACK } from './mossback.ts';
 export { NOODLE } from './noodle.ts';
+export { NOVA } from './nova.ts';
 export { PEBBLOR } from './pebblor.ts';
 export { PINCHPENNY } from './pinchpenny.ts';
 export { PIP } from './pip.ts';

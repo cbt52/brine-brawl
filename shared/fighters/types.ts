@@ -66,6 +66,8 @@ export interface ProjectileAbility extends AbilityBase {
   homing?: boolean;
   /** fly back to the caster when `range` runs out and hit every enemy a second time (boomerang) */
   returns?: boolean;
+  /** HP the shot restores to a teammate it flies through (Remedy Dart, T31) */
+  allyHeal?: number;
 }
 
 export interface MeleeAbility extends AbilityBase {
@@ -127,6 +129,11 @@ export interface AoeAbility extends AbilityBase {
   dropGold?: number;
   /** speed multiplier the caster keeps while the zone stands (Smoke Pop); 1 = no buff */
   selfSpeedMul?: number;
+  /** HP per ½ s tick healed to teammates standing inside the zone (Field Surgery, T31) */
+  allyHeal?: number;
+  /** separate strike zones fanned across `strikeSpreadDeg` around the aim point (Lightning Chart) */
+  strikes?: number;
+  strikeSpreadDeg?: number;
 }
 
 export interface BuffAbility extends AbilityBase {
@@ -167,6 +174,31 @@ export interface BurrowAbility extends AbilityBase {
   statusSec?: number;
 }
 
+/**
+ * A temporary stand-in body (Longshot Lenny's decoy, Teeny Krill's turret, T31/T32). A decoy soaks
+ * enemy shots; a turret shoots the nearest enemy on its own.
+ */
+export interface SummonAbility extends AbilityBase {
+  kind: 'summon';
+  type: 'decoy' | 'turret';
+  /** seconds it stands */
+  sec: number;
+  hp: number;
+  radius: number;
+  /** distance in front of the caster where it appears (default 70) */
+  dist?: number;
+  /** turret only: seconds between two shots */
+  fireEvery?: number;
+  /** turret only: damage per shot */
+  dmg?: number;
+  /** turret only: how far it looks for a target (default 420) */
+  range?: number;
+  /** turret only: status its shots carry (e.g. a volt turret statics what it hits) */
+  status?: StatusKind;
+  /** turret only: how long that status sticks */
+  statusSec?: number;
+}
+
 /** A temporary dynamic obstacle: blocks bodies and shots until its HP or lifetime run out. */
 export interface WallAbility extends AbilityBase {
   kind: 'wall';
@@ -188,7 +220,8 @@ export type AbilityDef =
   | BuffAbility
   | StatusAbility
   | BurrowAbility
-  | WallAbility;
+  | WallAbility
+  | SummonAbility;
 
 export interface FighterDef {
   /** registry key, also sent in `join.fighter` */

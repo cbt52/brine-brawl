@@ -23,7 +23,7 @@ import { Sfx } from '../audio/sfx.ts';
 import { Shanty } from '../audio/music.ts';
 import { cueForEvent } from '../audio/map.ts';
 import { tideLevel } from '../../../shared/sim/tide.ts';
-import type { PickupKind, SnapWall } from '../../../shared/protocol.ts';
+import type { PickupKind, SnapSummon, SnapWall } from '../../../shared/protocol.ts';
 
 const INTERP_DELAY_MS = 100;
 /** how long the taffy arm stays stretched out after a punch */
@@ -163,6 +163,7 @@ export class GameScene extends Phaser.Scene {
     const snap = this.net.last;
     if (!snap) return;
     for (const wl of snap.walls ?? []) this.drawWall(g, wl);
+    for (const su of snap.sum ?? []) this.drawSummon(g, su, nowMs);
     for (const c of snap.chests ?? []) {
       const bob = Math.sin(nowMs / 420 + c.id) * 2;
       const y = c.y + bob;
@@ -184,6 +185,35 @@ export class GameScene extends Phaser.Scene {
       const y = pk.y - 10 + bob;
       g.fillStyle(0x1b1b2f, 0.55).fillEllipse(pk.x, pk.y + 8, 24, 9);
       this.drawPickup(g, pk.k, pk.x, y);
+    }
+  }
+
+  /** A decoy (wooden Lenny) or a turret: reads at a glance, with an HP bar once it is chipped. */
+  private drawSummon(g: Phaser.GameObjects.Graphics, su: SnapSummon, nowMs: number): void {
+    const r = su.k === 1 ? 20 : 28;
+    if (su.k === 1) {
+      // turret: a barrel on a plinth, muzzle tracking round on its own beat
+      g.fillStyle(0x1b1b2f, 0.35).fillEllipse(su.x, su.y + r * 0.7, r * 2.1, 10);
+      g.fillStyle(0x3a4250, 1).fillRoundedRect(su.x - r * 0.75, su.y - r * 0.3, r * 1.5, r * 1.1, 6);
+      g.fillStyle(0x8b95a6, 1).fillCircle(su.x, su.y - r * 0.35, r * 0.62);
+      const spin = nowMs / 320;
+      g.fillStyle(0x5c6675, 1).fillRoundedRect(su.x - 5, su.y - r * 0.95, 10, r * 0.7, 4);
+      g.fillStyle(0xcfd6e0, 1).fillCircle(su.x + Math.cos(spin) * 4, su.y - r * 0.95, 4);
+      g.lineStyle(3, 0x24282f, 1).strokeCircle(su.x, su.y - r * 0.35, r * 0.62);
+    } else {
+      // decoy: a straw stand-in with a painted grin and a scarf, so it reads as not a real body
+      g.fillStyle(0x1b1b2f, 0.35).fillEllipse(su.x, su.y + r * 0.75, r * 2, 10);
+      g.fillStyle(0xc9a15a, 1).fillRoundedRect(su.x - r * 0.6, su.y - r * 0.2, r * 1.2, r * 1.0, 8);
+      g.fillStyle(0xe0c07a, 1).fillCircle(su.x, su.y - r * 0.62, r * 0.58);
+      g.lineStyle(3, 0x7a5a28, 1).strokeCircle(su.x, su.y - r * 0.62, r * 0.58);
+      g.lineStyle(3, 0x7a5a28, 1).lineBetween(su.x - 8, su.y - r * 0.62, su.x - 2, su.y - r * 0.62);
+      g.lineBetween(su.x + 2, su.y - r * 0.62, su.x + 8, su.y - r * 0.62);
+      g.fillStyle(0xe63946, 1).fillRoundedRect(su.x - r * 0.62, su.y + r * 0.05, r * 1.24, 8, 4);
+    }
+    const frac = Math.max(0, Math.min(1, su.hp / su.mhp));
+    if (frac < 1) {
+      g.fillStyle(0x1b1b2f, 0.85).fillRect(su.x - r, su.y - r - 16, r * 2, 6);
+      g.fillStyle(frac > 0.5 ? 0xcfd6e0 : 0xff8f7a, 1).fillRect(su.x - r + 1, su.y - r - 15, (r * 2 - 2) * frac, 4);
     }
   }
 
@@ -552,6 +582,9 @@ export class GameScene extends Phaser.Scene {
         this.fx.impact(e.x, e.y, 0xffd23f);
         this.fx.impact(e.x, e.y, 0xff7aa2);
         this.hud.showCombo(e.n);
+      } else if (e.k === 'heal') {
+        this.fx.impact(e.x, e.y, 0x8bff9e);
+        this.fx.heal(e.x, e.y, e.n);
       } else if (e.k === 'pick') {
         this.fx.impact(e.x, e.y, e.kind === 'heal' ? 0x8bff9e : e.kind === 'gold' ? 0xffd23f : 0x9fe7ff);
       } else if (e.k === 'react') {

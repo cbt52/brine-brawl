@@ -284,9 +284,10 @@ export class BotBrain {
     out.ay = Math.sin(aim);
     out.atk = fire;
     // special when the target is inside its reach and the cooldown is ready, ult as soon as it is charged
-    // self-targeted heals (Tea Break) need no enemy in reach: press them when hurt
+    // self-targeted heals (Tea Break, Field Surgery) need no enemy in reach: press them when hurt
     const spc = me.def.special;
-    const selfHeal = spc.kind === 'aoe' && spc.at === 'self' && (spc.selfHeal ?? 0) > 0;
+    const selfHeal = spc.kind === 'aoe' && spc.at === 'self'
+      && ((spc.selfHeal ?? 0) > 0 || (spc.allyHeal ?? 0) > 0);
     out.spc = !looting && me.spcCd <= 0 && (selfHeal ? me.hp < me.mhp * 0.75 : !!t && dist <= abilityReach(spc));
     out.ult = !!t && !looting && me.uc >= me.def.ultCharge && dist <= abilityReach(me.def.ult) + 120;
     return out;

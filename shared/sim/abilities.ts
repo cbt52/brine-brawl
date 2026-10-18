@@ -6,6 +6,7 @@ import { noteAttackHit } from './passives.ts';
 import { resolveWalls } from './collide.ts';
 import type { Projectile } from './combat.ts';
 import { wallFor, wallRects, type Wall } from './walls.ts';
+import type { Summon } from './summons.ts';
 import { sameTeam } from './teams.ts';
 import type { Chest, SimPlayer } from './world.ts';
 import { CHEST_RADIUS } from './tide.ts';
@@ -40,6 +41,8 @@ export interface Zone {
   rootSec: number;
   /** doubloons the zone scatters when it triggers (Register Crush) */
   dropGold: number;
+  /** HP per ½ s tick healed to teammates standing inside (Field Surgery, T31) */
+  allyHeal: number;
   /** element of the hit; defaults to the status element */
   element?: Element;
   tickT: number;
@@ -94,6 +97,8 @@ export interface CastHost {
   damageChest?(attacker: number, chest: Chest, dmg: number): void;
   /** temporary stone walls (optional: tests may cast without them) */
   walls?: Wall[];
+  /** standing decoys and turrets (optional: tests may cast without them) */
+  summons?: Summon[];
   /** scatter doubloon pickups (optional: tests may cast without them) */
   dropGold?: (x: number, y: number, n: number) => void;
 }
@@ -168,6 +173,18 @@ function hitAll(
   }
 }
 
+/** Heal the caster and every teammate inside a circle (Field Surgery, T31). */
+function healAllies(h: CastHost, owner: number, x: number, y: number, radius: number, amount: number): void {
+  const me = h.players.get(owner);
+  for (const v of h.players.values()) {
+    if (v.down || v.burrow || v.hp <= 0 || v.hp >= v.mhp) continue;
+    if (v.id !== owner && !(me && sameTeam(me, v))) continue;
+    if (Math.hypot(v.x - x, v.y - y) > radius + v.r) continue;
+    v.hp = Math.min(v.mhp, v.hp + amount);
+    h.events.push({ k: 'heal', v: v.id, n: Math.round(amount), x: Math.round(v.x), y: Math.round(v.y) });
+  }
+}
+
 /** Store a status directly (bubble trap pop, tests). */
 const applyStatus = storeStatus;
 export { applyStatus };
@@ -187,6 +204,9 @@ export interface CastMod {
   /** status-duration multiplier (1 = normal) */
   status: number;
 }
+
+/** Damage after the caster's FLOW multiplier (T20). */
+const dmgOf = (v: number, mod?: CastMod): number => v * (mod?.dmg ?? 1);
 
 /** Cast any ability primitive. Returns false when the def is degenerate (nothing happened). */
 export function castAbility(
@@ -216,7 +236,7 @@ export function castAbility(
           left: def.range, dmg, r: def.radius,
           pierce: !!def.pierce, bounces: Math.max(0, Math.floor(def.bounce ?? 0)),
           lob: !!def.lob, aoeOnEnd: def.aoeOnEnd, homing: !!def.homing, returns: !!def.returns, hit: new Set(),
-          status: def.status, statusSec, element: hitElement(defEl, def.status), slot,
+          status: def.status, statusSec, element: hitElement(defEl, def.status), slot, allyHeal: def.allyHeal,
         });
       }
       break;
@@ -274,23 +294,45 @@ export function castAbility(
       break;
     }
     case 'aoe': {
-      const zx = def.at === 'self' ? p.x : p.x + ax * (def.range ?? 0);
-      const zy = def.at === 'self' ? p.y : p.y + ay * (def.range ?? 0);
-      h.zones.push({
-        id: h.newProjId(), owner: p.id, x: zx, y: zy, r: def.radius,
-        delay: Math.max(0, def.delay), dur: Math.max(0, def.zoneSec ?? 0),
-        dmg: def.dmg, tickDmg: def.tickDmg ?? 0, push: def.push ?? 0, pull: def.pull ?? 0,
-        tickPull: def.tickPull ?? 0, coneDeg: def.coneDeg ?? 0, aim: p.aim,
-        status: def.status ?? null, statusSec: def.statusSec ?? 0,
-        selfHeal: def.selfHeal ?? 0, rootSec: def.rootSec ?? 0, dropGold: def.dropGold ?? 0,
-        element: hitElement(defEl, def.status), slot,
-        tickT: 0, fired: false,
-      });
+      const n = Math.max(1, Math.floor(def.strikes ?? 1));
+      const fan = (Math.max(0, def.strikeSpreadDeg ?? 0) * Math.PI) / 180;
+      const reach = def.range ?? 0;
+      for (let i = 0; i < n; i++) {
+        // one strike lands on the aim point; several fan out around it (Lightning Chart, T31)
+        const a = n === 1 ? p.aim : p.aim - fan / 2 + (fan * i) / (n - 1);
+        const zx = def.at === 'self' ? p.x : p.x + Math.cos(a) * reach;
+        const zy = def.at === 'self' ? p.y : p.y + Math.sin(a) * reach;
+        h.zones.push({
+          id: h.newProjId(), owner: p.id, x: zx, y: zy, r: def.radius,
+          delay: Math.max(0, def.delay), dur: Math.max(0, def.zoneSec ?? 0),
+          dmg: dmgOf(def.dmg, mod), tickDmg: dmgOf(def.tickDmg ?? 0, mod), push: def.push ?? 0, pull: def.pull ?? 0,
+          tickPull: def.tickPull ?? 0, coneDeg: def.coneDeg ?? 0, aim: p.aim,
+          status: def.status ?? null, statusSec: (def.statusSec ?? 0) * (mod?.status ?? 1),
+          selfHeal: def.selfHeal ?? 0, rootSec: def.rootSec ?? 0, dropGold: def.dropGold ?? 0,
+          allyHeal: def.allyHeal ?? 0,
+          element: hitElement(defEl, def.status), slot,
+          tickT: 0, fired: false,
+        });
+      }
       // Smoke Pop: the cloud also carries the caster faster for as long as it stands
       if (def.selfSpeedMul !== undefined) {
         p.buffMul = def.selfSpeedMul;
         p.buffLeft = Math.max(0.1, def.zoneSec ?? 0);
       }
+      break;
+    }
+    case 'summon': {
+      const dist = def.dist ?? 70;
+      const sx = p.x + ax * dist;
+      const sy = p.y + ay * dist;
+      h.summons ??= [];
+      h.summons.push({
+        id: h.newProjId(), owner: p.id, team: p.team, kind: def.type,
+        x: sx, y: sy, r: def.radius, hp: def.hp, mhp: def.hp, left: Math.max(0.2, def.sec),
+        dmg: def.dmg ?? 0, fireEvery: Math.max(0.2, def.fireEvery ?? 1), fireT: 0.3,
+        range: def.range ?? 420, element: hitElement(defEl, def.status ?? null), slot,
+        status: def.status ?? null, statusSec: def.statusSec ?? 0,
+      });
       break;
     }
     case 'wall': {
@@ -349,6 +391,7 @@ export function abilityReach(def: AbilityDef): number {
     case 'burrow': return def.range + def.radius;
     case 'wall': return def.range + def.len / 2;
     case 'buff': return Infinity; // self-targeted: always usable
+    case 'summon': return Infinity; // dropped at the caster's feet: always usable
   }
 }
 
@@ -373,6 +416,8 @@ export function stepZones(h: CastHost, dt: number): void {
         z.tickT -= ZONE_TICK_SEC;
         if (z.tickDmg > 0 || z.tickPull > 0) hitAll(h, z.owner, z.x, z.y, z.r, z.tickDmg, 0, z.tickPull, opts);
         else if (z.status && opts.statusSec) hitAll(h, z.owner, z.x, z.y, z.r, 0, 0, 0, opts);
+        // Field Surgery (T31) patches up the caster and every teammate inside
+        if (z.allyHeal > 0) healAllies(h, z.owner, z.x, z.y, z.r, z.allyHeal);
         // Bonfire heals its own caster while it burns
         if (z.selfHeal > 0) {
           const owner = h.players.get(z.owner);
@@ -414,7 +459,7 @@ export function stepDash(h: CastHost, p: SimPlayer, dt: number): boolean {
         id: h.newProjId(), owner: p.id, x: p.x, y: p.y, r: d.trail.radius,
         delay: 0, dur: 0, dmg: d.trail.dmg, tickDmg: 0, push: 0, pull: 0, tickPull: 0,
         coneDeg: 0, aim: 0, status: d.trail.status, statusSec: d.trail.statusSec,
-        selfHeal: 0, rootSec: 0, dropGold: 0, element: d.trail.element, tickT: 0, fired: false, slot: d.slot,
+        selfHeal: 0, rootSec: 0, dropGold: 0, allyHeal: 0, element: d.trail.element, tickT: 0, fired: false, slot: d.slot,
       });
     }
   }

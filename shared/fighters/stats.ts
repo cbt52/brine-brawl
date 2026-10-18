@@ -53,6 +53,7 @@ export function abilitySummary(a: AbilityDef): string {
       if (a.lob) parts.push('arcs over walls');
       if (a.homing) parts.push('homing');
       parts.push(`${a.dmg} dmg`);
+      if (a.allyHeal) parts.push(`heals ${a.allyHeal} on allies`);
       if (a.status) parts.push(`${a.status} ${sec(a.statusSec ?? 1)} s`);
       return parts.join(' · ');
     }
@@ -68,6 +69,8 @@ export function abilitySummary(a: AbilityDef): string {
       if (a.push) parts.push('shoves');
       if (a.pull || a.tickPull) parts.push('drags in');
       if (a.status) parts.push(a.status);
+      if (a.allyHeal) parts.push(`heals ${a.allyHeal}/½ s`);
+      if ((a.strikes ?? 1) > 1) parts.push(`${a.strikes} strikes`);
       return parts.join(' · ');
     }
     case 'buff': {
@@ -82,6 +85,10 @@ export function abilitySummary(a: AbilityDef): string {
     }
     case 'status':
       return `${a.status} ${sec(a.sec)} s${a.dmg ? ` · ${a.dmg} dmg` : ''}`;
+    case 'summon':
+      return a.type === 'turret'
+        ? [`turret ${a.hp} hp`, `${a.dmg ?? 0} dmg · ${sec(a.fireEvery ?? 1)} s`, `${sec(a.sec)} s`].join(' · ')
+        : [`decoy ${a.hp} hp`, 'soaks shots', `${sec(a.sec)} s`].join(' · ');
     case 'wall':
       return [`${range(a.len)} wall`, `${a.hp} hp`, `${sec(a.sec)} s`].join(' · ');
     case 'burrow':

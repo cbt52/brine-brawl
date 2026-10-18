@@ -230,8 +230,32 @@ export class CombatFx {
     });
   }
 
-  /** Reaction popup word: bigger than a damage number, bounces up and out. */
-  reaction(x: number, y: number, word: string, color: number): void {
+  /** Green `+n` number for a patched-up teammate (Remedy Dart, Field Surgery; T31). */
+  heal(x: number, y: number, n: number): void {
+    const t = this.scene.add
+      .text(x + (Math.random() - 0.5) * 14, y - 34, '+' + n, {
+        fontFamily: FONT,
+        fontSize: '20px',
+        color: '#8bff9e',
+        stroke: '#1b1b2f',
+        strokeThickness: 6,
+        fontStyle: 'bold',
+      })
+      .setOrigin(0.5)
+      .setDepth(TEXT_DEPTH)
+      .setScale(0.8);
+    this.scene.tweens.add({
+      targets: t,
+      y: y - 104,
+      alpha: 0,
+      delay: 120,
+      duration: 620,
+      ease: 'Cubic.easeOut',
+      onComplete: () => t.destroy(),
+    });
+  }
+
+  /** Reaction popup word: bigger than a damage number, bounces up and out. */  reaction(x: number, y: number, word: string, color: number): void {
     const hex = '#' + color.toString(16).padStart(6, '0');
     const t = this.scene.add
       .text(x, y - 55, word, {

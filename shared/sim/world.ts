@@ -10,6 +10,7 @@ import type { Projectile } from './combat.ts';
 import { castAbility, hitElement, stepBurrow, stepDash, stepZones, type BurrowState, type DashState, type Zone } from './abilities.ts';
 import { applyElementHit, applyStatus, BURN_DPS, BURN_TICK_SEC, STATUS_SEC, statusSpeedMul } from './elements.ts';
 import { stepWalls, wallRect, wallRects, type Wall } from './walls.ts';
+import { stepSummons, type Summon } from './summons.ts';
 import { BOUNTY_START, bountyAfterKO, KO_COINS, koPurse } from './bounty.ts';
 import {
   bountyMulFor, noteAttackHit, onKO, resetOnDeath, resetOnSpawn, stepPassives, takeFlow, toonSave, ultGainMul,
@@ -177,6 +178,8 @@ export class World {
   zones: Zone[] = [];
   /** temporary stone walls built in-match (Brak's Stone Wall, T22) */
   walls: Wall[] = [];
+  /** standing decoys and turrets (Longshot Lenny's decoy, Teeny Krill's turret; T31/T32) */
+  summons: Summon[] = [];
   events: SimEvent[] = [];
   /** rising-tide clock (design §2.10) */
   tide = new Tide();
@@ -464,6 +467,7 @@ export class World {
     }
     stepZones(this, dt);
     this.walls = stepWalls(this.walls, dt);
+    stepSummons(this, dt);
     const alive = list.filter((p) => !p.down && !p.burrow);
     separate(alive);
     for (const p of alive) resolveWalls(p, block);
@@ -559,10 +563,35 @@ export class World {
           // stone walls block shots (no bounces: the slab takes the hit instead)
           if (this.wallHit(pr)) { dead = true; break; }
         }
+        // decoys and turrets are bodies too: an enemy shot hits them, a crew's passes through (T31)
+        if (!pr.lob) {
+          for (const s of this.summons) {
+            if (s.hp <= 0) continue;
+            if (s.owner === pr.owner) continue;
+            const so = this.players.get(s.owner);
+            if (so && this.friendly(pr.owner, so)) continue;
+            if (Math.hypot(s.x - pr.x, s.y - pr.y) >= s.r + pr.r) continue;
+            s.hp -= pr.dmg;
+            if (!pr.pierce) dead = true;
+            if (dead) break;
+          }
+        }
         for (const v of this.players.values()) {
           if (v.id === pr.owner || v.down || v.burrow) continue;
           // a teammate never blocks the shot: it flies straight through (T26)
-          if (this.friendly(pr.owner, v)) continue;
+          if (this.friendly(pr.owner, v)) {
+            // Remedy Dart (T31): a friendly shot patches the teammate up instead of flying on
+            if (pr.allyHeal && pr.allyHeal > 0) {
+              const heal = Math.min(v.mhp - v.hp, pr.allyHeal);
+              if (heal > 0) {
+                v.hp += heal;
+                this.events.push({ k: 'heal', v: v.id, n: Math.round(heal), x: Math.round(v.x), y: Math.round(v.y) });
+              }
+              if (!pr.pierce) dead = true;
+              if (dead) break;
+            }
+            continue;
+          }
           if (Math.hypot(v.x - pr.x, v.y - pr.y) >= v.r + pr.r) continue;
           if (pr.pierce) {
             pr.hit ??= new Set();
@@ -609,7 +638,7 @@ export class World {
           id: this.newProjId(), owner: pr.owner, x: pr.x, y: pr.y, r: pr.aoeOnEnd.radius,
           delay: 0, dur: 0, dmg: pr.aoeOnEnd.dmg, tickDmg: 0, push: 0, pull: 0, tickPull: 0,
           coneDeg: 0, aim: 0, status: pr.aoeOnEnd.status ?? null, statusSec: pr.aoeOnEnd.statusSec ?? 0,
-          selfHeal: 0, rootSec: 0, dropGold: 0,
+          selfHeal: 0, rootSec: 0, dropGold: 0, allyHeal: 0,
           element: hitElement(pr.element, pr.aoeOnEnd.status ?? null), tickT: 0, fired: false, slot: pr.slot,
         });
       }
@@ -811,6 +840,7 @@ export class World {
     this.lootSeeded = false;
     // stone walls do not survive the whistle either
     this.walls = [];
+    this.summons = [];
     for (const p of this.players.values()) {
       p.kos = 0;
       p.deaths = 0;
@@ -855,6 +885,12 @@ export class World {
         ? this.walls.map((w) => ({
           id: w.id, x: Math.round(w.x), y: Math.round(w.y), w: w.w, h: w.h,
           hp: Math.round(w.hp), mhp: w.mhp,
+        }))
+        : undefined,
+      sum: this.summons.length
+        ? this.summons.map((s) => ({
+          id: s.id, x: Math.round(s.x), y: Math.round(s.y), k: s.kind === 'turret' ? 1 : 0,
+          hp: Math.round(s.hp), mhp: s.mhp, o: s.owner,
         }))
         : undefined,
     };
