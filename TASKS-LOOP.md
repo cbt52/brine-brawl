@@ -457,7 +457,6 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 ## 5. IMPROVEMENT BACKLOG (ordered; T99 takes from the top; user feedback goes first)
 11. Optional ONLY if the user asks: ComfyUI portraits (127.0.0.1:8188, 2–7 min/img, 16 GB RAM, never while the user is using it).
 
-34. Tips card, mode tip: the three tips never mention the modes. A fourth tip (Bounty coins, Treasure tide, Showdown ring) shown only in that room's mode, so `tutorialTips` takes the `RoomMode` and the card stays three-tip for the default mode.
 35. Killcam e2e flake: `tests/e2e/killcam.spec.ts` "replay ends without errors" fails about 1 run in 8 (`--repeat-each=4`), on HEAD as well as with the colour-blind change. The replay should end about 2.5 s after the KO, yet `__brawl.replaying` sometimes stays true past 5 s. Find out whether `KillCam.frame()` stops being called under load, then make the spec wait on the replay's own end instead of a fixed window.
 36. Pirate log part 3: the best KO run of one round (most KOs without dying) is saved next to `bestKey` and shown as "Best run: N KOs" in `client/src/ui/statsPage.ts`, so streaks are kept between sessions too.
 37. Streak sticker that cannot be blocked: the streak greeting shares the emote cooldown, so a human who sent a sticker up to 1.2 s before their third KO loses it silently. Let streak stickers skip the wheel cooldown (own 1.2 s clock) so a third KO always speaks.
@@ -476,6 +475,7 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 49. Best-KO replay has no end-to-end test: `tests/unit/killcam.test.ts` covers the clip, the best-KO rule and the label, but no spec makes the local player the killer and waits for the results. Add a debug op that books a KO with us as attacker, then check that `BEST KO CAM` plays once and the poster waits for it.
 50. Most KOs ribbon has no end-to-end test: the ribbon only shows when someone scored a KO in the round, and `kill` is a self-KO with no attacker. Add a debug op that books a KO with us as attacker (shared with #49), then assert `results-mvp` shows "MOST KOS · 1" under our poster.
 51. Showdown title names the wrong side: the results title is always "<first row> wins!" (the bounty leader), so a last-standing win by a crew can read as a fighter from the losing crew winning. When `ls` is set, title the poster with that label ("CREW A wins!" or the fighter's name) in `syncResults` (`client/src/ui/results.ts`), with a unit test on the title helper.
+52. Bounty coins have no tip: #34 keeps Bounty Brawl (the default) at three tips, so the KO purse and the crown are never explained. Find a one-line home for it (crown label or stats page) rather than a fourth card.
 
 ---
 
@@ -517,3 +517,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T99 ✅ 2026-10-18 — Best-KO replay (backlog #31): our round's top-pay KO (earliest on a tie) keeps a copy of its lead-up, replayed once as "BEST KO CAM" when results start; the poster waits for it; 5 unit, check 747 grün, killcam e2e 2/2 → §5 #49 (e2e)
 - T99 ✅ 2026-10-18 — Most KOs ribbon (backlog #32): `shared/sim/mvp.ts` tie rule (most KOs, then the one who reached that count first), `koTicks` per fighter, `MatchInfo.mv` frozen with the ranking, "MOST KOS · n" under the poster; 7 unit, check 754 grün, match e2e 4/4 → §5 #50 (e2e)
 - T99 ✅ 2026-10-18 — Showdown finish banner (backlog #33): `lastSideIds` + `World.lastStandingLabel` ("CREW A" / fighter name), `Room.lastStand` → `MatchInfo.ls`, "LAST STANDING · <side>" above the table; 9 unit, check 763 grün, no screenshot → §5 #51 (title names the winner)
+- T99 ✅ 2026-10-18 — Mode tip (backlog #34): `tutorialTips(touch, mode)`, Treasure/Showdown get a 4th card (Bounty stays 3); wired in main/menu; 3 unit + 2 e2e tutorial, check 766 grün, shot ok → §5 #52 (bounty coins)

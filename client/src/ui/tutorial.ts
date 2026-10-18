@@ -1,3 +1,5 @@
+import type { RoomMode } from '../../../shared/protocol.ts';
+
 /** First-time tips (backlog #7): three cards over the arena, shown once per browser. */
 
 export const TUTORIAL_KEY = 'brawl.tutorial';
@@ -6,8 +8,29 @@ export const TUTORIAL_MS = 20_000;
 
 export interface Tip { title: string; body: string }
 
-/** Three tips; the control lines follow the input the player has (touch vs PC). */
-export function tutorialTips(touch: boolean): Tip[] {
+/**
+ * Mode tip (backlog #34): a fourth card for the non-default modes only. Bounty Brawl (the default)
+ * keeps the three base tips.
+ */
+const MODE_TIPS: Partial<Record<RoomMode, Tip>> = {
+  treasure: {
+    title: 'Treasure tide',
+    body: 'Low tide surfaces chests and doubloons. Carry your pile and it spills on a KO.',
+  },
+  showdown: {
+    title: 'Showdown ring',
+    body: 'The ring closes in. Outside it you take edge damage; the last side inside wins.',
+  },
+};
+
+/** Three base tips plus the room mode's tip; the control lines follow the input (touch vs PC). */
+export function tutorialTips(touch: boolean, mode: RoomMode = 'bounty'): Tip[] {
+  const base = baseTips(touch);
+  const extra = MODE_TIPS[mode];
+  return extra ? [...base, extra] : base;
+}
+
+function baseTips(touch: boolean): Tip[] {
   return [
     {
       title: 'Move & attack',
@@ -50,9 +73,9 @@ function markSeen(): void {
 }
 
 /** Mount the tips card on the first visit only (the ☰ menu's "How to play" reopens it). */
-export function mountTutorial(touch: boolean): void {
+export function mountTutorial(touch: boolean, mode: RoomMode = 'bounty'): void {
   if (!shouldShowTutorial(readStored())) return;
-  showTutorial(touch);
+  showTutorial(touch, mode);
 }
 
 /**
@@ -60,14 +83,14 @@ export function mountTutorial(touch: boolean): void {
  * pointer input except its button, so the arena under it stays playable. Closing it (button or
  * timer) saves the flag; a card that is already up is replaced.
  */
-export function showTutorial(touch: boolean): void {
+export function showTutorial(touch: boolean, mode: RoomMode = 'bounty'): void {
   document.getElementById('tutorial')?.remove();
   const el = document.createElement('div');
   el.id = 'tutorial';
   el.className = 'panel tutorial';
   el.dataset.testid = 'tutorial';
   el.innerHTML = `<b>Welcome to the docks</b>
-    <ul>${tutorialTips(touch).map((t) => `<li><b>${t.title}</b> ${t.body}</li>`).join('')}</ul>
+    <ul>${tutorialTips(touch, mode).map((t) => `<li><b>${t.title}</b> ${t.body}</li>`).join('')}</ul>
     <button class="big sm" data-testid="tutorial-ok">Got it</button>`;
   document.body.appendChild(el);
   const close = () => {

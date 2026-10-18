@@ -156,7 +156,7 @@ export function mountMenu(net: Net, touch: boolean): void {
   q('menu-invite').addEventListener('click', () => { panel.style.display = 'none'; showInvite(net.room); });
   q('menu-stats').addEventListener('click', () => { panel.style.display = 'none'; showStats(); });
   // backlog #21: the first-visit tips card again, same text as before
-  q('menu-howto').addEventListener('click', () => { panel.style.display = 'none'; showTutorial(touch); });
+  q('menu-howto').addEventListener('click', () => { panel.style.display = 'none'; showTutorial(touch, net.last?.m?.mode ?? 'bounty'); });
   q('menu-leave').addEventListener('click', () => { location.href = '/'; });
   setInterval(() => { if (panel.style.display !== 'none') refresh(); }, 500);
 }

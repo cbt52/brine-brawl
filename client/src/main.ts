@@ -2,7 +2,7 @@ import '@fontsource/lilita-one';
 import './ui/ui.css';
 import Phaser from 'phaser';
 import { VIEW_H } from '../../shared/constants.ts';
-import type { C2S } from '../../shared/protocol.ts';
+import type { C2S, RoomMode } from '../../shared/protocol.ts';
 import { Net, BUILD_ID } from './net.ts';
 import { GameScene } from './scenes/GameScene.ts';
 import { HudScene } from './scenes/HudScene.ts';
@@ -33,7 +33,8 @@ function withFighter(q: URLSearchParams): URLSearchParams {
 if (roomParam && (params.has('name') || params.has('bots'))) {
   net.start(withFighter(new URLSearchParams(params)));
   mountMenu(net, fxOpts.mobile);
-  mountTutorial(fxOpts.mobile);
+  // backlog #34: an unknown ?mode= falls back to the three base tips
+  mountTutorial(fxOpts.mobile, (params.get('mode') ?? 'bounty') as RoomMode);
 } else {
   void showLobby(roomParam, params.get('name') ?? savedName, params.get('arena')).then((c) => {
     const q = new URLSearchParams(params);
@@ -48,7 +49,7 @@ if (roomParam && (params.has('name') || params.has('bots'))) {
     history.replaceState(null, '', `/?room=${encodeURIComponent(c.room)}`);
     net.start(q);
     mountMenu(net, fxOpts.mobile);
-    mountTutorial(fxOpts.mobile);
+    mountTutorial(fxOpts.mobile, c.mode);
     if (c.invite) showInvite(c.room);
   });
 }

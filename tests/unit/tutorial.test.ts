@@ -31,6 +31,32 @@ describe('first-time tips (backlog #7)', () => {
     expect(shouldShowTutorial('seen')).toBe(false);
   });
 
+  it('keeps three tips for the default Bounty Brawl mode', () => {
+    for (const touch of [true, false]) {
+      expect(tutorialTips(touch, 'bounty')).toHaveLength(3);
+      expect(tutorialTips(touch)).toEqual(tutorialTips(touch, 'bounty'));
+    }
+  });
+
+  it('adds one mode tip for Treasure Tide and Showdown (backlog #34)', () => {
+    const base = tutorialTips(false).map((t) => t.title);
+    const treasure = tutorialTips(false, 'treasure');
+    const showdown = tutorialTips(false, 'showdown');
+    expect(treasure).toHaveLength(4);
+    expect(showdown).toHaveLength(4);
+    expect(treasure.slice(0, 3).map((t) => t.title)).toEqual(base);
+    expect(treasure[3].title).toBe('Treasure tide');
+    expect(showdown[3].title).toBe('Showdown ring');
+    expect(treasure[3].body).toMatch(/chest/i);
+    expect(showdown[3].body).toMatch(/ring/i);
+  });
+
+  it('shows the mode tip only in its own mode', () => {
+    const titles = (mode: 'treasure' | 'showdown') => tutorialTips(true, mode).map((t) => t.title);
+    expect(titles('treasure')).not.toContain('Showdown ring');
+    expect(titles('showdown')).not.toContain('Treasure tide');
+  });
+
   it('auto-dismisses after a readable time, not instantly', () => {
     expect(TUTORIAL_MS).toBeGreaterThanOrEqual(10_000);
     expect(TUTORIAL_MS).toBeLessThanOrEqual(60_000);
