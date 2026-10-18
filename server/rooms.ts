@@ -157,6 +157,8 @@ export class Room {
    */
   rematch(c: Client): boolean {
     if (this.match.phase !== 'results') return false;
+    // only the first tap counts: a resent message must not push the round start back again
+    if (this.readyIds.has(c.id)) return false;
     this.readyIds.add(c.id);
     const humans = [...this.clients.keys()];
     if (!humans.every((id) => this.readyIds.has(id))) return false;

@@ -45,6 +45,18 @@ describe('results Ready taps (backlog #15)', () => {
     expect(room.match.timer).toBe(READY_HOLD_SEC);
   });
 
+  it('a repeat Ready tap from the same human does not push the round start back', () => {
+    const mgr = new RoomManager();
+    const { client, room } = mgr.join({} as WebSocket, 'rdy-repeat', 'A', 'default', 0)!;
+    room.match.phase = 'results';
+    room.match.timer = 2;
+    expect(room.rematch(client)).toBe(true);
+    expect(room.match.timer).toBe(READY_HOLD_SEC);
+    room.match.timer = 4;
+    expect(room.rematch(client)).toBe(false);
+    expect(room.match.timer).toBe(4);
+  });
+
   it('a Ready tap outside the results screen is ignored', () => {
     const mgr = new RoomManager();
     const { client, room } = mgr.join({} as WebSocket, 'rdy-playing', 'A', 'default', 0)!;
