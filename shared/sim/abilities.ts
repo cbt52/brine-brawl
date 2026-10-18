@@ -123,10 +123,24 @@ function scenery(h: CastHost): Rect[] {
   return h.arena?.obstacles ?? OBSTACLES;
 }
 
+/** Everything a body cannot cross: the arena scenery plus the stone slabs standing in-match. */
+function solids(h: CastHost): Rect[] {
+  return h.walls?.length ? scenery(h).concat(wallRects(h.walls)) : scenery(h);
+}
+
+/** Longest step of a shove (thinner than a slab, so a slab is never jumped over). */
+const SHOVE_STEP = 6;
+
+/** Push a fighter `amount` units, stopped by scenery and stone slabs; walked in short steps so none is skipped. */
 function shove(h: CastHost, v: SimPlayer, ux: number, uy: number, amount: number): void {
-  v.x += ux * amount;
-  v.y += uy * amount;
-  resolveWalls(v, scenery(h));
+  const n = Math.max(1, Math.ceil(Math.abs(amount) / SHOVE_STEP));
+  const step = amount / n;
+  const block = solids(h);
+  for (let i = 0; i < n; i++) {
+    v.x += ux * step;
+    v.y += uy * step;
+    resolveWalls(v, block);
+  }
 }
 
 /** Extra options for `hitAll` (cone gating, status on hit). */
@@ -453,7 +467,7 @@ export function stepDash(h: CastHost, p: SimPlayer, dt: number): boolean {
   p.x += wantX;
   p.y += wantY;
   // stone slabs are as solid as the coral: a dash must not cross (or end inside) one
-  resolveWalls(p, h.walls?.length ? scenery(h).concat(wallRects(h.walls)) : scenery(h));
+  resolveWalls(p, solids(h));
   // a wall blocked most of the intended step: a contact dash stops here
   if (d.stopOnContact && Math.hypot(p.x - x0, p.y - y0) < Math.hypot(wantX, wantY) * 0.7) {
     p.dash = null;
@@ -498,7 +512,7 @@ export function stepBurrow(h: CastHost, p: SimPlayer, dt: number): boolean {
   if (b.left > 0) return true;
   p.x = b.tx;
   p.y = b.ty;
-  resolveWalls(p, h.walls?.length ? scenery(h).concat(wallRects(h.walls)) : scenery(h));
+  resolveWalls(p, solids(h));
   p.burrow = null;
   hitAll(h, p.id, p.x, p.y, b.radius, b.dmg, 0, 0, {
     status: b.status, statusSec: b.statusSec, element: b.element, slot: b.slot,

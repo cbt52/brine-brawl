@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { World, type SimInput } from '../../shared/sim/world.ts';
 import { castAbility } from '../../shared/sim/abilities.ts';
-import { stepWalls, wallFor } from '../../shared/sim/walls.ts';
+import { stepWalls, wallFor, WALL_THICK } from '../../shared/sim/walls.ts';
 import { getFighter } from '../../shared/fighters/index.ts';
 import { TICK_HZ } from '../../shared/constants.ts';
 
@@ -118,5 +118,21 @@ describe('wall primitive (Brak Stone Wall)', () => {
     // never on the far side of the slab, never inside it
     expect(a.x).toBeLessThanOrEqual(spot.x - a.r + 1);
     expect(b.hp).toBe(b.mhp);
+  });
+
+  it('a knockback does not push through the slab', () => {
+    const w = new World();
+    const a = w.addPlayer(1, 'A', 'brak');
+    const b = w.addPlayer(2, 'B', 'default');
+    a.x = 1000; a.y = 1000; a.aim = 0; a.shield = 0;
+    b.x = 1120; b.y = 1000; b.aim = Math.PI; b.shield = 0;
+    // a slab 5 u clear of B's body: a 60 u shove would carry B clean through it
+    const slab = { id: 999, owner: 9, x: Math.round(b.x + b.r + 5), y: 900, w: WALL_THICK, h: 200, hp: 60, mhp: 60, left: 4 };
+    w.walls.push(slab);
+    castAbility(w, a, { kind: 'melee', arcDeg: 90, range: 280, dmg: 12, knockback: 60 });
+    expect(b.hp).toBe(b.mhp - 12);
+    // B is held on its own side of the slab, never past it
+    expect(b.x + b.r).toBeLessThanOrEqual(slab.x + 1);
+    expect(b.x).toBeGreaterThan(1120);
   });
 });

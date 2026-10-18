@@ -457,7 +457,6 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 ## 5. IMPROVEMENT BACKLOG (ordered; T99 takes from the top; user feedback goes first)
 11. Optional ONLY if the user asks: ComfyUI portraits (127.0.0.1:8188, 2–7 min/img, 16 GB RAM, never while the user is using it).
 
-40. Knockback vs stone walls: `shove()` in `shared/sim/abilities.ts` resolves only the arena scenery, so a melee or AoE knockback can shove a fighter into a Brak slab (dashes and burrows already stop at slabs). Resolve shoves against the stone walls too, plus a walls test "a knockback does not push through the slab".
 41. Arena defaults are a footgun: `waterRects`/`inWater`/`waterSpeedMul`, `inBush`/`canSee`, `stepPurrl` and `stepMove` fall back to the docks lists when no arena is passed. Once the Galleon ships, make the arena argument required at every call site (the compiler then finds a forgotten one) and drop the docks defaults.
 42. Join options are positional: `RoomManager.join` now takes 11 positional arguments (the `arena` pick was the last). Pass one `JoinOpts` object from `server/index.ts` so the next lobby option does not add a 12th, and keep the `rooms.join` call sites in one place.
 43. Galleon tips say the docks: the tips card always reads "Welcome to the docks" and lists the kelp and tide tip, which do not exist on the deck. Pick the card's heading and tips by the room's arena (`tutorialTips` takes the layout id, like the mode tip in #34).
@@ -477,9 +476,12 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 56. Heal sound: the `heal` event (Remedy Dart, Field Surgery) is silent, the same gap #38 closed for Purrl, because `cueForEvent` has no `heal` case. Give it the soft bubble chime (`bubble` preset in `client/src/audio/sfx.ts`) or its own quiet preset, with a unit test in `tests/unit/audio.test.ts`.
 57. Cannon impact colour: the `hit` branch in `client/src/scenes/GameScene.ts` colours the impact from the attacker's element, and a cannon bar has attacker -1, so `getArt` falls back to the first fighter and every bar hit flashes that fighter's colour. For `e.src === 'cannon'`, use the bar orange from `client/src/fx/cannonFx.ts` (`BAR`) with a short splinter burst, with a unit test on the colour helper.
 
+58. Slab bump cue: a knockback or pull that a stone slab stops now halts cleanly (#40), but the victim just slides to a stop with no feedback. Emit a `bump` event when `shove()` is stopped by a solid (`shared/sim/abilities.ts`), and play a short dust puff plus a soft thud in `client/src/audio/map.ts` terms, with a unit test on the event.
+
 ---
 
 ## 6. LOG (one line per task/hotfix; archive older lines to `.loop/log-archive.md` if >40 lines)
+- T99 ✅ 2026-10-18 — Knockback stops at slabs (backlog #40): `shove()` walks 6 u steps against `solids(h)` (scenery + walls), burrow landing too; 1 unit, check 776 grün → §5 #58
 - T99 ✅ 2026-10-18 — Cannon thud (backlog #39): `hit` event carries `src: 'cannon'` (`damage(…, slot, src)`), client cue `cannon` (sine 150→45 Hz + low noise) instead of the heavy bonk; 1 world + 1 audio test, check 775 grün → §5 #57
 - T99 ✅ 2026-10-18 — Skins slice 2: `join.skin` → room → `world.setSkin` → snapshot `sk`; lobby Skin button (localStorage); rig `setSkin` with async `addtexture` fallback, skin copies from recoloured SVG text; gallery shows both swaps; 4 unit tests, check 574 + e2e 19/19 + shot ok
 - T99 ✅ 2026-10-18 — Weird Weather slice 1: `shared/sim/weather.ts` (Double Tide = tide clock ×2, 50 % roll per round in `server/rooms.ts`), `wx` in MatchInfo, HUD tag; 8 unit tests, check 581 grün; Jelly/Bubble → §5 #17
@@ -519,4 +521,3 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T99 ✅ 2026-10-18 — Killcam flake (backlog #35): `KillCam.playing(now)` judges the replay on its clock, `replaying` uses it; the stall did not reproduce (16/16 + 8/8 e2e), so the root cause is open → §5 #53; 1 unit, check 768 grün, killcam e2e 8/8 grün
 - T99 ✅ 2026-10-18 — Best KO run (backlog #36): `run`/`bestRun` per fighter in the sim (KOs since last death, reset on death and round), `ScoreRow.run` in the ranking, pirate log "Best run" row; 5 new unit tests, check 772 grün → §5 #54
 - T99 ✅ 2026-10-18 — Streak sticker never silenced (backlog #37): streak stickers skip the wheel cooldown and don't start it (`answerStreak` calls `world.emote` directly; once-per-round `streakSent` is the limit); 1 unit test rewritten, check 772 grün → §5 #55
-- T99 ✅ 2026-10-18 — Purrl chime (backlog #38): `purrl` event → soft `bubble` preset (two quiet sines, gain ≤0.05) via `cueForEvent`; 1 unit test + presets list, check 773 grün → §5 #56 (heal sound)
