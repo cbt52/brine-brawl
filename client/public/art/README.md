@@ -85,6 +85,36 @@ Add the fighter to **both** `scripts/art-models.mjs` and `client/src/art/manifes
 colour, palette size, the pair of files, the face difference and the blockout reference, so a missing or
 off-spec asset fails `npm run check`.
 
+## 3D sprites (CP9 onwards, binding spec: §2.11 in `TASKS-LOOP.md`)
+
+Fighters move from SVG to sprites rendered in Blender. The SVGs stay as the `?art=svg` fallback.
+
+```
+scripts/blender/specs/<id>.json   parts (primitives) + palette + face + anim style
+        │  npm run art:3d -- <id> [--still] [--contact]
+        ▼
+scripts/art3d.mjs ──► blender -b --factory-startup --python scripts/blender/render_fighter.py
+        │                 lib/cam.py    ortho camera 35° down from screen-south, sun from above-front
+        │                 lib/build.py  prims → part meshes (voxel remesh + subdiv) + inverted hull
+        │                 lib/toon.py   Shader-to-RGB → constant ramp: shadow | base | highlight, rim 35 %
+        ▼
+.loop/tmp/art3d/<id>/<anim>_<dir>_<i>.png (2×) ──► 2× box downsample ──► scripts/lib/pack.mjs atlas
+```
+
+- Model units are **px at 1×**, z up, the model faces −Y (towards the camera); the feet sit on the origin,
+  which lands on y = 112 of the 128 px cell. Prim `size` is the full bounding box, `at` its centre.
+- Directions S, SE, E, NE, N are rendered by turning the model; the camera and sun never move, so the rig
+  can mirror the E side with `flipX` without the light flipping.
+- **Lighting replaces the top-left rule above for 3D sprites**: one sun from above, slightly in front of the
+  camera, centred left-to-right.
+- Colours are flat palette values through Emission with the `Standard` view transform, so the base band is
+  the exact palette hex; the orchestrator prints a sampled pixel per palette colour and fails if one is missing.
+- Outline: per-part inverted hull in `#1b1b2f`, 3 px at 1×, which also draws the lines between parts.
+- If EEVEE fails headless, `art3d.mjs` retries with `--gpu-backend metal`, then falls back to Workbench
+  (flat colours + outline).
+- `npm run art:selftest -- --contact` renders a capsule + sphere + cone test figure and writes
+  `.loop/shots/T34-contact.png` (row 1: 1×, row 2: 48 px, row 3: 48 px grayscale).
+
 ## Originality
 
 Nothing may copy a franchise look (§2.8 in `TASKS-LOOP.md`): no yellow electric mouse with red cheeks, no

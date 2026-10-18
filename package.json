@@ -16,7 +16,9 @@
     "e2e": "playwright test --project=desktop",
     "e2e:all": "playwright test",
     "art": "node scripts/art-gen.mjs && node scripts/blockout.mjs",
-    "balance": "node --import tsx scripts/balance.ts"
+    "balance": "node --import tsx scripts/balance.ts",
+    "art:3d": "node scripts/art3d.mjs",
+    "art:selftest": "node scripts/art3d.mjs selftest --still --shot T34"
   },
   "keywords": [],
   "author": "",
@@ -36,6 +38,7 @@
     "@types/ws": "^8.18.2",
     "eslint": "^10.13.0",
     "globals": "^17.13.0",
+    "sharp": "^0.35.5",
     "three": "^0.180.0",
     "tsx": "^4.23.15",
     "typescript": "^6.0.3",

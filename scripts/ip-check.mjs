@@ -6,16 +6,18 @@ const FORBIDDEN = [
   'luffy', 'straw hat', 'devil fruit', 'gomu', 'haki', 'zoro', 'spongebob', 'squarepants',
   'patrick', 'krusty', 'krabby', 'bikini bottom', 'squidward', 'plankton', 'gary',
 ];
-const ROOTS = ['client', 'server', 'shared'];
-const SKIP = new Set(['node_modules', 'dist']);
-const EXT = /\.(ts|js|mjs|html|css|svg|json|md)$/;
+/** Innocent words that contain a forbidden term; removed from a line before matching. */
+const ALLOW = ['fluffy'];
+const ROOTS = ['client', 'server', 'shared', 'scripts'];
+const SKIP = new Set(['node_modules', 'dist', '__pycache__', 'ip-check.mjs']);
+const EXT = /\.(ts|js|mjs|mts|html|css|svg|json|md|py)$/;
 
 let hits = 0;
 
 function scan(file) {
   const lines = readFileSync(file, 'utf8').split('\n');
   lines.forEach((line, i) => {
-    const low = line.toLowerCase();
+    const low = ALLOW.reduce((s, w) => s.replaceAll(w, ' '), line.toLowerCase());
     for (const w of FORBIDDEN) {
       if (low.includes(w)) {
         console.error(`${file}:${i + 1}: forbidden term "${w}"`);

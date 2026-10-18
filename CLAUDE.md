@@ -10,12 +10,16 @@ Server-authoritative Node + `ws`; Phaser 3 client. Task plan: `TASKS-LOOP.md` (f
 - `npm run smoke` — websocket smoke test · `npm run shot -- …` — screenshots to `.loop/shots/`
 - `npm run e2e` (desktop) / `npm run e2e:all` — Playwright
 - `scripts/serve.sh` — build + (re)start live server on 8720
+- `npm run art:3d -- <id…> [--still] [--contact]` — Blender 3D sprites (`$BLENDER`, `blender` on PATH, or /Applications/Blender.app)
+- `npm run art:selftest -- --contact` — toolchain check → `.loop/shots/T34-contact.png` (`npm run check` never needs Blender)
 
 ## Directory map
 - `shared/{protocol,constants}.ts`, `shared/sim/` (pure TS sim), `shared/fighters/`, `shared/arena/`
 - `server/` — http + ws on one port, rooms, match flow
 - `client/src/{scenes,net,ui,input,fx,audio,art}`, `client/public/art/`
 - `tests/{unit,e2e}`, `scripts/`
+- `scripts/blender/{lib,specs}` (Blender Python: toon/cam/build + per-fighter specs), `scripts/art3d.mjs`,
+  `scripts/lib/{pack,spec3d,frames3d}.mjs`; raw 3D frames go to `.loop/tmp/art3d/` (never commit `.blend`)
 
 ## Architecture rules
 - One port serves `CLIENT_DIR`, `/healthz`, and websocket `/ws`.

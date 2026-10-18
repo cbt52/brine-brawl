@@ -1,0 +1,17 @@
+{
+  "id": "selftest",
+  "pal": { "body": "#2EC4B6", "detail": "#F2E2C4", "trim": "#FFC93C", "prop": "#E63946" },
+  "dirs": 5,
+  "scale": 1,
+  "parts": [
+    { "name": "body", "parent": null, "c": "body", "remesh": 2,
+      "prims": [{ "type": "capsule", "at": [0, 0, 31], "size": [56, 48, 62] }] },
+    { "name": "head", "parent": "body", "c": "detail",
+      "prims": [{ "type": "sphere", "at": [0, 0, 87], "size": [54, 50, 50] }] },
+    { "name": "prop", "parent": "body", "c": "trim",
+      "prims": [{ "type": "cone", "at": [38, -8, 44], "size": [20, 20, 48], "rot": [0, 25, 0] }] }
+  ],
+  "features": [],
+  "face": null,
+  "anim": { "style": "biped" }
+}

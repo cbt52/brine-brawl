@@ -464,7 +464,8 @@ Rules for every task:
 - Do ≤ 2 render→look→fix cycles per fighter, then commit and note open look issues in the Log.
 - Never re-render fighters you didn't change.
 
-- [ ] **T34 — Blender toolchain spike**
+- [x] **T34 — Blender toolchain spike**
+  - Note: Blender 5.2.2 at `/Applications/Blender.app` (art3d.mjs checks `$BLENDER`, then `blender` on PATH, then that path). EEVEE renders headless on the first try; `--gpu-backend metal` and the Workbench fallback are wired but unused. Model units = px at 1× (camera `ortho_scale` 128, `shift_y` 0.375 puts the origin on y = 112), the model turns per direction while camera + sun stay fixed. Toon = Diffuse → Shader-to-RGB → constant ramp (threshold 0.2 at sun strength 1) → Emission, so `Standard` output is the exact hex: selftest prints body/detail/trim sampled exactly (3810/4651/260 px). Outline = per-part inverted hull (`build.hull_mesh`: even-thickness push along normals + flipped faces, own object with `visible_shadow` off, backface-culled). Frames are 2× renders reduced by an exact premultiplied 2×2 box filter (`scripts/lib/frames3d.mjs`), not a resize kernel, so flat areas keep their hex. `layoutShelves` can't fit 70 untrimmed 128² cells in 1024² (64 max) — T36 must trim frames (`spriteSourceSize`). Selftest figure is 100 px but its belly dips to y = 119 (35° pitch shows the underside), so specs must keep low parts slim. ip-check now scans `scripts/` + `.py` with an allow-list for "fluffy". Contact sheet `.loop/shots/T34-contact.png`: 5 dirs, bands, continuous outline; rim light is barely visible at 1× (fine for now).
   - Do:
     - Create `scripts/blender/{lib/toon.py,lib/cam.py,lib/build.py,render_fighter.py}` and `scripts/blender/specs/selftest.json` (capsule body + sphere head + cone prop).
     - Create `scripts/art3d.mjs`: finds `$BLENDER` or `blender`, exits with a clear error if it is missing, makes one Blender call per id.
@@ -758,6 +759,7 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 ---
 
 ## 6. LOG (one line per task/hotfix; archive older lines to `.loop/log-archive.md` if >40 lines)
+- T34 ✅ 2026-10-18 — Blender 5.2.2 toolchain: EEVEE headless works (no metal/Workbench fallback needed), selftest 7 s, palette exact, outline + 3 bands ok; 8 tests, check 800 grün
 - T99 ✅ 2026-10-18 — Host hand-over toast (backlog #45): `Net.snapListeners` + `watchHost` (ui/hostToast.ts) show "You host this room now" for 3 s when the host flag goes false→true (first snapshot is baseline); 4 unit + 1 e2e, check 792 grün, e2e desktop 32/32 grün, desktop shot ok → §5 #63
 - T99 ✅ 2026-10-18 — Cannon cues (backlog #44): `volleyCues` (audio/map.ts) blips when a lane first telegraphs, thuds when it fires, per-lane stage so it re-arms; quiet `cannonWarn`/`cannonFire` presets, muted on replay; 7 unit tests incl. a full galleon match, check 788 grün → §5 #62 (#61 was closed by RF ad4afc2, removed)
 - T99 ✅ 2026-10-18 — Galleon tips (backlog #43): `tutorialTips`/`showTutorial`/`mountTutorial` take the arena; galleon heading 'Welcome aboard the galleon' and a 'Deck cannons' tip replace kelp & tide; menu ☰ passes `net.last.m.ar`; 3 unit tests, check 781 grün → §5 #61
