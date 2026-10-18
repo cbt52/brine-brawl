@@ -119,7 +119,10 @@ export class RoomManager {
     this.timer.unref();
   }
 
-  join(ws: WebSocket, roomRaw: unknown, nameRaw: unknown, fighterRaw: unknown, botsRaw?: unknown, matchSecRaw?: unknown): { room: Room; client: Client } | null {
+  join(
+    ws: WebSocket, roomRaw: unknown, nameRaw: unknown, fighterRaw: unknown, botsRaw?: unknown,
+    matchSecRaw?: unknown, tideRaw?: unknown,
+  ): { room: Room; client: Client } | null {
     const id = sanitizeRoom(roomRaw);
     let room = this.rooms.get(id);
     const created = !room;
@@ -130,6 +133,8 @@ export class RoomManager {
     if (room.clients.size >= MAX_HUMANS) return null;
     // match length override (debug builds only — index.ts gates it behind ALLOW_DEBUG)
     if (created && matchSecRaw !== undefined) room.match.setMatchSec(matchSecRaw);
+    // rising-tide debug jump (`?tide=high`), same gate
+    if (tideRaw !== undefined) room.world.debugTide(String(tideRaw));
     const cid = this.nextId++;
     const client: Client = {
       id: cid,

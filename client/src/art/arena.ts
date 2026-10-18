@@ -1,13 +1,13 @@
 import Phaser from 'phaser';
 import { WORLD_W, WORLD_H } from '../../../shared/constants.ts';
 import { BUSHES, DECOR, OBSTACLES, SHALLOWS } from '../../../shared/arena/docks.ts';
+import { waterRects } from '../../../shared/sim/tide.ts';
 
 const DEEP = 0x0e3a4e;
 const SAND = 0xe9d6a6;
 const SAND_DARK = 0xc9b78a;
 const CORAL = 0xff8f7a;
 const CORAL_DARK = 0xc45d51;
-const SHALLOW = 0x2f9ab0;
 
 /**
  * Static arena background, painted ONCE into a RenderTexture (cheap on phones) plus a thin
@@ -15,7 +15,10 @@ const SHALLOW = 0x2f9ab0;
  */
 export class ArenaArt {
   private waves: Phaser.GameObjects.Graphics;
+  /** rising-tide water overlay, redrawn every frame (depth 1: above the ground, below the rigs) */
+  private water: Phaser.GameObjects.Graphics;
   private lowfx: boolean;
+  private tideLevel = 0;
 
   constructor(scene: Phaser.Scene, opts: { lowfx?: boolean } = {}) {
     this.lowfx = Boolean(opts.lowfx);
@@ -25,6 +28,7 @@ export class ArenaArt {
     rt.draw(g);
     g.destroy();
     this.paintBushes(scene);
+    this.water = scene.add.graphics().setDepth(1);
     this.waves = scene.add.graphics().setDepth(2);
   }
 
@@ -48,10 +52,11 @@ export class ArenaArt {
       for (let x = 46 + off; x < WORLD_W - 46; x += 620) g.lineBetween(x, y, x, y + 84);
     }
 
-    // shallow lagoon pockets (T18 turns these into the tide)
+    // tide-pool beds: the water itself is the animated overlay (setTide/updateWaves)
     for (const s of SHALLOWS) {
-      g.fillStyle(SHALLOW, 0.9).fillRoundedRect(s.x, s.y, s.w, s.h, 70);
-      g.lineStyle(4, 0xdff7ff, 0.55).strokeRoundedRect(s.x, s.y, s.w, s.h, 70);
+      g.fillStyle(0x8fa88f, 0.55).fillRoundedRect(s.x, s.y, s.w, s.h, 70);
+      g.lineStyle(4, 0xc0d8c8, 0.6).strokeRoundedRect(s.x, s.y, s.w, s.h, 70);
+      g.fillStyle(0x7d967f, 0.5).fillEllipse(s.x + s.w / 2, s.y + s.h / 2, s.w * 0.62, s.h * 0.62);
     }
 
     // coral walls, exactly on the collision rects
@@ -121,6 +126,7 @@ export class ArenaArt {
 
   /** gentle wave lines around the shore: recomputed on the wave layer only */
   updateWaves(nowMs: number): void {
+    this.paintTide(nowMs);
     const g = this.waves;
     g.clear();
     const t = nowMs / 900;
@@ -144,11 +150,37 @@ export class ArenaArt {
       const w = 30 + Math.sin(t * 1.3 + i) * 10;
       g.lineBetween(x, y + Math.cos(t + i) * 3, x + w, y + Math.cos(t + i) * 3);
     }
-    for (const s of SHALLOWS) {
-      g.lineStyle(3, 0xdff7ff, 0.3);
+  }
+
+  /** Flood level from the sim (0 = tide out, 1 = high tide). */
+  setTide(level: number): void {
+    this.tideLevel = Math.max(0, Math.min(1, level));
+  }
+
+  /** The flooded shallows: the pool grows with `tideLevel`, shrinks back as the tide runs out. */
+  private paintTide(nowMs: number): void {
+    const g = this.water;
+    g.clear();
+    const level = this.tideLevel;
+    const rects = waterRects(level);
+    const t = nowMs / 700;
+    for (const r of rects) {
+      // the water is brighter and more opaque the higher the tide
+      g.fillStyle(0x1c7f96, 0.55 + level * 0.3).fillRoundedRect(r.x, r.y, r.w, r.h, 24 + level * 40);
+      g.lineStyle(3 + level * 2, 0xdff7ff, 0.35 + level * 0.4).strokeRoundedRect(r.x, r.y, r.w, r.h, 24 + level * 40);
+      if (level < 0.2) continue;
+      // surface ripples scale with the flooded area
+      for (let i = 0; i < 3; i++) {
+        const y = r.y + (r.h / 4) * (i + 1) + Math.sin(t + i * 1.3) * (4 + level * 4);
+        g.lineStyle(2 + level * 2, 0xdff7ff, 0.18 + level * 0.22);
+        g.lineBetween(r.x + 14, y, r.x + r.w - 14, y);
+      }
+      if (this.lowfx || level < 0.5) continue;
+      // whitecaps at high tide
       for (let i = 0; i < 4; i++) {
-        const y = s.y + 40 + i * (s.h / 5) + Math.sin(t * 1.5 + i) * 6;
-        g.lineBetween(s.x + 30, y, s.x + s.w - 30, y);
+        const x = r.x + 20 + ((i * 97 + Math.sin(t * 0.7 + i) * 20) % Math.max(30, r.w - 40));
+        const y = r.y + 26 + (i * 61) % Math.max(24, r.h - 40);
+        g.fillStyle(0xeafcff, 0.5).fillCircle(x, y, 3);
       }
     }
   }

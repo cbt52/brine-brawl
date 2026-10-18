@@ -313,7 +313,7 @@ Each reaction shows a big popup word ("SHOCK!").
     through `applyElementHit`, `st` is a bit mask, chips + drips + flicker ring + reaction words live
     in `client/src/fx/statusFx.ts` / `GameScene.drawStatus`, reactions play the new `react` sfx.
 
-- [ ] **T18 — Rising Tide**
+- [x] **T18 — Rising Tide**
   - Do:
     - `shared/sim/tide.ts` cycle per §2.10, synced in the snapshot (`tide:{phase,t}`).
     - At high tide the arena `shallows` flood:
@@ -324,6 +324,7 @@ Each reaction shows a big popup word ("SHOCK!").
     - Bots avoid deep water at high tide and go for chests.
     - Unit tests: phase timing, slow, chain shock.
   - Test: `npm run check && npm run shot -- --name T18 --query "room=shot&bots=3&tide=high"` (ALLOW_DEBUG override)
+  - Note: `shared/sim/tide.ts` (35/5/15/5 s cycle, `waterRects`/`inWater`/`waterSpeedMul`/`pickupFor`), snapshot `tide:{phase,t,level}` + `chests` + `picks`; chests (HP 40) surface when the tide *enters* low and the rising flood swallows the rest, `damageChest` drops heal 30 / +40 % ult / `gold++`, pickups sink after 12 s; wading ×0.7 + Wet each second, shock chains 1 hop to a wet *or* flooded neighbour (`inWaterAt` host hook); client grows the water overlay from the flood level (arena.ts `paintTide`), HUD meter with the 5 s TIDE RISING flash + horn, chest/pickup sprites (GameScene `drawLoot`); bots loot chests and leave/avoid high-tide water (`leaveWater`); `?tide=high` debug join param (ALLOW_DEBUG); 13 tests in tests/unit/tide.test.ts, 330 green. Shot T18-0/T18b-0 show the meter; live check (tide=falling) delivered 2 chests at low tide with zero console errors.
 
 - [ ] **T19 — Bounty Brawl + WANTED poster**
   - Do:

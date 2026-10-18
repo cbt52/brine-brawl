@@ -20,6 +20,8 @@ export interface JoinMsg {
   bots?: number;
   /** match length override in seconds — ALLOW_DEBUG servers only */
   matchsec?: number;
+  /** jump the tide to a phase (`?tide=high` screenshots) — ALLOW_DEBUG servers only */
+  tide?: string;
 }
 
 /** Match phases: waiting for players → 3 s countdown → playing → results → countdown… */
@@ -101,6 +103,36 @@ export interface SnapProj {
   o: number;
 }
 
+/** Rising tide phases (design §2.10). */
+export type TidePhase = 'low' | 'rising' | 'high' | 'falling';
+
+export interface TideInfo {
+  phase: TidePhase;
+  /** whole seconds left in this phase */
+  t: number;
+  /** flood level 0..1 (drives the water overlay, chests hiding and the wade slow-down) */
+  level: number;
+}
+
+/** A low-tide treasure chest (destructible, drops one pickup). */
+export interface SnapChest {
+  id: number;
+  x: number;
+  y: number;
+  hp: number;
+  mhp: number;
+}
+
+export type PickupKind = 'heal' | 'ult' | 'gold';
+
+/** A reward dropped by a broken chest. */
+export interface SnapPickup {
+  id: number;
+  x: number;
+  y: number;
+  k: PickupKind;
+}
+
 export type AbilitySlot = 'attack' | 'special' | 'ult';
 
 export type SimEvent =
@@ -113,7 +145,11 @@ export type SimEvent =
   /** a status landed on a victim (`sec` 0 = it was cleared) */
   | { k: 'status'; v: number; s: string; sec: number }
   /** two elements reacted on a victim (shock/steam/flare/mud/wildfire/thunderclap) */
-  | { k: 'react'; v: number; r: string; x: number; y: number };
+  | { k: 'react'; v: number; r: string; x: number; y: number }
+  /** a treasure chest broke open */
+  | { k: 'chest'; x: number; y: number }
+  /** somebody grabbed a dropped reward */
+  | { k: 'pick'; id: number; kind: PickupKind; x: number; y: number };
 
 export interface SnapMsg {
   t: 'snap';
@@ -124,6 +160,12 @@ export interface SnapMsg {
   players: SnapPlayer[];
   projs: SnapProj[];
   ev: SimEvent[];
+  /** rising-tide state */
+  tide?: TideInfo;
+  /** low-tide treasure */
+  chests?: SnapChest[];
+  /** unclaimed chest rewards */
+  picks?: SnapPickup[];
   /** match phase + timer (added by the room) */
   m?: MatchInfo;
 }

@@ -1,18 +1,43 @@
 import { TICK_HZ, WORLD_W, WORLD_H } from '../constants.ts';
 import { OBSTACLES, SPAWNS } from '../arena/docks.ts';
-import type { SimEvent, SnapMsg, SnapPlayer } from '../protocol.ts';
+import type { PickupKind, SimEvent, SnapMsg, SnapPlayer } from '../protocol.ts';
 import { getFighter } from '../fighters/index.ts';
 import { statusMask, TRAP_BREAK_DMG, type FighterDef, type StatusKind } from '../fighters/types.ts';
 import { pushOutRect, resolveWalls, separate } from './collide.ts';
 import * as C from './combat.ts';
 import type { Projectile } from './combat.ts';
 import { castAbility, hitElement, stepBurrow, stepDash, stepZones, type BurrowState, type DashState, type Zone } from './abilities.ts';
-import { applyElementHit, BURN_DPS, BURN_TICK_SEC, statusSpeedMul } from './elements.ts';
+import { applyElementHit, applyStatus, BURN_DPS, BURN_TICK_SEC, STATUS_SEC, statusSpeedMul } from './elements.ts';
 import { canSee, REVEAL_SEC } from './visibility.ts';
+import {
+  CHEST_HP, CHEST_RADIUS, CHEST_SPOTS, PICKUP_HEAL, PICKUP_RADIUS, PICKUP_SEC, PICKUP_ULT_FRAC,
+  Tide, inWater, pickupFor, WATER_SLOW, WATER_WET_SEC,
+} from './tide.ts';
 
 export const BASE_SPEED = 240;
 /** default body radius (kits carry their own `radius`) */
 export const PLAYER_RADIUS = 32;
+
+/** A low-tide treasure chest: destructible scenery that drops one reward. */
+export interface Chest {
+  id: number;
+  x: number;
+  y: number;
+  hp: number;
+  mhp: number;
+  /** sin phase so every chest bobs on its own beat (visual only) */
+  bob: number;
+}
+
+/** A reward lying on the deck after a chest broke. */
+export interface Pickup {
+  id: number;
+  x: number;
+  y: number;
+  kind: PickupKind;
+  /** seconds before it sinks */
+  left: number;
+}
 
 export interface SimInput {
   seq: number;
@@ -73,6 +98,10 @@ export interface SimPlayer {
   deaths: number;
   /** fighter id picked mid-match; swapped in by the next respawn */
   pendingFighter: string | null;
+  /** doubloons collected from chests (spent by the bounty mode, T19) */
+  gold: number;
+  /** seconds of continuous flood water under the body (see tide.ts) */
+  waterT: number;
   bot?: boolean;
 }
 
@@ -95,7 +124,15 @@ export class World {
   projs: Projectile[] = [];
   zones: Zone[] = [];
   events: SimEvent[] = [];
+  /** rising-tide clock (design §2.10) */
+  tide = new Tide();
+  /** low-tide treasure chests */
+  chests: Chest[] = [];
+  /** unclaimed chest rewards */
+  picks: Pickup[] = [];
   private nextProj = 1;
+  /** rotates the pickup reward so chests do not always drop the same thing */
+  private pickupRotor = 0;
 
   addPlayer(id: number, name: string, fighter = 'default', bot = false): SimPlayer {
     const s = SPAWNS[(id - 1) % SPAWNS.length];
@@ -105,7 +142,8 @@ export class World {
       hp: def.maxHp, mhp: def.maxHp, speedMul: def.speedMul, aim: 0, ack: 0, input: null,
       ammo: def.ammo, reload: 0, fireCd: 0, fireLatch: false, spcCd: 0, uc: 0, dash: null, burrow: null,
       buffMul: 1, buffLeft: 0, status: null, statusLeft: 0, rootLeft: 0, burnT: 0, trapTook: 0,
-      revealT: 0, down: false, respawn: 0, shield: C.SHIELD_SEC, kos: 0, deaths: 0, pendingFighter: null, bot,
+      revealT: 0, down: false, respawn: 0, shield: C.SHIELD_SEC, kos: 0, deaths: 0, pendingFighter: null,
+      gold: 0, waterT: 0, bot,
     };
     this.players.set(id, p);
     this.events.push({ k: 'spawn', id });
@@ -143,8 +181,67 @@ export class World {
     return this.nextProj++;
   }
 
+  /**
+   * Rising-tide clock + treasure bookkeeping. Chests surface when the tide bottoms out and are
+   * swallowed as it rises again; rewards already on the deck stay until picked up or sunk.
+   */
+  private stepTide(dt: number): void {
+    const entered = this.tide.step(dt);
+    if (entered === 'low') {
+      this.chests = CHEST_SPOTS.map((s, i) => ({
+        id: this.newProjId(), x: s.x, y: s.y, hp: CHEST_HP, mhp: CHEST_HP, bob: i * 1.7,
+      }));
+    } else if (entered === 'rising') {
+      this.chests = []; // the flood swallows whatever is left
+    }
+    if (!this.picks.length) return;
+    const keep: Pickup[] = [];
+    for (const pk of this.picks) {
+      pk.left -= dt;
+      let taken = false;
+      for (const p of this.players.values()) {
+        if (p.down || p.burrow) continue;
+        if (Math.hypot(p.x - pk.x, p.y - pk.y) > p.r + PICKUP_RADIUS) continue;
+        this.collect(p, pk);
+        taken = true;
+        break;
+      }
+      if (!taken && pk.left > 0) keep.push(pk);
+    }
+    this.picks = keep;
+  }
+
+  /** Rising-tide water at the current flood level (used by the shock chain, bots and tests). */
+  inWaterAt(x: number, y: number): boolean {
+    return inWater(x, y, this.tide.level);
+  }
+
+  /** Grant one chest reward (heal / ult charge / doubloons). */
+  private collect(p: SimPlayer, pk: Pickup): void {
+    if (pk.kind === 'heal') p.hp = Math.min(p.mhp, p.hp + PICKUP_HEAL);
+    else if (pk.kind === 'ult') p.uc = Math.min(p.def.ultCharge, p.uc + p.def.ultCharge * PICKUP_ULT_FRAC);
+    else p.gold++;
+    this.events.push({ k: 'pick', id: p.id, kind: pk.kind, x: Math.round(pk.x), y: Math.round(pk.y) });
+  }
+
+  /** Damage a treasure chest; a broken chest drops a reward on the deck. */
+  damageChest(attacker: number, chest: Chest, dmg: number): void {
+    if (dmg <= 0 || chest.hp <= 0) return;
+    chest.hp -= dmg;
+    const a = this.players.get(attacker);
+    if (a) a.uc = Math.min(a.def.ultCharge, a.uc + Math.min(dmg, chest.mhp) * 0.5);
+    if (chest.hp > 0) return;
+    chest.hp = 0;
+    this.chests = this.chests.filter((c) => c !== chest);
+    this.events.push({ k: 'chest', x: Math.round(chest.x), y: Math.round(chest.y) });
+    this.picks.push({
+      id: this.newProjId(), x: chest.x, y: chest.y, kind: pickupFor(this.pickupRotor++), left: PICKUP_SEC,
+    });
+  }
+
   step(dt = 1 / TICK_HZ): void {
     this.tick++;
+    this.stepTide(dt);
     const list = [...this.players.values()];
     for (const p of list) {
       const i = p.input;
@@ -183,9 +280,11 @@ export class World {
       const burrowing = stepBurrow(this, p, dt);
       if (burrowing) { p.fireLatch = false; continue; }
       const dashing = !disabled && stepDash(this, p, dt);
+      const flooding = inWater(p.x, p.y, this.tide.level);
       if (i) {
         if (!dashing && !disabled) {
-          const spd = BASE_SPEED * p.speedMul * (p.buffLeft > 0 ? p.buffMul : 1) * statusSpeedMul(p.status);
+          const spd = BASE_SPEED * p.speedMul * (p.buffLeft > 0 ? p.buffMul : 1) * statusSpeedMul(p.status)
+            * (flooding ? WATER_SLOW : 1);
           const rooted = p.rootLeft > 0;
           if (!rooted) stepMove(p, i.mx, i.my, spd, dt);
         }
@@ -193,6 +292,15 @@ export class World {
         p.ack = i.seq;
       }
       this.reloadStep(p, dt);
+      // standing in flood water soaks you: Wet once per second of contact
+      if (flooding) {
+        p.waterT += dt;
+        if (p.waterT >= WATER_WET_SEC) {
+          p.waterT = 0;
+          applyStatus(p, 'wet', STATUS_SEC.wet);
+          this.events.push({ k: 'status', v: p.id, s: 'wet', sec: STATUS_SEC.wet });
+        }
+      } else p.waterT = 0;
       if (!disabled && (p.fireLatch || i?.atk) && p.ammo > 0 && p.fireCd <= 0) this.fire(p);
       p.fireLatch = false;
       // specials/ults are hold-to-cast, gated by cooldown / charge (works the same for bots)
@@ -281,6 +389,15 @@ export class World {
             }
           }
           if (dead) break;
+        }
+        // treasure chests are scenery but they can be shot open
+        if (!dead && !pr.lob) {
+          for (const c of this.chests) {
+            if (c.hp <= 0) continue;
+            if (Math.hypot(c.x - pr.x, c.y - pr.y) >= CHEST_RADIUS + pr.r) continue;
+            this.damageChest(pr.owner, c, pr.dmg);
+            if (!pr.pierce) { dead = true; break; }
+          }
         }
       }
       pr.left -= dist;
@@ -393,6 +510,11 @@ export class World {
     if (p && Number.isFinite(hp)) p.hp = Math.max(1, Math.min(p.mhp, hp));
   }
 
+  /** Debug: jump the tide to the start of a phase (`?tide=high` screenshots). */
+  debugTide(phase: string): void {
+    if (phase === 'low' || phase === 'rising' || phase === 'high' || phase === 'falling') this.tide.force(phase);
+  }
+
   clearEvents(): void {
     this.events = [];
   }
@@ -425,6 +547,9 @@ export class World {
       t: 'snap', tick: this.tick, ts: Date.now(), ack: this.players.get(viewerId)?.ack ?? 0, players,
       projs: this.projs.map((q) => ({ id: q.id, x: Math.round(q.x), y: Math.round(q.y), o: q.owner })),
       ev: this.events,
+      tide: this.tide.info(),
+      chests: this.chests.map((c) => ({ id: c.id, x: Math.round(c.x), y: Math.round(c.y), hp: c.hp, mhp: c.mhp })),
+      picks: this.picks.map((k) => ({ id: k.id, x: Math.round(k.x), y: Math.round(k.y), k: k.kind })),
     };
   }
 }

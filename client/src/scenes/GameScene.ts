@@ -22,6 +22,8 @@ import { musicEnabled, sfxEnabled, shakeEnabled } from '../ui/settings.ts';
 import { Sfx } from '../audio/sfx.ts';
 import { Shanty } from '../audio/music.ts';
 import { cueForEvent } from '../audio/map.ts';
+import { tideLevel } from '../../../shared/sim/tide.ts';
+import type { PickupKind } from '../../../shared/protocol.ts';
 
 const INTERP_DELAY_MS = 100;
 /** how long the taffy arm stays stretched out after a punch */
@@ -39,6 +41,8 @@ export interface GameFxOptions {
 export class GameScene extends Phaser.Scene {
   private arena!: ArenaArt;
   private projGfx!: Phaser.GameObjects.Graphics;
+  /** low-tide chests and their dropped rewards */
+  private lootGfx!: Phaser.GameObjects.Graphics;
   /** bubbles and stretchy arms drawn above the rigs */
   private overGfx!: Phaser.GameObjects.Graphics;
   private armUntil = new Map<number, { until: number; a: number; range: number }>();
@@ -60,6 +64,7 @@ export class GameScene extends Phaser.Scene {
   /** last countdown second we played a beep for (0 = none) */
   private lastCdBeep = 0;
   private lastSoundPhase = '';
+  private lastTidePhase = '';
 
   constructor(private net: Net, private viewH: number, private fxOpts: GameFxOptions = {}) {
     super('game');
@@ -72,6 +77,7 @@ export class GameScene extends Phaser.Scene {
   create(): void {
     this.arena = new ArenaArt(this, { lowfx: this.fxOpts.lowfx });
     this.projGfx = this.add.graphics().setDepth(10);
+    this.lootGfx = this.add.graphics().setDepth(12);
     this.overGfx = this.add.graphics().setDepth(30);
     this.cameras.main.setBounds(-100, -100, WORLD_W + 200, WORLD_H + 200);
     this.cameras.main.centerOn(WORLD_W / 2, WORLD_H / 2);
@@ -122,10 +128,70 @@ export class GameScene extends Phaser.Scene {
     this.lastSoundPhase = phase;
   }
 
+  /** The tide horn: one blast as the flood starts to come in (the HUD shows the 5 s ramp). */
+  private playTideSounds(): void {
+    const phase = this.net.last?.tide?.phase ?? '';
+    if (phase === 'rising' && this.lastTidePhase !== 'rising') this.sfx.play('horn');
+    this.lastTidePhase = phase;
+  }
+
   /** HUD lives in its own scene (screen space) — just feed it the current view. */
   private updateHud(view: SnapPlayer[]): void {
-    this.hud.setMatch(this.net.last?.m, view, this.net.id, this.net.ping);
+    this.hud.setMatch(this.net.last?.m, view, this.net.id, this.net.ping, this.net.last?.tide);
     syncResults(this.net.last?.m);
+  }
+
+  /** Low-tide treasure: bobbing chests with a damage bar, and the rewards they drop. */
+  private drawLoot(nowMs: number): void {
+    const g = this.lootGfx;
+    g.clear();
+    const snap = this.net.last;
+    if (!snap) return;
+    for (const c of snap.chests ?? []) {
+      const bob = Math.sin(nowMs / 420 + c.id) * 2;
+      const y = c.y + bob;
+      g.fillStyle(0x6b4326, 1).fillRoundedRect(c.x - 26, y - 14, 52, 34, 7);
+      g.fillStyle(0x8d5c34, 1).fillRoundedRect(c.x - 26, y - 14, 52, 18, 7);
+      g.lineStyle(3, 0x33200f, 1).strokeRoundedRect(c.x - 26, y - 14, 52, 34, 7);
+      g.lineStyle(4, 0xe8c265, 1).lineBetween(c.x, y - 14, c.x, y + 20);
+      g.fillStyle(0xffd23f, 1).fillCircle(c.x, y + 3, 5);
+      g.lineStyle(2, 0x8a5a34, 1).strokeCircle(c.x, y + 3, 5);
+      // a chest only shows a bar once somebody hit it
+      const frac = Math.max(0, Math.min(1, c.hp / c.mhp));
+      if (frac < 1) {
+        g.fillStyle(0x1b1b2f, 0.85).fillRect(c.x - 26, y - 26, 52, 7);
+        g.fillStyle(frac > 0.5 ? 0x8bff9e : 0xff8f7a, 1).fillRect(c.x - 25, y - 25, 50 * frac, 5);
+      }
+    }
+    for (const pk of snap.picks ?? []) {
+      const bob = Math.sin(nowMs / 260 + pk.id) * 3;
+      const y = pk.y - 10 + bob;
+      g.fillStyle(0x1b1b2f, 0.55).fillEllipse(pk.x, pk.y + 8, 24, 9);
+      this.drawPickup(g, pk.k, pk.x, y);
+    }
+  }
+
+  private drawPickup(g: Phaser.GameObjects.Graphics, kind: PickupKind, x: number, y: number): void {
+    if (kind === 'heal') {
+      g.fillStyle(0x8bff9e, 1).fillCircle(x, y, 11);
+      g.fillStyle(0x1b6b34, 1).fillRect(x - 3, y - 7, 6, 14).fillRect(x - 7, y - 3, 14, 6);
+      g.lineStyle(2, 0x1b1b2f, 1).strokeCircle(x, y, 11);
+      return;
+    }
+    if (kind === 'gold') {
+      g.fillStyle(0xffd23f, 1).fillCircle(x, y, 11);
+      g.lineStyle(2, 0x8a5a34, 1).strokeCircle(x, y, 11);
+      g.lineStyle(2, 0xb8860b, 1).strokeCircle(x, y, 6);
+      return;
+    }
+    // ult charge: a little star
+    g.fillStyle(0x9fe7ff, 1).fillCircle(x, y, 11);
+    g.fillStyle(0x0e3a4e, 1);
+    g.fillPoints([
+      { x, y: y - 8 }, { x: x + 2.5, y: y - 2.5 }, { x: x + 8, y }, { x: x + 2.5, y: y + 2.5 },
+      { x, y: y + 8 }, { x: x - 2.5, y: y + 2.5 }, { x: x - 8, y }, { x: x - 2.5, y: y - 2.5 },
+    ], true);
+    g.lineStyle(2, 0x1b1b2f, 1).strokeCircle(x, y, 11);
   }
 
   /** Bubble traps around victims plus Noodle's rubber arm. */
@@ -274,6 +340,10 @@ export class GameScene extends Phaser.Scene {
 
   update(time: number): void {
     this.controls.update(time);
+    const tide = this.net.last?.tide;
+    const flood = tide ? tideLevel(tide.phase, tide.t) : 0;
+    this.arena.setTide(flood);
+    this.pred.setWater(flood);
     this.arena.updateWaves(time);
 
     const nowMs = performance.now();
@@ -346,6 +416,10 @@ export class GameScene extends Phaser.Scene {
       } else if (e.k === 'cast') {
         this.rigs.get(e.id)?.attack();
         this.fx.cast(e.x, e.y, e.a ?? 0, elementColor(getArt(this.kinds.get(e.id)).element));
+      } else if (e.k === 'chest') {
+        this.fx.impact(e.x, e.y, 0xffd23f);
+      } else if (e.k === 'pick') {
+        this.fx.impact(e.x, e.y, e.kind === 'heal' ? 0x8bff9e : e.kind === 'gold' ? 0xffd23f : 0x9fe7ff);
       } else if (e.k === 'react') {
         const color = reactionColor(e.r);
         const word = reactionLabel(e.r);
@@ -373,10 +447,12 @@ export class GameScene extends Phaser.Scene {
         if (e.a === this.net.id) navigator.vibrate?.(45);
       }
     }
+    this.drawLoot(nowMs);
     this.drawOverlays(view, nowMs);
     this.controls.setCooldowns(view.find((p) => p.id === this.net.id));
     if (this.self) this.sfx.setListener(this.self.x, this.self.y);
     this.playMatchSounds();
+    this.playTideSounds();
     this.fx.sample(this.game.loop.actualFps, this.game.loop.delta);
     this.hud.addEvents(evs, (id) => this.names.get(id) ?? '?');
     this.updateHud(view);

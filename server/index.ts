@@ -70,7 +70,10 @@ function onConnection(ws: WebSocket): void {
     switch (msg.t) {
       case 'join': {
         if (joined) return;
-        const j = rooms.join(ws, msg.room, msg.name, msg.fighter, msg.bots, ALLOW_DEBUG ? msg.matchsec : undefined);
+        const j = rooms.join(
+          ws, msg.room, msg.name, msg.fighter, msg.bots,
+          ALLOW_DEBUG ? msg.matchsec : undefined, ALLOW_DEBUG ? msg.tide : undefined,
+        );
         if (!j) { send(ws, { t: 'err', msg: 'room full' }); ws.close(); return; }
         joined = j;
         send(ws, { t: 'welcome', id: j.client.id, room: j.room.id, build: BUILD, tick: j.room.world.tick });

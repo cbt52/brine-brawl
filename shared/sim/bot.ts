@@ -14,9 +14,11 @@ const PARAMS = {
 const PREF_RANGE = 380;
 const SEE_RANGE = 1100;
 const FLEE_FRAC = 0.3;
+/** Bots head for a chest when no fight is closer than this. */
+const LOOT_RANGE = 520;
 const RAD = Math.PI / 180;
 
-export type BotState = 'wander' | 'chase' | 'kite' | 'flee';
+export type BotState = 'wander' | 'chase' | 'kite' | 'flee' | 'loot';
 
 function blocked(x: number, y: number, r: number): boolean {
   if (x < r || y < r || x > WORLD_W - r || y > WORLD_H - r) return true;
@@ -38,6 +40,21 @@ function steer(me: SimPlayer, ang: number): number {
 export class BotBrain {
   state: BotState = 'wander';
   private seq = 0;
+  /** Shortest way back onto dry land at high tide, or null when every direction ends in water. */
+  private leaveWater(world: World, me: SimPlayer): number | null {
+    let best: number | null = null;
+    let bestD = Infinity;
+    for (let i = 0; i < 16; i++) {
+      const a = (i / 16) * Math.PI * 2;
+      for (let d = 40; d <= 320; d += 40) {
+        if (world.inWaterAt(me.x + Math.cos(a) * d, me.y + Math.sin(a) * d)) continue;
+        if (d < bestD) { bestD = d; best = a; }
+        break;
+      }
+    }
+    return best;
+  }
+
   private seen: { x: number; y: number; id: number } | null = null;
   private vel = { x: 0, y: 0 };
   private reactT = 0;
@@ -90,6 +107,7 @@ export class BotBrain {
     let aim = me.aim;
     let fire = false;
     let dist = Infinity;
+    let looting = false;
     const atk = me.def.attack;
     const shotRange = atk.kind === 'projectile' ? atk.range : abilityReach(atk);
     const shotSpeed = atk.kind === 'projectile' ? atk.speed : 900;
@@ -132,15 +150,49 @@ export class BotBrain {
       }
     }
 
+    // low-tide treasure: with no fight close by, go crack a chest open
+    if (world.chests.length && dist > LOOT_RANGE) {
+      let chest = world.chests[0];
+      let bd = Infinity;
+      for (const c of world.chests) {
+        const d = Math.hypot(c.x - me.x, c.y - me.y);
+        if (d < bd) { bd = d; chest = c; }
+      }
+      if (chest) {
+        this.state = 'loot';
+        looting = true;
+        heading = Math.atan2(chest.y - me.y, chest.x - me.x);
+        move = 1;
+        aim = heading;
+        fire = me.ammo > 0 && bd < shotRange * 0.8;
+        dist = bd;
+      }
+    }
+
     if (move > 0) heading = steer(me, heading);
+    // rising tide: the flood is slow and soaks you — leave it, and do not walk into it (chest runs are exempt)
+    if (!looting && world.tide.level > 0.5) {
+      if (world.inWaterAt(me.x, me.y)) {
+        const out = this.leaveWater(world, me);
+        if (out !== null) { heading = out; move = 1; }
+      } else {
+        const look = me.r + 60;
+        const wet = (a: number) => world.inWaterAt(me.x + Math.cos(a) * look, me.y + Math.sin(a) * look);
+        if (wet(heading)) {
+          for (const off of [Math.PI / 2, -Math.PI / 2, Math.PI]) {
+            if (!wet(heading + off)) { heading += off; break; }
+          }
+        }
+      }
+    }
     out.mx = Math.cos(heading) * move;
     out.my = Math.sin(heading) * move;
     out.ax = Math.cos(aim);
     out.ay = Math.sin(aim);
     out.atk = fire;
     // special when the target is inside its reach and the cooldown is ready, ult as soon as it is charged
-    out.spc = !!t && me.spcCd <= 0 && dist <= abilityReach(me.def.special);
-    out.ult = !!t && me.uc >= me.def.ultCharge && dist <= abilityReach(me.def.ult) + 120;
+    out.spc = !!t && !looting && me.spcCd <= 0 && dist <= abilityReach(me.def.special);
+    out.ult = !!t && !looting && me.uc >= me.def.ultCharge && dist <= abilityReach(me.def.ult) + 120;
     return out;
   }
 }

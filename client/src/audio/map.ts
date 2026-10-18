@@ -78,6 +78,11 @@ export function cueForEvent(
       return e.s === 'trapped' ? { name: 'pop' } : null;
     case 'react':
       return { name: 'react', x: e.x, y: e.y };
+    case 'chest':
+      // a chest popping open: the reward chime, not another hit thud
+      return { name: 'pickup', x: e.x, y: e.y };
+    case 'pick':
+      return { name: 'pickup', x: e.x, y: e.y };
     case 'spawn':
       return null;
     default:

@@ -1,5 +1,6 @@
 import { TICK_HZ } from '../../../shared/constants.ts';
 import { BASE_SPEED, stepMove } from '../../../shared/sim/world.ts';
+import { waterSpeedMul } from '../../../shared/sim/tide.ts';
 import { getFighter } from '../../../shared/fighters/index.ts';
 
 /** Divergence (world units) above which the predicted body snaps instead of blending. */
@@ -50,9 +51,9 @@ export function pruneStale(pending: readonly PredInput[], now: number, maxAge = 
 }
 
 /** Run pending inputs from an authoritative position (one shared movement step each). */
-export function replay(from: Pos, r: number, pending: readonly PredInput[], speed: number): Pos {
+export function replay(from: Pos, r: number, pending: readonly PredInput[], speed: number, waterLevel = 0): Pos {
   const p = { x: from.x, y: from.y, r };
-  for (const i of pending) stepMove(p, i.mx, i.my, speed, DT);
+  for (const i of pending) stepMove(p, i.mx, i.my, speed * waterSpeedMul(p.x, p.y, waterLevel), DT);
   return { x: p.x, y: p.y };
 }
 
@@ -73,6 +74,8 @@ export class Predictor {
   private lastTick = -1;
   private r = 32;
   private speed = BASE_SPEED;
+  /** rising-tide flood level, so water slow-down is predicted too (see shared/sim/tide.ts) */
+  private waterLevel = 0;
   pending: PredInput[] = [];
 
   /** Start predicting a body (on welcome / first snapshot). */
@@ -86,12 +89,17 @@ export class Predictor {
     this.r = radius;
   }
 
+  /** Feed the current tide flood level (0 = dry, 1 = high tide). */
+  setWater(level: number): void {
+    this.waterLevel = level;
+  }
+
   /** A local input left the client: move at once and remember it until it is acked. */
   applyInput(i: PredInput, dt = DT, now = nowMs()): void {
     this.pending.push(i.at === undefined ? { ...i, at: now } : i);
     if (this.pending.length > 240) this.pending.shift();
     const body = { x: this.pos.x, y: this.pos.y, r: this.r };
-    stepMove(body, i.mx, i.my, this.speed, dt);
+    stepMove(body, i.mx, i.my, this.speed * waterSpeedMul(body.x, body.y, this.waterLevel), dt);
     this.pos = { x: body.x, y: body.y };
   }
 
@@ -105,7 +113,7 @@ export class Predictor {
     this.speed = speedOf(fighter);
     this.r = r;
     this.pending = pruneStale(prunePending(this.pending, ack), nowMs());
-    const target = replay(server, r, this.pending, this.speed);
+    const target = replay(server, r, this.pending, this.speed, this.waterLevel);
     const seen = this.visual();
     this.pos = target;
     if (down || Math.hypot(seen.x - target.x, seen.y - target.y) > SNAP_DIST) {

@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import type { MatchInfo, SimEvent, SnapPlayer } from '../../../shared/protocol.ts';
+import type { MatchInfo, SimEvent, SnapPlayer, TideInfo } from '../../../shared/protocol.ts';
 
 const FEED_MAX = 4;
 const BRAWL_MS = 900;
@@ -35,6 +35,9 @@ export class HudScene extends Phaser.Scene {
   private sbPinned = false;
   private sbHeld = false;
   private vignette?: Phaser.GameObjects.Image;
+  /** rising-tide meter (dock wall clock + flood bar) */
+  private tideGfx!: Phaser.GameObjects.Graphics;
+  private tideText!: Phaser.GameObjects.Text;
 
   constructor() {
     super({ key: 'hud' });
@@ -49,6 +52,8 @@ export class HudScene extends Phaser.Scene {
     this.feedText = this.txt(18, { align: 'right' }).setOrigin(1, 0);
     this.pingText = this.txt(15).setOrigin(0, 0);
     this.sbText = this.txt(18, { align: 'left', lineSpacing: 6 }).setOrigin(0.5);
+    this.tideGfx = this.add.graphics().setDepth(9);
+    this.tideText = this.txt(17).setOrigin(0.5, 0).setVisible(false);
     this.layout();
     this.ensureVignette();
     this.scale.on('resize', this.layout);
@@ -134,9 +139,46 @@ export class HudScene extends Phaser.Scene {
     if (this.feed.length > FEED_MAX) this.feed.splice(0, this.feed.length - FEED_MAX);
   }
 
+  /** Tide meter: phase label, countdown to the next change and a flood bar (T18). */
+  private drawTide(tide: TideInfo | undefined): void {
+    const g = this.tideGfx;
+    g.clear();
+    if (!tide) {
+      this.tideText.setVisible(false);
+      return;
+    }
+    const x = 12;
+    const y = 92;
+    const w = 214;
+    const h = 54;
+    const low = tide.phase === 'low';
+    const rising = tide.phase === 'rising';
+    const high = tide.phase === 'high';
+    g.fillStyle(0x0d1a26, 0.82).fillRoundedRect(x, y, w, h, 10);
+    g.lineStyle(2, rising ? 0xffd23f : 0xdff7ff, 0.45).strokeRoundedRect(x, y, w, h, 10);
+    const frac = Math.max(0, Math.min(1, tide.level));
+    g.fillStyle(0x123243, 1).fillRoundedRect(x + 12, y + 32, w - 24, 11, 5);
+    if (frac > 0.01) {
+      g.fillStyle(high ? 0x36b6d8 : rising ? 0x2a93b4 : 0x1c7f96, 1);
+      g.fillRoundedRect(x + 12, y + 32, (w - 24) * frac, 11, 5);
+    }
+    g.lineStyle(2, 0xdff7ff, 0.3).strokeRoundedRect(x + 12, y + 32, w - 24, 11, 5);
+    // the high-water line: cross it and the flood is in
+    g.fillStyle(0xffd23f, 0.85).fillRect(x + 12 + (w - 24) * 0.62 - 1, y + 28, 2, 19);
+    const sec = Math.max(0, Math.ceil(tide.t));
+    const label = low ? 'TIDE OUT' : rising ? 'TIDE RISING' : high ? 'HIGH TIDE' : 'TIDE FALLING';
+    const blink = rising && Math.floor(performance.now() / 320) % 2 === 0;
+    this.tideText
+      .setText(`${label}  ${mmss(sec)}`)
+      .setColor(rising ? (blink ? '#ffd23f' : '#ffffff') : high ? '#9fe7ff' : low ? '#c8e6c0' : '#9fb4c8')
+      .setPosition(x + w / 2, y + 8)
+      .setVisible(true);
+  }
+
   /** Called every frame by the game scene with the interpolated view. */
-  setMatch(m: MatchInfo | undefined, view: SnapPlayer[], selfId: number, ping = 0): void {
+  setMatch(m: MatchInfo | undefined, view: SnapPlayer[], selfId: number, ping = 0, tide?: TideInfo): void {
     if (!this.koText) return; // scene still booting
+    this.drawTide(tide);
     const me = view.find((p) => p.id === selfId);
     this.koText.setText(`KOs ${me?.k ?? 0}  ·  KO'd ${me?.d ?? 0}`);
     this.pingText.setVisible(ping > 0);

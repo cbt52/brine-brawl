@@ -4,7 +4,8 @@ import { OBSTACLES } from '../arena/docks.ts';
 import { applyElementHit, applyStatus as storeStatus, ELEMENT_OF_STATUS } from './elements.ts';
 import { resolveWalls } from './collide.ts';
 import type { Projectile } from './combat.ts';
-import type { SimPlayer } from './world.ts';
+import type { Chest, SimPlayer } from './world.ts';
+import { CHEST_RADIUS } from './tide.ts';
 
 /** Damage zones tick at this rate while they live. */
 export const ZONE_TICK_SEC = 0.5;
@@ -73,6 +74,9 @@ export interface CastHost {
   events: SimEvent[];
   newProjId(): number;
   damage(attacker: number, victim: SimPlayer, dmg: number, x: number, y: number): void;
+  /** low-tide treasure (optional: tests may cast without scenery) */
+  chests?: readonly Chest[];
+  damageChest?(attacker: number, chest: Chest, dmg: number): void;
 }
 
 function enemies(h: CastHost, owner: number): SimPlayer[] {
@@ -122,6 +126,14 @@ function hitAll(
     if (!v.down && v.shield <= 0) {
       const react = applyElementHit(h, owner, v, o.status ?? null, o.statusSec ?? 0, hitElement(o.element, o.status));
       if (react === null && o.status) h.events.push({ k: 'status', v: v.id, s: o.status, sec: o.statusSec ?? 1 });
+    }
+  }
+  // treasure chests take splash damage too (they are scenery, so no reaction/status)
+  if (dmg > 0 && h.chests && h.damageChest) {
+    for (const c of h.chests) {
+      if (c.hp <= 0) continue;
+      if (Math.hypot(c.x - x, c.y - y) > radius + CHEST_RADIUS) continue;
+      h.damageChest(owner, c, dmg);
     }
   }
 }

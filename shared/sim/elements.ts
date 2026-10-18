@@ -113,6 +113,8 @@ export interface ReactHost {
   events: SimEvent[];
   newProjId(): number;
   damage(attacker: number, victim: SimPlayer, dmg: number, x: number, y: number): void;
+  /** rising-tide water test: a shock chains to a soaked neighbour or one standing in the flood */
+  inWaterAt?(x: number, y: number): boolean;
 }
 
 /**
@@ -144,11 +146,11 @@ export function applyElementHit(
     case 'shock': {
       h.damage(srcId, v, SHOCK_DMG, v.x, v.y);
       if (!v.down) applyStatus(v, 'stun', SHOCK_STUN);
-      // one hop: the nearest other wet fighter (T18: real tide water instead of "wet")
+      // one hop: the nearest other wet fighter (or one standing in the same tide water, T18)
       let best: SimPlayer | null = null;
       let bd = SHOCK_CHAIN_RANGE;
       for (const o of others()) {
-        if (o.status !== 'wet') continue;
+        if (o.status !== 'wet' && !h.inWaterAt?.(o.x, o.y)) continue;
         const d = Math.hypot(o.x - v.x, o.y - v.y);
         if (d <= bd) { bd = d; best = o; }
       }
