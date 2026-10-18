@@ -67,3 +67,21 @@ test('menu "How to play" reopens the tips after they were seen', async ({ page }
   await expect(tips).toHaveCount(0);
   expect(await page.evaluate(() => localStorage.getItem('brawl.tutorial'))).toBe('seen');
 });
+
+// backlog #43 (review): a joiner with no arena of their own gets the room's deck tips, not the docks ones
+test('a joiner to a galleon room sees the galleon heading and cannon tip', async ({ page, browser }) => {
+  const room = 'tutg-' + Math.random().toString(36).slice(2, 8);
+  await page.goto(`/?room=${room}&name=Host&bots=1&arena=galleon`);
+  await expect.poll(() => page.evaluate(() => (window as any).__brawl.connected)).toBe(true);
+  await page.getByTestId('tutorial-ok').click();
+
+  const guest = await browser.newContext();
+  const gp = await guest.newPage();
+  await gp.goto(`/?room=${room}&name=Guest`);
+  await expect.poll(() => gp.evaluate(() => (window as any).__brawl.connected)).toBe(true);
+  const tips = gp.getByTestId('tutorial');
+  await expect(tips).toBeVisible();
+  await expect(tips).toContainText('Welcome aboard the galleon');
+  await expect(tips.locator('li').last()).toContainText('Deck cannons');
+  await guest.close();
+});

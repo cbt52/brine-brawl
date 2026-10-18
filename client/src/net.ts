@@ -19,6 +19,8 @@ export class Net {
   buffer: { at: number; snap: SnapMsg }[] = [];
   /** events not yet consumed by the scene */
   events: SimEvent[] = [];
+  /** runs once, on the first snapshot: the room's own mode and arena, not the joiner's choices (backlog #43) */
+  onFirstSnap: ((snap: SnapMsg) => void) | null = null;
   private ws: WebSocket | null = null;
   private overlay = document.getElementById('overlay')!;
 
@@ -99,6 +101,11 @@ export class Net {
       }
     } else if (msg.t === 'snap') {
       this.last = msg;
+      if (this.onFirstSnap) {
+        const first = this.onFirstSnap;
+        this.onFirstSnap = null;
+        first(msg);
+      }
       if (msg.ev.length) this.events.push(...msg.ev);
       if (this.events.length > 200) this.events.splice(0, this.events.length - 200);
       const now = performance.now();
