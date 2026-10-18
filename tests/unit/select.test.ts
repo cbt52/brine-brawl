@@ -1,7 +1,9 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync, existsSync } from 'node:fs';
 import { SELECTABLE } from '../../shared/fighters/index.ts';
-import { fighterCardsHtml } from '../../client/src/ui/select.ts';
+import { fighterCardsHtml, fighterRowHtml, setRowSkin } from '../../client/src/ui/select.ts';
+import { artUrl } from '../../client/src/art/manifest.ts';
+import { escapeHtml } from '../../client/src/ui/util.ts';
 
 const root = new URL('../../', import.meta.url);
 
@@ -26,6 +28,28 @@ describe('character select cards (T33)', () => {
     const html = fighterCardsHtml('sudsy');
     expect(html.match(/aria-pressed="true"/g)).toHaveLength(1);
     expect(html.match(/data-faction="/g)).toHaveLength(SELECTABLE.length);
+  });
+});
+
+describe('menu fighter row faces (backlog #29)', () => {
+  it('every ☰ button carries its own face at the drawn look', () => {
+    const html = fighterRowHtml('pebblor');
+    for (const f of SELECTABLE) {
+      const btn = html.split('<button ').find((b) => b.includes(`data-fighter="${f.id}"`))!;
+      expect(btn, f.id).toContain(`<img class="pick-face" src="${artUrl(f.id)}" alt=""`);
+      expect(btn, f.id).toContain(escapeHtml(f.name));
+    }
+    expect(html.match(/class="big sm pick on"/g)).toHaveLength(1);
+  });
+
+  it('setRowSkin remembers the skin and points each face at the drawn look for skin 0', async () => {
+    const img = { src: 'stale' } as HTMLImageElement;
+    const btn = { dataset: { fighter: 'voltbun' }, querySelector: () => img };
+    const root = { dataset: {} as Record<string, string>, querySelectorAll: () => [btn] } as unknown as HTMLElement;
+    setRowSkin(root, 0);
+    await Promise.resolve();
+    expect(root.dataset.skin).toBe('0');
+    expect(img.src).toBe(artUrl('voltbun'));
   });
 });
 

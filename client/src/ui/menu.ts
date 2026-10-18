@@ -1,7 +1,7 @@
 import type { Net } from '../net.ts';
 import { BOT_LEVELS } from '../../../shared/sim/bot.ts';
 import { copyText, inviteUrl } from './rooms.ts';
-import { fighterRowHtml, markFighterRow, nextSkin, saveFighter, saveSkin, savedFighter, savedSkin, skinLabel } from './select.ts';
+import { fighterRowHtml, markFighterRow, nextSkin, saveFighter, saveSkin, savedFighter, savedSkin, setRowSkin, skinLabel } from './select.ts';
 import { setShakeEnabled, shakeEnabled, setSfxEnabled, sfxEnabled, setMusicEnabled, musicEnabled, setColorblindEnabled, colorblindEnabled } from './settings.ts';
 import { showStats } from './statsPage.ts';
 import { showTutorial } from './tutorial.ts';
@@ -94,8 +94,10 @@ export function mountMenu(net: Net, touch: boolean): void {
     saveSkin(skin);
     net.send({ t: 'skin', skin });
     syncSkin();
+    setRowSkin(frow, skin);
   });
   syncSkin();
+  setRowSkin(frow, skin);
   const bots = () => (net.last?.players ?? []).filter((p) => p.id >= 1000).length;
   // bot level (backlog #14): the room's current level comes back in the match info (`bl`)
   const lvlRow = q('menu-levels') as HTMLElement;

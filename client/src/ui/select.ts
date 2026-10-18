@@ -178,13 +178,28 @@ export function mountFighterGrid(root: HTMLElement, selected: string, onPick?: (
   return setSkin;
 }
 
-/** Compact button row for the in-game menu. */
+/** Compact button row for the in-game menu. Each button has a small face that follows the skin (backlog #29). */
 export function fighterRowHtml(selected: string): string {
   return SELECTABLE.map(
     (d) =>
       `<button type="button" class="big sm pick${d.id === selected ? ' on' : ''}" data-testid="menu-pick-${d.id}"
-        data-fighter="${d.id}">${escapeHtml(d.name)}</button>`,
+        data-fighter="${d.id}"><img class="pick-face" src="${artUrl(d.id)}" alt="" draggable="false" />${escapeHtml(d.name)}</button>`,
   ).join('');
+}
+
+/**
+ * Point every face in a `fighterRowHtml` row at the skinned portrait. The row remembers the latest
+ * skin on itself, so a slow fetch for an older skin cannot overwrite a newer one.
+ */
+export function setRowSkin(root: HTMLElement, skin: number): void {
+  root.dataset.skin = String(skin);
+  for (const btn of root.querySelectorAll<HTMLButtonElement>('button[data-fighter]')) {
+    const img = btn.querySelector<HTMLImageElement>('img.pick-face');
+    if (!img) continue;
+    void skinnedPortrait(btn.dataset.fighter!, skin).then((url) => {
+      if (root.dataset.skin === String(skin)) img.src = url;
+    });
+  }
 }
 
 /** Highlight one button in a `fighterRowHtml` row. */
