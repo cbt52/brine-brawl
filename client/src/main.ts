@@ -95,6 +95,9 @@ window.__brawl = {
   get props() { return (game.scene.getScene('game') as GameScene | null)?.props ?? []; },
   get water() { return (game.scene.getScene('game') as GameScene | null)?.water ?? null; },
   get fx() { return (game.scene.getScene('game') as GameScene | null)?.fxLooks ?? []; },
+  /** live render sample (T46): FPS, low-fx watchdog state, ms to the first drawn frame */
+  get fps() { return (game.scene.getScene('game') as GameScene | null)?.perf ?? null; },
+  get lowfx() { return (game.scene.getScene('game') as GameScene | null)?.perf.lowfx ?? null; },
   build: BUILD_ID,
   state: () => net.last,
   send: (m: C2S) => net.send(m),

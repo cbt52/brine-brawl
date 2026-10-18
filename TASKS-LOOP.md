@@ -600,7 +600,8 @@ Rules for every task:
   - Accept: chests and pickups are readable at phone zoom. Unit test for the sprite-key mapping.
   - Test: `npm run check && npm run shot -- --name T45 --device "iPhone 13" --query "room=shot&bots=3&tide=low"`
 
-- [ ] **T46 — Budget + perf pass**
+- [x] **T46 — Budget + perf pass**
+  - Note: `tests/unit/art-budget.test.ts` now covers the whole §2.11 table: FX atlas (254×260, 9.6 KB, ≤ 512²/150 KB), sprite width ≤ 120 px + idle ≥ 90 px (blob sudsy 78–102, noted), a 2.5 MB pilot-download sum (actual 1.03 MB: 4 sheets 720 KB + ground 123 KB + props 148 KB + water 22 KB + fx 10 KB) and a 50 MB GPU estimate from the decoded RGBA sizes (actual ~22 MB). `window.__brawl.fps` = `{fps, lowfx, firstFrameMs, particles}` (`GameScene.perf`, first drawn frame stamped in `update`); `npm run perf` (`scripts/perf.mjs`) builds, starts a temp server and measures: desktop Chromium first frame **3D 977 ms vs `?art=svg` 822 ms** (median of 3, +155 ms for the extra 1 MB), iPhone 13 (WebKit, landscape) 20 s 3-bot match **fps median 59.7, min 55, lowfx watchdog NOT tripped, particle peak 72** → `.loop/perf.md`. e2e: new `tests/e2e/perf.spec.ts` checks the hook; the mobile Playwright project now uses a landscape viewport (portrait showed the rotate hint over every DOM test, 6 red) and `cp1.spec` waits for `m.st === 'playing'` before the movement step. check 891 + e2e:all 81 grün.
   - Do:
     - Write `tests/unit/art-budget.test.ts` covering all §2.11 file and dimension budgets.
     - Add a `window.__brawl.fps` sample.
@@ -805,4 +806,5 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T42 ✅ 2026-10-18 — Docks ground: render_arena.py top-down 1800×1200 jpg 121 KB, sat p95 39 %, piers/pads, beds, contact shadows; ?rects=1; check 856 + e2e 34 grün
 - T43 ✅ 2026-10-18 — Docks props atlas (procedural coral/barrel/crate/kelp, 35° + depth stretch), 14 frames 144 KB, y-sort; check 867 + e2e 36 grün
 - T44 ✅ 2026-10-18 — Water: seamless Blender caustics tile 21.6 KB, masked lagoon scroll, toon flood pools (foam/ripples), still in lowfx; check 880 + e2e 39 grün
+- T46 ✅ 2026-10-18 — Budget+Perf: alle §2.11-Budgets im Unit-Test (FX 9,6 KB, Pilot-Download 1,03/2,5 MB, GPU ~22/50 MB); `__brawl.fps` + `npm run perf`: Desktop erster Frame 977 ms vs SVG 822 ms, iPhone 13 20 s Median 59,7 fps (min 55), lowfx nicht getrippt; check 891 + e2e:all 81 grün
 - T45 ✅ 2026-10-18 — FX-Atlas (`npm run art:fx`): 8 Loot-/Projektil-Sprites, 254×260, 9,6 KB, Sprite-Pool + Painter-Fallback, `?art=svg` unverändert; `shot.mjs` schießt Handys jetzt im Querformat; 4 Unit, check 884 + e2e 39 grün

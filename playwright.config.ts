@@ -13,6 +13,7 @@ export default defineConfig({
   use: { baseURL: 'http://127.0.0.1:8721' },
   projects: [
     { name: 'desktop', testIgnore: /mobile\.spec/, use: { ...devices['Desktop Chrome'] } },
-    { name: 'mobile', use: { ...devices['Pixel 7'] } },
+    // the game is landscape-only: a portrait viewport shows the rotate hint and covers the DOM UI
+    { name: 'mobile', use: { ...devices['Pixel 7'], viewport: { width: 915, height: 412 } } },
   ],
 });

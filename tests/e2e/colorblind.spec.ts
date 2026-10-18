@@ -1,6 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { test, expect } from '@playwright/test';
 
+// landscape on purpose: the portrait rotate hint (mobile project) covers the DOM UI otherwise
+test.use({ viewport: { width: 915, height: 412 } });
+
 // backlog #22: the ☰ menu switches the element colours to the colour-blind set and remembers it
 test('menu "Colour-blind" toggles the choice and keeps it after a reload', async ({ page }) => {
   const room = 'cb-' + Math.random().toString(36).slice(2, 8);

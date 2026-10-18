@@ -21,7 +21,8 @@
     "art:selftest": "node scripts/art3d.mjs selftest --still --shot T34",
     "comfy": "node scripts/comfy.mjs",
     "art:arena": "node --import tsx scripts/art-arena.mjs",
-    "art:fx": "node --import tsx scripts/art-fx.mjs"
+    "art:fx": "node --import tsx scripts/art-fx.mjs",
+    "perf": "node scripts/perf.mjs"
   },
   "keywords": [],
   "author": "",

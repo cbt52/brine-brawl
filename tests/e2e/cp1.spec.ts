@@ -25,6 +25,10 @@ test('two players: move, shoot, KO', async ({ browser }) => {
   const idA = await myId(a);
   const idB = await myId(b);
   await expect.poll(async () => (await players(b)).length).toBe(2);
+  // movement only applies in the playing phase (the countdown starts once both are in)
+  await expect
+    .poll(() => b.evaluate(() => (window as any).__brawl.state()?.m?.st), { timeout: 20_000 })
+    .toBe('playing');
 
   // movement: A holds d, B sees A.x grow (open water: 900/1100 y=1000 sits inside a kelp bush)
   await dbg(a, 'tp', { x: 760, y: 760 });

@@ -13,6 +13,7 @@ Server-authoritative Node + `ws`; Phaser 3 client. Task plan: `TASKS-LOOP.md` (f
 - `npm run art:3d -- <id…> [--still] [--contact]` — Blender 3D sprites (`$BLENDER`, `blender` on PATH, or /Applications/Blender.app)
 - `npm run art:arena -- docks [--ground] [--props] [--water]` — Blender top-down ground → `client/public/art/arena/docks-ground.jpg` + 35° props atlas `docks-props.{png,json}` + seamless 256² caustics tile `docks-water.png` (layout from `shared/arena/` via tsx)
 - `npm run art:selftest -- --contact` — toolchain check → `.loop/shots/T34-contact.png` (`npm run check` never needs Blender)
+- `npm run perf` — first-frame + 20 s iPhone 13 FPS/lowfx sample → `.loop/perf.md` (needs Playwright browsers)
 
 ## Directory map
 - `shared/{protocol,constants}.ts`, `shared/sim/` (pure TS sim), `shared/fighters/`, `shared/arena/`

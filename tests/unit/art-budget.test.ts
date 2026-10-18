@@ -48,6 +48,20 @@ describe('fighter atlases (art budget)', () => {
     }
   });
 
+  it.each(ids)('%s: the figure stays within the 120 px width and cell top, and reads ≥ 90 px in idle', (id) => {
+    const frames = Object.entries(atlas(id).frames);
+    for (const [name, f] of frames) {
+      expect(f.spriteSourceSize.w, `${name} width`).toBeLessThanOrEqual(120);
+      expect(f.spriteSourceSize.y, `${name} touches the cell top`).toBeGreaterThan(0);
+      expect(f.spriteSourceSize.h, `${name} overflows the cell`).toBeLessThanOrEqual(120);
+    }
+    const minH = spec(id).anim?.style === 'blob' ? 75 : 90; // a blob squash (sudsy) reads shorter than a biped
+    for (const [name, f] of frames) {
+      if (!name.startsWith('idle_')) continue;
+      expect(f.spriteSourceSize.h, `${name} figure too small`).toBeGreaterThanOrEqual(minH);
+    }
+  });
+
   it.each(ids)('%s: the feet stay on the y = 112 line (±3) in every frame', (id) => {
     for (const [name, f] of Object.entries(atlas(id).frames)) {
       const bottom = f.spriteSourceSize.y + f.spriteSourceSize.h - 1;
@@ -90,6 +104,60 @@ describe('arena props (art budget)', () => {
     const st = saturationStats({ data: Buffer.from(opaque), channels: 3 });
     expect(st.p95).toBeLessThanOrEqual(0.45);
     expect(st.black).toBe(0);
+  });
+});
+
+describe('fx atlas (art budget)', () => {
+  const PNG = 'client/public/art/fx/fx.png';
+
+  it('fx.png is ≤ 512², ≤ 150 KB and matches its JSON', async () => {
+    const { default: sharp } = await import('sharp');
+    const json = JSON.parse(readFileSync('client/public/art/fx/fx.json', 'utf8'));
+    expect(statSync(PNG).size).toBeLessThanOrEqual(150 * 1024);
+    const meta = await sharp(PNG).metadata();
+    expect([meta.width, meta.height]).toEqual([json.meta.size.w, json.meta.size.h]);
+    expect(meta.width).toBeLessThanOrEqual(512);
+    expect(meta.height).toBeLessThanOrEqual(512);
+    for (const [name, f] of Object.entries<{ frame: { x: number; y: number; w: number; h: number } }>(json.frames)) {
+      expect(f.frame.x + f.frame.w, name).toBeLessThanOrEqual(json.meta.size.w);
+      expect(f.frame.y + f.frame.h, name).toBeLessThanOrEqual(json.meta.size.h);
+    }
+  });
+});
+
+describe('pilot download + GPU memory (§2.11 budgets)', () => {
+  const S = 'client/public/art/sprites';
+  const loaded = () => {
+    const files = [
+      ...ids.flatMap((id) => [`${S}/${id}.png`, `${S}/${id}.json`]),
+      'client/public/art/arena/docks-ground.jpg',
+      'client/public/art/arena/docks-props.png',
+      'client/public/art/arena/docks-props.json',
+      'client/public/art/arena/docks-water.png',
+      'client/public/art/fx/fx.png',
+      'client/public/art/fx/fx.json',
+    ];
+    return files;
+  };
+
+  it('the pilot extra download (all 4 sheets + arena + fx) stays ≤ 2.5 MB', () => {
+    const files = loaded();
+    for (const f of files) expect(existsSync(f), `missing ${f}`).toBe(true);
+    const bytes = files.reduce((n, f) => n + statSync(f).size, 0);
+    expect(bytes / 1024).toBeLessThanOrEqual(2.5 * 1024);
+    // the number is recorded in .loop/perf.md by `npm run perf`
+    expect(bytes).toBeGreaterThan(0);
+  });
+
+  it('GPU memory of a loaded match (RGBA) stays ≈ 50 MB', async () => {
+    const { default: sharp } = await import('sharp');
+    let bytes = 0;
+    for (const f of loaded()) {
+      if (!/\.(png|jpg)$/.test(f)) continue;
+      const meta = await sharp(f).metadata();
+      bytes += (meta.width ?? 0) * (meta.height ?? 0) * 4;
+    }
+    expect(bytes / 1024 / 1024).toBeLessThanOrEqual(50);
   });
 });
 

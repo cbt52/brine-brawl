@@ -94,6 +94,8 @@ export class GameScene extends Phaser.Scene {
   private lastCdBeep = 0;
   private lastSoundPhase = '';
   private lastTidePhase = '';
+  /** `performance.now()` of the first drawn frame (T46 perf hook, 0 = none yet) */
+  private firstFrameAt = 0;
 
   constructor(private net: Net, private viewH: number, private fxOpts: GameFxOptions = {}) {
     super('game');
@@ -115,6 +117,16 @@ export class GameScene extends Phaser.Scene {
   /** Loot + projectile sprites drawn this frame (debug hook / e2e, T45). */
   get fxLooks(): FxLook[] {
     return this.sprites?.looks ?? [];
+  }
+
+  /** Live FPS sample + quality state (debug hook `__brawl.fps`, T46). */
+  get perf(): { fps: number; lowfx: boolean; firstFrameMs: number; particles: number } {
+    return {
+      fps: Math.round(this.game.loop.actualFps * 10) / 10,
+      lowfx: this.fx?.budget.low ?? Boolean(this.fxOpts.lowfx),
+      firstFrameMs: this.firstFrameAt,
+      particles: this.fx?.budget.used ?? 0,
+    };
   }
 
   /** Lagoon caustics + flood pools (debug hook / e2e, T44). */
@@ -668,6 +680,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   update(time: number): void {
+    if (!this.firstFrameAt) this.firstFrameAt = Math.round(performance.now());
     this.controls.update(time);
     const tide = this.net.last?.tide;
     const m = this.net.last?.m;

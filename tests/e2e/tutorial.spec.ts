@@ -1,6 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { test, expect } from '@playwright/test';
 
+// landscape on purpose: the portrait rotate hint (mobile project) covers the DOM UI otherwise
+test.use({ viewport: { width: 915, height: 412 } });
+
 // backlog #7: the tips show once per browser, are dismissible, and never block the arena
 test('first visit shows the tips, "Got it" saves it, the next visit does not', async ({ page }) => {
   const room = 'tut-' + Math.random().toString(36).slice(2, 8);
