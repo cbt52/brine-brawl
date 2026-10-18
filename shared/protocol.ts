@@ -87,6 +87,8 @@ export interface MatchInfo {
   host?: boolean;
   /** results phase only (backlog #28): connected humans who tapped Ready, out of all connected humans */
   rd?: { ready: number; of: number };
+  /** results phase only (backlog #32): id of the round's Most KOs fighter; absent when nobody scored */
+  mv?: number;
 }
 
 export interface DbgMsg {

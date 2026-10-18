@@ -27,19 +27,29 @@ function row(r: ScoreRow, place: number): string {
     <span class="score">${r.b} 🪙 · ${r.k} KO${r.k === 1 ? '' : 's'} · ${r.d} KO'd</span></li>`;
 }
 
+/** Backlog #32: the "MOST KOS" ribbon under the round's top KO fighter's poster. */
+function mvpRibbon(r: ScoreRow): HTMLDivElement {
+  const tag = document.createElement('div');
+  tag.className = 'mvp-ribbon';
+  tag.setAttribute('data-testid', 'results-mvp');
+  tag.textContent = `MOST KOS · ${r.k}`;
+  return tag;
+}
+
 /** One small runner-up poster with its place badge (T19). */
-function runnerUp(r: ScoreRow, place: number): HTMLLIElement {
+function runnerUp(r: ScoreRow, place: number, mv?: number): HTMLLIElement {
   const li = document.createElement('li');
   li.setAttribute('data-testid', 'wanted-runner');
   const pos = document.createElement('span');
   pos.className = 'pos';
   pos.textContent = `${place}.`;
   li.append(pos, wantedPoster({ name: r.n, fighter: r.f, skin: r.sk, bounty: r.b, size: 'small' }));
+  if (r.id === mv) li.append(mvpRibbon(r));
   return li;
 }
 
 /** The WANTED poster column: the winner big, everyone else as a small sheet. */
-function posterRow(rows: ScoreRow[]): HTMLDivElement {
+function posterRow(rows: ScoreRow[], mv?: number): HTMLDivElement {
   const wrap = document.createElement('div');
   wrap.className = 'wanted-row';
   const win = rows[0];
@@ -47,10 +57,11 @@ function posterRow(rows: ScoreRow[]): HTMLDivElement {
   big.className = 'wanted-big';
   big.setAttribute('data-testid', 'wanted-big');
   if (win) big.append(wantedPoster({ name: win.n, fighter: win.f, skin: win.sk, bounty: win.b }));
+  if (win && win.id === mv) big.append(mvpRibbon(win));
   const rest = document.createElement('ol');
   rest.className = 'wanted-rest';
   rest.setAttribute('data-testid', 'wanted-rest');
-  rows.slice(1).forEach((r, i) => rest.append(runnerUp(r, i + 2)));
+  rows.slice(1).forEach((r, i) => rest.append(runnerUp(r, i + 2, mv)));
   wrap.append(big, rest);
   return wrap;
 }
@@ -114,7 +125,7 @@ export function syncResults(m: MatchInfo | undefined, actions: ResultsActions = 
       </div>
       <small data-testid="results-ready">${readyLine(m.rd)}</small>
       <small data-testid="results-next">${resultsFooter(m)}</small>`;
-    div.insertBefore(posterRow(rows), div.querySelector('.rank-list'));
+    div.insertBefore(posterRow(rows, m.mv), div.querySelector('.rank-list'));
     const ready = div.querySelector<HTMLButtonElement>('[data-testid=results-rematch]');
     ready?.addEventListener('click', () => {
       // a Ready tap is final for this round; the room starts the next one once everyone has tapped

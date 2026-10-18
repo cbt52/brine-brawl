@@ -139,6 +139,8 @@ export interface SimPlayer {
   respawn: number;
   shield: number;
   kos: number;
+  /** sim tick of each KO this round, oldest first (backlog #32: the Most KOs tie-break) */
+  koTicks: number[];
   deaths: number;
   /** fighter id picked mid-match; swapped in by the next respawn */
   pendingFighter: string | null;
@@ -250,7 +252,7 @@ export class World {
       hp: def.maxHp, mhp: def.maxHp, speedMul: def.speedMul, aim: 0, ack: 0, input: null,
       ammo: def.ammo, reload: 0, fireCd: 0, fireLatch: false, spcCd: 0, uc: 0, dash: null, burrow: null,
       buffMul: 1, buffLeft: 0, dmgMul: 1, dmgMulLeft: 0, status: null, statusLeft: 0, rootLeft: 0, burnT: 0, edgeT: 0, trapTook: 0,
-      revealT: 0, down: false, respawn: 0, shield: C.SHIELD_SEC, kos: 0, deaths: 0, pendingFighter: null, purrlFed: false,
+      revealT: 0, down: false, respawn: 0, shield: C.SHIELD_SEC, kos: 0, koTicks: [], deaths: 0, pendingFighter: null, purrlFed: false,
       gold: 0, bounty: BOUNTY_START, waterT: 0, bot, team, carry: 0,
       evolveKos: 0, evolved: false, flowHits: 0, flowT: 0, flowReady: false, toonUsed: false, toonLeft: 0,
     };
@@ -822,7 +824,10 @@ export class World {
     // Bounty Brawl (T19): the purse comes out of the victim's bounty and the body drops coins.
     // Treasure Tide scores carried doubloons instead, so the purse stays out of it (T27).
     const pay = !this.treasure && a && a.id !== v.id ? koPurse(v.bounty) : 0;
-    if (a) a.kos++;
+    if (a) {
+      a.kos++;
+      a.koTicks.push(this.tick);
+    }
     if (a && a.id !== v.id && !this.treasure) {
       a.gold += pay;
       a.bounty = bountyAfterKO(a.bounty, bountyMulFor(a));
@@ -1012,6 +1017,7 @@ export class World {
     this.summons = [];
     for (const p of this.players.values()) {
       p.kos = 0;
+      p.koTicks = [];
       p.deaths = 0;
       p.bounty = BOUNTY_START;
       p.gold = 0;

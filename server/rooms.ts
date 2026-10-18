@@ -10,6 +10,7 @@ import { Match, READY_HOLD_SEC, rankPlayers } from './match.ts';
 import { botKoSticker, emoteIndex, emoteReady, STREAK_KOS, streakSticker } from '../shared/emotes.ts';
 import { sanitizeSkin } from '../shared/skins.ts';
 import { pickWeather } from '../shared/sim/weather.ts';
+import { mvpId } from '../shared/sim/mvp.ts';
 
 const ROOM_RE = /^[a-z0-9-]{1,24}$/;
 const ADJ = ['Salty', 'Soggy', 'Crispy', 'Wobbly', 'Grumpy', 'Sneaky', 'Bouncy', 'Dizzy'];
@@ -56,6 +57,8 @@ export class Room {
   private readyIds = new Set<number>();
   /** fighters who already got their streak sticker this round (backlog #24) */
   private streakSent = new Set<number>();
+  /** the round's Most KOs fighter, frozen with the ranking (backlog #32) */
+  mvp: number | null = null;
   acc = 0;
   last = Date.now();
   /** the layout is fixed when the room is created (backlog #26, the Galleon room pick) */
@@ -120,6 +123,12 @@ export class Room {
     return this.match.phase === 'playing' ? this.match.cfg.matchSec - this.match.timer : 0;
   }
 
+  /** the results board (ranking + Most KOs pick) is taken once, when the round ends */
+  private freezeResults(): void {
+    this.match.ranking = this.roster();
+    this.mvp = mvpId([...this.world.players.values()]);
+  }
+
   private stepMatch(dt: number): void {
     const ev = this.match.update(dt, this.world.players.size);
     if (ev === 'start') {
@@ -128,11 +137,11 @@ export class Room {
       // Weird Weather (backlog #4): each round rolls its own modifier
       this.world.setWeather(pickWeather(Math.random(), this.mode));
     }
-    else if (ev === 'end') this.match.ranking = this.roster();
+    else if (ev === 'end') this.freezeResults();
     // Treasure Tide (T27) and Showdown (backlog #20) can end a round before its clock runs out
     const early = this.world.treasure?.won != null || this.world.lastStanding();
     if (this.match.phase === 'playing' && early) {
-      if (this.match.finish() === 'end') this.match.ranking = this.roster();
+      if (this.match.finish() === 'end') this.freezeResults();
     }
     // Weird Weather lasts one round: calm skies again outside 'playing' (results, lobby, countdown)
     if (this.match.phase !== 'playing') this.world.setWeather('clear');
@@ -333,7 +342,10 @@ export class RoomManager {
       info.wx = r.world.weather;
       info.bl = r.botLevel;
       info.ar = r.world.arena.id;
-      if (r.match.phase === 'results') info.rd = r.readyTally();
+      if (r.match.phase === 'results') {
+        info.rd = r.readyTally();
+        if (r.mvp !== null) info.mv = r.mvp;
+      }
       if (r.mode === 'showdown') info.sd = Math.round(r.world.roundT * 10) / 10;
       const host = r.hostId();
       for (const c of r.clients.values()) {

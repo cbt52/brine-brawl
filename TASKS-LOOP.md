@@ -457,7 +457,6 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 ## 5. IMPROVEMENT BACKLOG (ordered; T99 takes from the top; user feedback goes first)
 11. Optional ONLY if the user asks: ComfyUI portraits (127.0.0.1:8188, 2–7 min/img, 16 GB RAM, never while the user is using it).
 
-32. MVP tag on the results poster: the round's top KO fighter gets a "MOST KOS" ribbon under the WANTED poster, so a round with no bounty winner still names a standout. Count KOs per player per round on the server (the same place bounty is counted) and send them in `res`, then unit-test the tie rule (the earliest KO wins).
 33. Showdown finish banner: when the last-standing rule ends a round early, the results poster says "LAST STANDING · <crew or name>" above the table, so an early finish reads as a win and not as a cut-off timer.
 34. Tips card, mode tip: the three tips never mention the modes. A fourth tip (Bounty coins, Treasure tide, Showdown ring) shown only in that room's mode, so `tutorialTips` takes the `RoomMode` and the card stays three-tip for the default mode.
 35. Killcam e2e flake: `tests/e2e/killcam.spec.ts` "replay ends without errors" fails about 1 run in 8 (`--repeat-each=4`), on HEAD as well as with the colour-blind change. The replay should end about 2.5 s after the KO, yet `__brawl.replaying` sometimes stays true past 5 s. Find out whether `KillCam.frame()` stops being called under load, then make the spec wait on the replay's own end instead of a fixed window.
@@ -476,6 +475,7 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 47. ☰ fighter row wraps to 13 lines: at the 280 px `.frow` width the 24 buttons (now with a 16 px face) take 13 rows and push Leave down on short phones. Lay the row out as a 3-column grid of face + name (`#menu .frow` in `client/src/ui/ui.css`), so it fits in about 8 rows and the `on` state stays readable.
 48. Jelly sting cue: a sting is a plain `hit` with attacker -1, the same as burn and cannon damage, so the client draws no sting of its own. Add a jelly-specific event (or a `jl` hit flag) and a soft zap in `client/src/audio/map.ts`, so a jelly sting reads apart from a burn tick.
 49. Best-KO replay has no end-to-end test: `tests/unit/killcam.test.ts` covers the clip, the best-KO rule and the label, but no spec makes the local player the killer and waits for the results. Add a debug op that books a KO with us as attacker, then check that `BEST KO CAM` plays once and the poster waits for it.
+50. Most KOs ribbon has no end-to-end test: the ribbon only shows when someone scored a KO in the round, and `kill` is a self-KO with no attacker. Add a debug op that books a KO with us as attacker (shared with #49), then assert `results-mvp` shows "MOST KOS · 1" under our poster.
 
 ---
 
@@ -515,3 +515,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T99 ✅ 2026-10-18 — ☰ fighter faces (backlog #29): 16 px skinned portrait per button, follows the ☰ skin cycle (`setRowSkin`); 2 unit, check 731 grün, shot ok → §5 #47 (row wraps to 13 lines)
 - T99 ✅ 2026-10-18 — Jellyfish rain (backlog #30): `shared/sim/jellies.ts` (4 drifting jellies, 6 dmg sting, 1 s per-jelly cooldown), third Weather roll, `jl` snapshot, `fx/jellyFx.ts`; 11 unit + 1 e2e, check 742 grün, shot ok → §5 #48
 - T99 ✅ 2026-10-18 — Best-KO replay (backlog #31): our round's top-pay KO (earliest on a tie) keeps a copy of its lead-up, replayed once as "BEST KO CAM" when results start; the poster waits for it; 5 unit, check 747 grün, killcam e2e 2/2 → §5 #49 (e2e)
+- T99 ✅ 2026-10-18 — Most KOs ribbon (backlog #32): `shared/sim/mvp.ts` tie rule (most KOs, then the one who reached that count first), `koTicks` per fighter, `MatchInfo.mv` frozen with the ranking, "MOST KOS · n" under the poster; 7 unit, check 754 grün, match e2e 4/4 → §5 #50 (e2e)
