@@ -26,6 +26,12 @@ describe('event → preset mapping', () => {
     expect(cueForEvent({ ...hit, dmg: HEAVY_HIT + 1 }, elementOf)?.name).toBe('bonk');
   });
 
+  it('gives a cannon bar hit its own thud, apart from the heavy bonk (backlog #39)', () => {
+    const cannon: SimEvent = { k: 'hit', a: -1, v: 1, dmg: 30, x: 10, y: 20, src: 'cannon' };
+    expect(cueForEvent(cannon, elementOf)).toEqual({ name: 'cannon', x: 10, y: 20 });
+    expect(cueForEvent({ ...cannon, src: undefined }, elementOf)?.name).toBe('bonk');
+  });
+
   it('gives the ult slot its own sound', () => {
     const ult: SimEvent = { k: 'cast', id: 3, ab: 'projectile', x: 5, y: 5, a: 0, slot: 'ult' };
     expect(cueForEvent(ult, elementOf)?.name).toBe('ult');
@@ -75,7 +81,7 @@ describe('distance attenuation', () => {
 
 describe('presets', () => {
   it('every cue name has at least one voice with a positive gain and duration', () => {
-    const names = ['shoot', 'zap', 'splash', 'bonk', 'whip', 'pop', 'ko', 'ult', 'pickup', 'countdown', 'horn', 'bubble'] as const;
+    const names = ['shoot', 'zap', 'splash', 'bonk', 'whip', 'pop', 'ko', 'ult', 'pickup', 'countdown', 'horn', 'bubble', 'cannon'] as const;
     for (const n of names) {
       const voices = PRESETS[n];
       expect(voices.length, n).toBeGreaterThan(0);

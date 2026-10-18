@@ -76,6 +76,10 @@ export const PRESETS: Record<SfxName, Voice[]> = {
     { wave: 'sine', freq: 520, to: 980, dur: 0.12, gain: 0.05 },
     { wave: 'sine', freq: 1040, dur: 0.1, gain: 0.03, delay: 0.05 },
   ],
+  cannon: [
+    { wave: 'sine', freq: 150, to: 45, dur: 0.3, gain: 0.22 },
+    { wave: 'noise', freq: 1, dur: 0.18, gain: 0.1, filter: 520 },
+  ],
   horn: [
     { wave: 'sawtooth', freq: 174, dur: 0.45, gain: 0.09 },
     { wave: 'square', freq: 262, dur: 0.45, gain: 0.06 },

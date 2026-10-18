@@ -18,7 +18,8 @@ export type SfxName =
   | 'countdown'
   | 'horn'
   | 'react'
-  | 'bubble';
+  | 'bubble'
+  | 'cannon';
 
 /** A hit louder than this gets the heavy "bonk" instead of the element sound. */
 export const HEAVY_HIT = 25;
@@ -68,6 +69,8 @@ export function cueForEvent(
     case 'shot':
       return { name: elementSfx(elementOf(e.id)), x: e.x, y: e.y };
     case 'hit':
+      // a cannon bar (backlog #39) has no fighter behind it: its own deep thud, not the heavy bonk
+      if (e.src === 'cannon') return { name: 'cannon', x: e.x, y: e.y };
       return { name: e.dmg >= HEAVY_HIT ? 'bonk' : elementSfx(elementOf(e.a)), x: e.x, y: e.y };
     case 'ko':
       return { name: 'ko' };

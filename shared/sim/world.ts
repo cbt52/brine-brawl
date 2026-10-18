@@ -606,7 +606,7 @@ export class World {
         const key = `${ci}:${v.k}`;
         if (seen.has(key)) continue;
         seen.add(key);
-        this.damage(-1, p, CANNON_DMG, p.x, p.y);
+        this.damage(-1, p, CANNON_DMG, p.x, p.y, undefined, 'cannon');
       }
     });
   }
@@ -802,7 +802,7 @@ export class World {
     }
   }
 
-  damage(attacker: number, v: SimPlayer, dmg: number, x: number, y: number, slot?: AbilitySlot): void {
+  damage(attacker: number, v: SimPlayer, dmg: number, x: number, y: number, slot?: AbilitySlot, src?: 'cannon'): void {
     if (v.shield > 0 || v.down || v.burrow) return;
     // no friendly fire (T26): a teammate's shot, zone or splash passes through
     if (this.friendly(attacker, v)) return;
@@ -812,7 +812,9 @@ export class World {
     if (dmg <= 0) return;
     const dealt = Math.max(0, Math.min(v.hp, dmg));
     v.hp = Math.max(0, v.hp - dmg);
-    this.events.push({ k: 'hit', a: attacker, v: v.id, dmg, x: Math.round(x), y: Math.round(y) });
+    const hit: SimEvent = { k: 'hit', a: attacker, v: v.id, dmg, x: Math.round(x), y: Math.round(y) };
+    if (src) hit.src = src;
+    this.events.push(hit);
     const a = this.players.get(attacker);    if (a && a.id !== v.id && dealt > 0) a.uc = Math.min(a.def.ultCharge, a.uc + dealt * ultGainMul(a));
     // two crewmates' ults on the same enemy or area pair up (T28)
     if (slot === 'ult') this.noteUltHit(a, v, dealt);

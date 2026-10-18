@@ -291,7 +291,8 @@ export type AbilitySlot = 'attack' | 'special' | 'ult';
 
 export type SimEvent =
   | { k: 'shot'; id: number; x: number; y: number; a: number }
-  | { k: 'hit'; a: number; v: number; dmg: number; x: number; y: number }
+  /** `src` names a hazard that is not a fighter (backlog #39); a cannon bar hit has attacker -1 and `src: 'cannon'` */
+  | { k: 'hit'; a: number; v: number; dmg: number; x: number; y: number; src?: 'cannon' }
   | { k: 'ko'; a: number; v: number; /** doubloons the killer collected (bounty mode) */ pay?: number }
   | { k: 'spawn'; id: number }
   /** an ability was cast (cosmetic hook for the FX + audio passes); `slot` lets the client pick ult sfx */

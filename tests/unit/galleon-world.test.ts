@@ -69,6 +69,16 @@ describe('World on a swappable arena (backlog #1 slice 3a)', () => {
     expect(hp0 - p.hp).toBe(2 * CANNON_DMG);
   });
 
+  it('a cannon hit event is tagged src: cannon, so the client can tell it from a burn tick (backlog #39)', () => {
+    const w = new World(GALLEON_ARENA);
+    const p = w.addPlayer(1, 'a');
+    p.x = LANE_X;
+    p.y = LANE_Y;
+    runTo(w, 6);
+    const hits = w.events.filter((e) => e.k === 'hit' && e.v === p.id);
+    expect(hits).toEqual([expect.objectContaining({ a: -1, dmg: CANNON_DMG, src: 'cannon' })]);
+  });
+
   it('a body out of the lane is never hit', () => {
     const w = new World(GALLEON_ARENA);
     const p = w.addPlayer(1, 'a');
