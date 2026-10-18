@@ -457,7 +457,6 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 ## 5. IMPROVEMENT BACKLOG (ordered; T99 takes from the top; user feedback goes first)
 11. Optional ONLY if the user asks: ComfyUI portraits (127.0.0.1:8188, 2–7 min/img, 16 GB RAM, never while the user is using it).
 
-44. Cannon warning cue: a volley's telegraph and bar are drawn (`client/src/fx/cannonFx.ts`) but silent. Play a short warning tick the first time a lane shows `st: 'warn'` in `snap.cn`, and a thud when it turns to `fire`, in `client/src/audio/map.ts` terms (kept quiet, one cue per volley per lane).
 45. Host hand-over toast: the bot controls now follow the host role (`MatchInfo.host`), so when the host leaves and the next player becomes host their ☰ menu unlocks silently. Show a one-line toast "You host this room now" on that change (client compares `host` between snapshots), so the newly enabled controls are explained.
 46. Results auto-start vs Ready: a human who has not tapped Ready still gets the round restarted after the 8 s results wait (`Match.update` `results` case), so a slow tapper loses the rematch. Hold the results a few seconds longer while any connected human is unready (the footer already says "auto-start in Ns"), with a unit test on `Room.readyTally` plus the match with one slow tapper.
 
@@ -476,11 +475,12 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 58. Slab bump cue: a knockback or pull that a stone slab stops now halts cleanly (#40), but the victim just slides to a stop with no feedback. Emit a `bump` event when `shove()` is stopped by a solid (`shared/sim/abilities.ts`), and play a short dust puff plus a soft thud in `client/src/audio/map.ts` terms, with a unit test on the event.
 59. Predictor and World still default to the docks: `replay()`'s `area` and the predictor's `area` field (`client/src/net/predict.ts`) fall back to `DOCKS_ARENA`, and so does the `World` constructor (`shared/sim/world.ts`). Make the predictor's arena required the way #41 did for the sim helpers, so a galleon client cannot predict on the docks by accident. Decide the `World` default separately, since most unit tests call `new World()`.
 60. Debug gate untested: `matchsec` and `tide` reach `RoomManager.join` only when `ALLOW_DEBUG` is set, and that ternary lives in `server/index.ts` (no unit test covers it). Move the `JoinOpts` mapping from the `join` message into a small pure helper (`joinOptsFromMsg(msg, allowDebug)`) and unit-test that production drops both fields.
-61. Galleon tips on a direct link: a `?room=…&name=…` link that joins an existing room mounts the tips card from `params.get('arena')` (`client/src/main.ts`), but the room keeps its own arena, so a link without `arena=` shows the docks card on a galleon match. Mount the card from the first snapshot's `m.ar` instead (or re-check on the first `m`), with a unit test on the arena pick.
+62. Telegraph pulse: a lane about to fire looks the same for its whole 1 s warning, so the dashes do not say "now". Flash them faster in the last 0.3 s of `CANNON_WARN_SEC` (`drawTelegraph` in `client/src/fx/cannonFx.ts`), with a unit test on the pulse helper.
 
 ---
 
 ## 6. LOG (one line per task/hotfix; archive older lines to `.loop/log-archive.md` if >40 lines)
+- T99 ✅ 2026-10-18 — Cannon cues (backlog #44): `volleyCues` (audio/map.ts) blips when a lane first telegraphs, thuds when it fires, per-lane stage so it re-arms; quiet `cannonWarn`/`cannonFire` presets, muted on replay; 7 unit tests incl. a full galleon match, check 788 grün → §5 #62 (#61 was closed by RF ad4afc2, removed)
 - T99 ✅ 2026-10-18 — Galleon tips (backlog #43): `tutorialTips`/`showTutorial`/`mountTutorial` take the arena; galleon heading 'Welcome aboard the galleon' and a 'Deck cannons' tip replace kelp & tide; menu ☰ passes `net.last.m.ar`; 3 unit tests, check 781 grün → §5 #61
 - T99 ✅ 2026-10-18 — Required arena lists (backlog #41): `waterRects`/`inWater`/`waterSpeedMul`, `inBush`/`canSee`, `stepPurrl`, `stepMove` take their list with no docks default (`stepMove` base moved before the optional params); compile-time guard test, check 778 grün → §5 #59
 - T99 ✅ 2026-10-18 — Knockback stops at slabs (backlog #40): `shove()` walks 6 u steps against `solids(h)` (scenery + walls), burrow landing too; 1 unit, check 776 grün → §5 #58

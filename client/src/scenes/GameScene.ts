@@ -25,7 +25,7 @@ import { ArenaArt } from '../art/arena.ts';
 import { musicEnabled, sfxEnabled, shakeEnabled } from '../ui/settings.ts';
 import { Sfx } from '../audio/sfx.ts';
 import { Shanty } from '../audio/music.ts';
-import { cueForEvent } from '../audio/map.ts';
+import { cueForEvent, volleyCues, type VolleyStage } from '../audio/map.ts';
 import { tideLevel } from '../../../shared/sim/tide.ts';
 import { SHOWDOWN_CENTER, safeRadius } from '../../../shared/sim/showdown.ts';
 import { EMOTES } from '../../../shared/emotes.ts';
@@ -78,6 +78,8 @@ export class GameScene extends Phaser.Scene {
   private names = new Map<number, string>();
   private lastPos = new Map<number, { x: number; y: number }>();
   private dustAt = new Map<number, number>();
+  /** last stage shown per cannon lane, for the warning and fire cues (backlog #44) */
+  private volleyStage = new Map<number, VolleyStage>();
   private sfx!: Sfx;
   private music!: Shanty;
   /** last countdown second we played a beep for (0 = none) */
@@ -689,6 +691,10 @@ export class GameScene extends Phaser.Scene {
       pg.lineStyle(3, 0x1b1b2f, 1).strokeCircle(pr.x, pr.y, 9);
     }
     const evs = this.net.events.splice(0);
+    // cannon volleys (backlog #44): the stage per lane is tracked even during a replay, so no stale cue fires after it
+    const volley = volleyCues(this.volleyStage, this.net.last?.cn ?? [], arenaById(m?.ar).cannons);
+    this.volleyStage = volley.next;
+    if (!replay) for (const cue of volley.cues) this.sfx.play(cue.name, cue);
     const elementOf = (id: number): Element => getArt(this.kinds.get(id)).element;
     // during a replay the events were already played once: no second round of sounds or FX
     for (const e of replay ? [] : evs) {

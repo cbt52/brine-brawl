@@ -5,11 +5,16 @@ import {
   attenuation,
   cueForEvent,
   elementSfx,
+  volleyCues,
+  type VolleyStage,
 } from '../../client/src/audio/map.ts';
 import { PRESETS } from '../../client/src/audio/sfx.ts';
 import { LEAD, STEP_COUNT, Shanty, bassNote, noteHz } from '../../client/src/audio/music.ts';
-import type { SimEvent } from '../../shared/protocol.ts';
+import type { SimEvent, SnapVolley } from '../../shared/protocol.ts';
 import type { Element } from '../../shared/fighters/types.ts';
+import { World } from '../../shared/sim/world.ts';
+import { GALLEON_ARENA } from '../../shared/arena/arena.ts';
+import { TICK_HZ } from '../../shared/constants.ts';
 
 const elementOf = (id: number): Element => (id === 2 ? 'water' : id === 3 ? 'volt' : 'neutral');
 
@@ -59,6 +64,83 @@ describe('event → preset mapping', () => {
   });
 });
 
+describe('cannon volley cues (backlog #44)', () => {
+  const cannons = [{ x: 100, y: 800 }, { x: 300, y: 200 }];
+  const vol = (i: number, st: SnapVolley['st']): SnapVolley => ({ i, st, age: 0.2 });
+  /** One snapshot's volleys in, cues out; the stage map carries over to the next call. */
+  function step(prev: ReadonlyMap<number, VolleyStage>, vols: SnapVolley[]) {
+    return volleyCues(prev, vols, cannons);
+  }
+
+  it('blips once when a lane first shows its telegraph, at the muzzle, and not again while it holds', () => {
+    let s = step(new Map(), [vol(0, 'warn')]);
+    expect(s.cues).toEqual([{ name: 'cannonWarn', x: 100, y: 800 }]);
+    s = step(s.next, [vol(0, 'warn')]);
+    expect(s.cues).toEqual([]);
+  });
+
+  it('thuds once when the telegraph turns into the bar', () => {
+    let s = step(new Map(), [vol(1, 'warn')]);
+    s = step(s.next, [vol(1, 'fire')]);
+    expect(s.cues).toEqual([{ name: 'cannonFire', x: 300, y: 200 }]);
+    s = step(s.next, [vol(1, 'fire')]);
+    expect(s.cues).toEqual([]);
+  });
+
+  it('re-arms once the lane goes idle, so the next volley blips again', () => {
+    let s = step(new Map(), [vol(0, 'warn')]);
+    s = step(s.next, [vol(0, 'fire')]);
+    s = step(s.next, []);
+    expect(s.next.size).toBe(0);
+    s = step(s.next, [vol(0, 'warn')]);
+    expect(s.cues).toEqual([{ name: 'cannonWarn', x: 100, y: 800 }]);
+  });
+
+  it('plays nothing for a bar already in flight when first seen (joined mid-volley)', () => {
+    expect(step(new Map(), [vol(0, 'fire')]).cues).toEqual([]);
+  });
+
+  it('ignores a lane index the arena does not have', () => {
+    expect(step(new Map(), [vol(9, 'warn')]).cues).toEqual([]);
+  });
+
+  it('keeps the telegraph and fire cues quieter than a cannon hit', () => {
+    const peak = (n: 'cannon' | 'cannonWarn' | 'cannonFire') => Math.max(...PRESETS[n].map((v) => v.gain));
+    expect(peak('cannonWarn')).toBeLessThan(peak('cannon'));
+    expect(peak('cannonFire')).toBeLessThan(peak('cannon'));
+  });
+
+  it('a galleon match gives one blip and one thud per volley, for every cannon', () => {
+    const w = new World(GALLEON_ARENA);
+    w.addPlayer(1, 'a');
+    let prev: ReadonlyMap<number, VolleyStage> = new Map();
+    const warns = new Map<number, number>();
+    const fires = new Map<number, number>();
+    // run to 28.25 s: every volley that starts before then has shown its telegraph; a bar fires 1 s
+    // after its telegraph, so only the volleys that start before 27.25 s have fired by the end
+    const END = 28.25;
+    while (w.tick / TICK_HZ < END) {
+      w.step();
+      const r = volleyCues(prev, w.snapshotFor(1).cn ?? [], GALLEON_ARENA.cannons);
+      prev = r.next;
+      for (const cue of r.cues) {
+        const lane = GALLEON_ARENA.cannons.findIndex((k) => k.x === cue.x && k.y === cue.y);
+        const bucket = cue.name === 'cannonWarn' ? warns : fires;
+        bucket.set(lane, (bucket.get(lane) ?? 0) + 1);
+      }
+    }
+    const starts = (c: { phase: number; period: number }, before: number) => {
+      let n = 0;
+      for (let t = c.phase; t < before; t += c.period) n++;
+      return n;
+    };
+    GALLEON_ARENA.cannons.forEach((c, lane) => {
+      expect(warns.get(lane) ?? 0, `warn lane ${lane}`).toBe(starts(c, END));
+      expect(fires.get(lane) ?? 0, `fire lane ${lane}`).toBe(starts(c, END - 1));
+    });
+  });
+});
+
 describe('distance attenuation', () => {
   it('is full volume at the source and silent past the max distance', () => {
     expect(attenuation(0)).toBe(1);
@@ -81,7 +163,7 @@ describe('distance attenuation', () => {
 
 describe('presets', () => {
   it('every cue name has at least one voice with a positive gain and duration', () => {
-    const names = ['shoot', 'zap', 'splash', 'bonk', 'whip', 'pop', 'ko', 'ult', 'pickup', 'countdown', 'horn', 'bubble', 'cannon'] as const;
+    const names = ['shoot', 'zap', 'splash', 'bonk', 'whip', 'pop', 'ko', 'ult', 'pickup', 'countdown', 'horn', 'bubble', 'cannon', 'cannonWarn', 'cannonFire'] as const;
     for (const n of names) {
       const voices = PRESETS[n];
       expect(voices.length, n).toBeGreaterThan(0);

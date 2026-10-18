@@ -80,6 +80,16 @@ export const PRESETS: Record<SfxName, Voice[]> = {
     { wave: 'sine', freq: 150, to: 45, dur: 0.3, gain: 0.22 },
     { wave: 'noise', freq: 1, dur: 0.18, gain: 0.1, filter: 520 },
   ],
+  // a volley's telegraph (backlog #44): two quiet blips, so a warning reads without startling
+  cannonWarn: [
+    { wave: 'square', freq: 880, dur: 0.06, gain: 0.04 },
+    { wave: 'square', freq: 880, dur: 0.06, gain: 0.04, delay: 0.14 },
+  ],
+  // the telegraph turns into the bar (backlog #44): a low puff at the muzzle, softer than a hit
+  cannonFire: [
+    { wave: 'sine', freq: 95, to: 38, dur: 0.22, gain: 0.13 },
+    { wave: 'noise', freq: 1, dur: 0.1, gain: 0.05, filter: 700 },
+  ],
   horn: [
     { wave: 'sawtooth', freq: 174, dur: 0.45, gain: 0.09 },
     { wave: 'square', freq: 262, dur: 0.45, gain: 0.06 },

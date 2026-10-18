@@ -2,7 +2,7 @@
  * Pure sound mapping: snapshot events → synth preset names, element → preset, distance → gain.
  * No WebAudio here, so the mapping is unit-testable in Node (T15).
  */
-import type { SimEvent } from '../../../shared/protocol.ts';
+import type { SimEvent, SnapVolley } from '../../../shared/protocol.ts';
 import type { Element } from '../../../shared/fighters/types.ts';
 
 export type SfxName =
@@ -19,7 +19,9 @@ export type SfxName =
   | 'horn'
   | 'react'
   | 'bubble'
-  | 'cannon';
+  | 'cannon'
+  | 'cannonWarn'
+  | 'cannonFire';
 
 /** A hit louder than this gets the heavy "bonk" instead of the element sound. */
 export const HEAVY_HIT = 25;
@@ -104,4 +106,32 @@ export function cueForEvent(
     default:
       return null;
   }
+}
+
+/** A lane's volley stage (backlog #44): what the last snapshot showed on it. */
+export type VolleyStage = SnapVolley['st'];
+
+/**
+ * Cannon volley cues (backlog #44): a warning blip when a lane first shows its telegraph, a
+ * thud when that telegraph turns into the moving bar. `prev` is the stage per lane from the
+ * last call and `next` replaces it, so a lane that goes idle re-arms for its next volley. A
+ * bar already in flight when first seen (joined mid-volley) plays nothing. Idempotent for the
+ * same snapshot, so it can run every frame.
+ */
+export function volleyCues(
+  prev: ReadonlyMap<number, VolleyStage>,
+  vols: readonly SnapVolley[],
+  cannons: readonly { x: number; y: number }[],
+): { cues: SoundCue[]; next: Map<number, VolleyStage> } {
+  const cues: SoundCue[] = [];
+  const next = new Map<number, VolleyStage>();
+  for (const v of vols) {
+    const c = cannons[v.i];
+    if (!c) continue;
+    const was = prev.get(v.i);
+    next.set(v.i, v.st);
+    if (v.st === 'warn' && was !== 'warn') cues.push({ name: 'cannonWarn', x: c.x, y: c.y });
+    else if (v.st === 'fire' && was === 'warn') cues.push({ name: 'cannonFire', x: c.x, y: c.y });
+  }
+  return { cues, next };
 }
