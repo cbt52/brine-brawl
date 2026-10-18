@@ -89,6 +89,7 @@ export function validateSpec(spec) {
     if (!parts.some((p) => p?.name === f.part)) errs.push('face.part must name a spec part');
     for (const k of ['eyeDx', 'eyeZ']) if (!isNum(f[k])) errs.push(`face.${k} must be a number`);
     if (f.nose !== undefined && !HEX.test(f.nose)) errs.push('face.nose must be #RRGGBB');
+    if (f.teeth !== undefined && f.teeth !== 'gap') errs.push('face.teeth must be "gap"');
   }
   if (!ANIM_STYLES.includes(spec.anim?.style)) errs.push(`anim.style must be one of ${ANIM_STYLES.join('|')}`);
   for (const [k, v] of Object.entries(spec.anim?.amp ?? {})) {

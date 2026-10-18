@@ -1,6 +1,6 @@
 """Face decals: unlit ellipsoids wrapped onto the front of the head ellipsoid (no outline hull).
 
-Spec `face` = {part, eyeDx, eyeZ, eyeW, eyeH, brow, mouth, mouthZ, nose?}; positions are
+Spec `face` = {part, eyeDx, eyeZ, eyeW, eyeH, brow, mouth, mouthZ, nose?, teeth?}; positions are
 offsets from the head ellipsoid centre (x right, z up, in px at 1x). Two variants are built:
 `normal` (white eyes, pupils with a glint, brows, mouth) and `hurt` (X eyes, open mouth);
 the returned switch shows one of them.
@@ -66,6 +66,8 @@ BROWS = {
     'grin': (2.5, -1.5),
     'fierce': (3.5, -3.0),
     'calm': (0.0, 0.0),
+    # outer end dropped: undoes the V the 35° camera puts on brows set high on a round head
+    'soft': (-2.5, 1.0),
 }
 
 MOUTHS = {
@@ -111,6 +113,12 @@ def build(f, head_part, head_ob, scale, workbench=False):
         a = (pts[i][0], mz + pts[i][1])
         b = (pts[i + 1][0], mz + pts[i + 1][1])
         v['normal'].append(_stroke(f'mouth{i}', head, a, b, 3.0, mat(INK), 0.4, scale))
+    if f.get('teeth') == 'gap':
+        # two front teeth hanging under the lip line, a dark gap between them
+        low = min(p[1] for p in pts)
+        for s in (1, -1):
+            v['normal'].append(_decal(f'tooth{s}', head, s * 3.4, mz + low - 3.2, (5.2, 2.0, 5.4),
+                                      mat('#FFFFFF'), 0.2, 0, scale))
     v['hurt'].append(_decal('mouth_open', head, 0, mz - 2, (11, 2.4, 8), mat(INK), 0.4, 0, scale))
     if f.get('nose'):
         v['both'].append(_decal('nose', head, 0, ez - eh / 2 - 2.5, (6, 3.0, 4.5), mat(f['nose']), 0.5, 0, scale))

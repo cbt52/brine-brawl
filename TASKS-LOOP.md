@@ -538,7 +538,8 @@ Rules for every task:
   - Accept: same as T38. The in-game taffy arm still starts at the sprite's shoulder (shot with `fighter=noodle`).
   - Test: `npm run check && npm run art:3d -- noodle --contact`
 
-- [ ] **T40 — Sudsy Loofah (model + anims + atlas)**
+- [x] **T40 — Sudsy Loofah (model + anims + atlas)**
+  - Note: spec `sudsy.json`, `anim.style: blob`, face on the `body` part (no head). Pink body sphere 72×66×68 + 10 darker-pink `nubs` (loofah bumps, scalloped silhouette), 3 aqua `#BDEFF5` bubbles on top, cream `apron` = a sphere bulging out of the lower front + waist-tie torus (trim on a big part), stubby detail feet. Wooden spatula: upright beside the right hand (handle + box blade), so the rest pose never dips below the feet; the strike is an overhead chop via negative amps (`windup -30`, `strike -90`, `swing 20`). New in `face.py`: `teeth: "gap"` (two white teeth under the lip line, validated in `spec3d.mjs` + test) and brow `soft` (outer end dropped: `grin`/`calm` brows set high on a round head read as an angry V under the 35° camera). Cycle 1: 111 px, angry brows, apron only a thin ring, spatula a low brown box that set the feet line (hurt_S bottom 108). Cycle 2: fixed. The final render (scale 0.95, `soft` brows) was checked by numbers only: S 97 px, bottoms 110–113, width 70–107, 1005×571 atlas 136 KB, palette exact, 22 s. Gallery shot T40-0 NOT viewed by eye (2-PNG budget went on the contact sheets); a pixel count shows the sheet-only bubble aqua (98 px), so the gallery draws the sheet. Open look issues: the `soft` brows haven't been seen yet; the nubs look like polka dots from N/NE; the spatula blade is edge-on from E.
   - Do:
     - Write the spec per §4: ROUND pink loofah, fry-cook apron, spatula, gap tooth. It must not read as a square yellow sponge.
     - Use `anim.style: blob`. Add it to `SHEET_IDS` and add a LIKENESS row.
@@ -804,3 +805,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T37 ✅ 2026-10-18 — rig plays Voltbun sheet (8 facings, hysteresis, hurt frame, lazy skin atlases), botf, y-sort; check 824 + e2e 34 grün
 - T38 ✅ 2026-10-18 — Mira atlas (torus prim + waves, hood/rim/braid/ribbons), 70 frames ~158 KB, feet y=113; check 831 grün
 - T39 ✅ 2026-10-18 — Noodle atlas (torus `lag` → tricorn brim, grin mouth, lanky biped), 70 frames 173 KB, feet y=113; check 837 grün
+- T40 ✅ 2026-10-18 — Sudsy atlas (blob pouf, nubs, bubbles, apron, overhead spatula chop, gap teeth), 136 KB, feet ok; check 843 grün

@@ -97,7 +97,9 @@ describe('validateSpec', () => {
     s.features[1].band = 'teal';
     s.features.push({ fn: 'tailBattery', parent: 'body', at: [0, 0, 0] });
     s.face.part = 'hat';
+    s.face.teeth = 'buck';
     const errs = validateSpec(s).join('\n');
+    expect(errs).toMatch(/face\.teeth/);
     expect(errs).toMatch(/parts\[1\]\.pivot/);
     expect(errs).toMatch(/features\[0\]\.fn/);
     expect(errs).toMatch(/features\[1\]\.band/);
@@ -118,7 +120,7 @@ describe('validateSpec', () => {
 });
 
 describe('fighter specs', () => {
-  const ids = ['voltbun', 'mira', 'noodle'];
+  const ids = ['voltbun', 'mira', 'noodle', 'sudsy'];
   const spec = (id: string) => JSON.parse(readFileSync(`scripts/blender/specs/${id}.json`, 'utf8'));
 
   it.each(ids)('%s is valid', (id) => {

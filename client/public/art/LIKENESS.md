@@ -48,7 +48,7 @@ archetype cues beyond "friendly sailor".
 
 | id | matched cues | to stay legal |
 |---|---|---|
-| `sudsy` | round mesh-textured body · apron · spatula | pink loofah with bubble clusters, cream apron, wooden spatula (not metal) |
+| `sudsy` | round mesh-textured body · apron · spatula | pink loofah with bubble clusters, cream apron, wooden spatula (not metal) (3D: a ball, never a box — round pink pouf studded with darker-pink loofah nubs, three aqua bubbles on top, cream apron bulge with a waist tie on the lower front, upright wooden spatula in the right hand that chops overhead, wide grin with two gap teeth; no blush) |
 | `lumpy` | soft lumpy body with warts · tiny party hat · stubby limbs | lime-green sea cucumber, gold pom, pink faction hat |
 | `squall` | mantle head with side fins · tentacle skirt · brass instrument | mauve palette, dented tuba, pink beret |
 | `pinchpenny` | big claws · shopkeeper's till belly · coin motif | blue shell, pink claws, cream register keys, gold coins |
