@@ -1,6 +1,7 @@
 import type { Net } from '../net.ts';
 import { copyText, inviteUrl } from './rooms.ts';
 import { fighterRowHtml, markFighterRow, saveFighter, savedFighter } from './select.ts';
+import { setShakeEnabled, shakeEnabled } from './settings.ts';
 
 /** Invite panel: full URL, copy button (with HTTP fallback), share if available. */
 export function showInvite(room: string): void {
@@ -44,6 +45,7 @@ export function mountMenu(net: Net): void {
     <span data-testid="menu-bots"></span>
     <button class="big sm alt" data-testid="menu-bot-plus">+ Bot</button></div>
     <small>Bots: host only</small>
+    <button class="big sm alt" data-testid="menu-shake">Screenshake</button>
     <button class="big sm alt" data-testid="menu-leave">Leave</button>`;
   document.body.append(btn, panel);
   const sbBtn = document.createElement('button');
@@ -83,6 +85,10 @@ export function mountMenu(net: Net): void {
   });
   q('menu-bot-plus').addEventListener('click', () => setBots(bots() + 1));
   q('menu-bot-minus').addEventListener('click', () => setBots(bots() - 1));
+  const shakeBtn = q('menu-shake') as HTMLButtonElement;
+  const syncShake = () => { shakeBtn.textContent = `Screenshake: ${shakeEnabled() ? 'On' : 'Off'}`; };
+  shakeBtn.addEventListener('click', () => { setShakeEnabled(!shakeEnabled()); syncShake(); });
+  syncShake();
   q('menu-invite').addEventListener('click', () => { panel.style.display = 'none'; showInvite(net.room); });
   q('menu-leave').addEventListener('click', () => { location.href = '/'; });
   setInterval(() => { if (panel.style.display !== 'none') refresh(); }, 500);

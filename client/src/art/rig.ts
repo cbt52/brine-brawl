@@ -49,6 +49,10 @@ export class FighterSprite extends Phaser.GameObjects.Container {
   private wobble?: Phaser.Tweens.Tween;
   private lastX = Number.NaN;
   private lastY = Number.NaN;
+  /** hitstop: ignore snapshot positions until this scene-time (ms) */
+  private frozenUntil = 0;
+  private ultGlow?: Phaser.GameObjects.Ellipse;
+  private ultTween?: Phaser.Tweens.Tween;
 
   constructor(scene: Phaser.Scene, x: number, y: number, cfg: RigConfig) {
     super(scene, x, y);
@@ -146,8 +150,47 @@ export class FighterSprite extends Phaser.GameObjects.Container {
     }
   }
 
+  /** World y of the fighter's feet (dust / KO poof spawns). */
+  get groundY(): number {
+    return this.y + this.feetY;
+  }
+
+  /** Hitstop: hold the sprite in place for `ms` (the sim keeps running). */
+  freeze(ms: number): void {
+    this.frozenUntil = Math.max(this.frozenUntil, this.scene.time.now + ms);
+  }
+
+  /** Pulsing gold ring under the local player once the ultimate is charged. */
+  setUltReady(on: boolean): void {
+    if (on === Boolean(this.ultGlow)) return;
+    if (!on) {
+      this.ultTween?.stop();
+      this.ultTween = undefined;
+      this.ultGlow?.destroy();
+      this.ultGlow = undefined;
+      return;
+    }
+    const glow = this.scene.add
+      .ellipse(0, this.feetY, this.h * 1.25, this.h * 0.66)
+      .setFillStyle(0xffd23f, 0.14)
+      .setStrokeStyle(Math.max(4, this.h * 0.08), 0xffd23f, 0.95);
+    this.addAt(glow, 0);
+    this.ultTween = this.scene.tweens.add({
+      targets: glow,
+      scaleX: 1.14,
+      scaleY: 1.14,
+      alpha: 0.45,
+      duration: 620,
+      yoyo: true,
+      repeat: -1,
+      ease: 'Sine.easeInOut',
+    });
+    this.ultGlow = glow;
+  }
+
   /** Per-frame sync with the interpolated snapshot: position, aim (flip), movement → idle/run. */
   sync(x: number, y: number, aimDeg: number, down: boolean): void {
+    if (this.scene.time.now < this.frozenUntil) return;
     this.setPosition(x, y);
     const moving = !Number.isNaN(this.lastX) && Math.hypot(x - this.lastX, y - this.lastY) > 0.6;
     this.lastX = x;
@@ -228,6 +271,7 @@ export class FighterSprite extends Phaser.GameObjects.Container {
     this.stopIdle();
     this.stopStateTween();
     this.wobble?.stop();
+    this.ultTween?.stop();
     super.destroy(fromScene);
   }
 

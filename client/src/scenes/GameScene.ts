@@ -6,16 +6,27 @@ import type { SnapPlayer } from '../../../shared/protocol.ts';
 import { Controls } from '../input/controls.ts';
 import { interpolate, interpolateProjs, type Pos } from '../net/interp.ts';
 import { CombatFx } from '../fx/combatFx.ts';
+import { elementColor } from '../fx/style.ts';
 import { HudScene } from './HudScene.ts';
 import { syncResults } from '../ui/results.ts';
 import { getFighter } from '../../../shared/fighters/index.ts';
 import { STATUS_CODE } from '../../../shared/fighters/types.ts';
 import { FighterSprite, preloadArt } from '../art/rig.ts';
 import { getArt } from '../art/manifest.ts';
+import { shakeEnabled } from '../ui/settings.ts';
 
 const INTERP_DELAY_MS = 100;
 /** how long the taffy arm stays stretched out after a punch */
 const ARM_MS = 150;
+/** victim sprite freeze on a hit (hitstop) */
+const HITSTOP_MS = 50;
+/** footstep dust interval (ms) while running */
+const DUST_MS = 150;
+
+export interface GameFxOptions {
+  lowfx?: boolean;
+  mobile?: boolean;
+}
 
 export class GameScene extends Phaser.Scene {
   private gfx!: Phaser.GameObjects.Graphics;
@@ -31,8 +42,10 @@ export class GameScene extends Phaser.Scene {
   private fx!: CombatFx;
   private hud!: HudScene;
   private names = new Map<number, string>();
+  private lastPos = new Map<number, { x: number; y: number }>();
+  private dustAt = new Map<number, number>();
 
-  constructor(private net: Net, private viewH: number) {
+  constructor(private net: Net, private viewH: number, private fxOpts: GameFxOptions = {}) {
     super('game');
   }
 
@@ -49,7 +62,8 @@ export class GameScene extends Phaser.Scene {
     this.applyZoom();
     this.scale.on('resize', () => this.applyZoom());
     this.controls = new Controls(this, this.net, () => this.self);
-    this.fx = new CombatFx(this);
+    this.fx = new CombatFx(this, { ...this.fxOpts, shake: shakeEnabled() });
+    window.addEventListener('brawl:shake', this.onShakeSetting as EventListener);
     this.hud = this.scene.get('hud') as HudScene;
     this.scene.launch('hud'); // Phaser auto-starts only the first scene in the config list
   }
@@ -57,6 +71,10 @@ export class GameScene extends Phaser.Scene {
   private applyZoom(): void {
     this.cameras.main.setZoom(this.scale.height / this.viewH);
   }
+
+  private onShakeSetting = (e: CustomEvent<boolean>): void => {
+    this.fx.setShake(Boolean(e.detail));
+  };
 
   private drawWorld(g: Phaser.GameObjects.Graphics): void {
     g.fillStyle(0x1d4e63, 1).fillRect(0, 0, WORLD_W, WORLD_H);
@@ -152,6 +170,17 @@ export class GameScene extends Phaser.Scene {
       rig.setBars(p.hp / p.mhp, p.am, def.ammo, art.color);
       // spawn shield blinks; a KO'd fighter keeps its rig for the death animation
       rig.setAlpha(p.sh && Math.floor(nowMs / 100) % 2 === 0 ? 0.45 : 1);
+      rig.setUltReady(p.id === this.net.id && p.uc >= 100 && !p.dn);
+      // footstep dust while running (skipped once the FX budget dropped to lowfx)
+      const prev = this.lastPos.get(p.id);
+      if (prev && !p.dn && Math.hypot(p.x - prev.x, p.y - prev.y) > 1) {
+        const last = this.dustAt.get(p.id) ?? 0;
+        if (nowMs - last > DUST_MS) {
+          this.dustAt.set(p.id, nowMs);
+          this.fx.dust(p.x, rig.groundY);
+        }
+      }
+      this.lastPos.set(p.id, { x: p.x, y: p.y });
       if (p.id === this.net.id) this.self = { x: p.x, y: p.y };
     }
     const pg = this.projGfx;
@@ -162,16 +191,37 @@ export class GameScene extends Phaser.Scene {
     }
     const evs = this.net.events.splice(0);
     for (const e of evs) {
-      if (e.k === 'shot' || e.k === 'cast') this.rigs.get(e.id)?.attack();
-      else if (e.k === 'hit') this.rigs.get(e.v)?.hit();
-      if (e.k === 'shot' && this.kinds.get(e.id) === 'noodle') {
-        const atk = getFighter('noodle').attack;
-        this.armUntil.set(e.id, { until: nowMs + ARM_MS, a: ((e.a ?? 0) * Math.PI) / 180, range: atk.kind === 'melee' ? atk.range : 220 });
+      if (e.k === 'shot') {
+        this.rigs.get(e.id)?.attack();
+        this.fx.muzzle(e.x, e.y, e.a, elementColor(getArt(this.kinds.get(e.id)).element));
+        if (this.kinds.get(e.id) === 'noodle') {
+          const atk = getFighter('noodle').attack;
+          this.armUntil.set(e.id, { until: nowMs + ARM_MS, a: ((e.a ?? 0) * Math.PI) / 180, range: atk.kind === 'melee' ? atk.range : 220 });
+        }
+      } else if (e.k === 'cast') {
+        this.rigs.get(e.id)?.attack();
+        this.fx.cast(e.x, e.y, e.a ?? 0, elementColor(getArt(this.kinds.get(e.id)).element));
+      } else if (e.k === 'hit') {
+        const victim = this.rigs.get(e.v);
+        victim?.hit();
+        victim?.freeze(HITSTOP_MS);
+        const color = elementColor(getArt(this.kinds.get(e.a)).element);
+        this.fx.impact(e.x, e.y, color);
+        this.fx.damage(e.x, e.y, e.dmg);
+        if (e.v === this.net.id) {
+          this.fx.shake('hit');
+          navigator.vibrate?.(30);
+        }
+      } else if (e.k === 'ko') {
+        const victim = this.rigs.get(e.v);
+        if (victim) this.fx.ko(victim.x, victim.groundY, getArt(this.kinds.get(e.v)).color);
+        if (e.v === this.net.id || e.a === this.net.id) this.fx.shake('ko');
+        if (e.a === this.net.id) navigator.vibrate?.(45);
       }
     }
     this.drawOverlays(view, nowMs);
     this.controls.setCooldowns(view.find((p) => p.id === this.net.id));
-    this.fx.handle(evs, this.net.id, () => navigator.vibrate?.(30));
+    this.fx.sample(this.game.loop.actualFps, this.game.loop.delta);
     this.hud.addEvents(evs, (id) => this.names.get(id) ?? '?');
     this.updateHud(view);
     for (const [id, rig] of this.rigs) {
@@ -180,6 +230,8 @@ export class GameScene extends Phaser.Scene {
         this.rigs.delete(id);
         this.kinds.delete(id);
         this.armUntil.delete(id);
+        this.lastPos.delete(id);
+        this.dustAt.delete(id);
       }
     }
     if (this.self && seen.has(this.net.id)) {

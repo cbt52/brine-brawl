@@ -5,6 +5,9 @@ const FEED_MAX = 4;
 const BRAWL_MS = 900;
 const FONT = '"Lilita One", system-ui, sans-serif';
 const SB_EVENT = 'brawl:scoreboard';
+/** HP fraction under which the red vignette starts pulsing */
+const LOW_HP = 0.3;
+const VIGNETTE_KEY = 'fx-vignette';
 
 const mmss = (sec: number): string => {
   const s = Math.max(0, Math.round(sec));
@@ -29,6 +32,7 @@ export class HudScene extends Phaser.Scene {
   private brawlUntil = 0;
   private sbPinned = false;
   private sbHeld = false;
+  private vignette?: Phaser.GameObjects.Image;
 
   constructor() {
     super({ key: 'hud' });
@@ -43,6 +47,7 @@ export class HudScene extends Phaser.Scene {
     this.feedText = this.txt(18, { align: 'right' }).setOrigin(1, 0);
     this.sbText = this.txt(18, { align: 'left', lineSpacing: 6 }).setOrigin(0.5);
     this.layout();
+    this.ensureVignette();
     this.scale.on('resize', this.layout);
     window.addEventListener('keydown', this.onKeyDown);
     window.addEventListener('keyup', this.onKeyUp);
@@ -55,6 +60,29 @@ export class HudScene extends Phaser.Scene {
       .setDepth(10);
   }
 
+  /** Radial red edge gradient, generated once and stretched over the screen (low-HP warning). */
+  private ensureVignette(): void {
+    const size = 256;
+    const tex = this.textures.exists(VIGNETTE_KEY) ? this.textures.get(VIGNETTE_KEY) : this.textures.createCanvas(VIGNETTE_KEY, size, size);
+    if (tex instanceof Phaser.Textures.CanvasTexture) {
+      const ctx = tex.getContext();
+      const grad = ctx.createRadialGradient(size / 2, size / 2, size * 0.24, size / 2, size / 2, size * 0.5);
+      grad.addColorStop(0, 'rgba(230, 57, 70, 0)');
+      grad.addColorStop(0.65, 'rgba(230, 57, 70, 0.28)');
+      grad.addColorStop(1, 'rgba(230, 57, 70, 0.85)');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, size, size);
+      tex.refresh();
+    }
+    this.vignette = this.add
+      .image(0, 0, VIGNETTE_KEY)
+      .setOrigin(0)
+      .setDepth(5)
+      .setDisplaySize(this.scale.width, this.scale.height)
+      .setAlpha(0)
+      .setVisible(false);
+  }
+
   private layout = (): void => {
     const w = this.scale.width;
     const h = this.scale.height;
@@ -65,6 +93,7 @@ export class HudScene extends Phaser.Scene {
     this.cdText.setPosition(w / 2, h / 2 - 30);
     this.waitText.setPosition(w / 2, h / 2 + 60);
     this.sbText.setPosition(w / 2, h / 2);
+    this.vignette?.setDisplaySize(w, h);
   };
 
   /** Special cooldown + ult charge of the local player (tap/press hints live in the touch UI). */
@@ -111,6 +140,14 @@ export class HudScene extends Phaser.Scene {
 
     const phase = m?.st ?? 'waiting';
     const now = performance.now();
+
+    // low-HP warning: red edge pulse while alive and below 30 %
+    if (this.vignette) {
+      const hp = me && !me.dn ? me.hp / me.mhp : 1;
+      const low = phase === 'playing' && hp < LOW_HP;
+      const pulse = low ? 0.38 + 0.22 * Math.sin(now / 190) + (LOW_HP - hp) * 1.4 : 0;
+      this.vignette.setAlpha(Math.min(0.8, pulse)).setVisible(low);
+    }
 
     if (phase === 'playing' || phase === 'results') {
       const left = m ? m.t : 0;

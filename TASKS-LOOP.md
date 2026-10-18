@@ -253,7 +253,14 @@ Each reaction shows a big popup word ("SHOCK!").
 
 ### CP4 — "Juice: fühlt sich gut an"
 
-- [ ] **T13 — Game feel & FX**
+- [x] **T13 — Game feel & FX**
+  - Done: `client/src/fx/` — `textures.ts` (generated circle/star/bubble/spark/ring/dust/glow), `combatFx.ts`
+    (muzzle flash, element-coloured impact ring+sparks, cast ripple, footstep dust, KO poof + orbiting stars,
+    crit-sized damage numbers, screenshake halved on touch), `budget.ts` (particle cap 160/48, FPS watchdog
+    → auto lowfx after 3 s <45 fps, `?lowfx=1`), `style.ts` (element palette + damage styles); rig gained
+    `freeze()` hitstop (50 ms), `groundY`, `setUltReady()` glow; HUD low-HP red vignette; ☰ screenshake toggle
+    in `ui/settings.ts`; 10 unit tests.
+  - Test: `npm run check && npm run shot -- --name T13 --query "room=shot&bots=5" --wait 6000`
   - Do: `client/src/fx/` with:
     - generated particle textures (circle, star, bubble, spark, ring);
     - muzzle flash, impact ring and element-colored sparks, footstep dust;
@@ -263,7 +270,6 @@ Each reaction shows a big popup word ("SHOCK!").
     - KO poof cloud with orbiting stars;
     - ult-ready glow; low-HP red vignette pulse;
     - particle budget cap, with auto `lowfx` when FPS <45 for 3 s (also `?lowfx=1`).
-  - Test: `npm run check && npm run shot -- --name T13 --query "room=shot&bots=5" --wait 6000`
 
 - [ ] **T14 — Arena art + bushes**
   - Do:
@@ -522,3 +528,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T10 ✅ 2026-10-18 — Voltbun+Mira-Kits (Burrow-/Trail-/Cone-/TickPull-Primitive), Bots mit Zufalls-Kits; check+smoke grün
 - T11 ✅ 2026-10-18 — Noodle+Sudsy-Kits (Projektil-Status, Trap-Status, Stop-Dash), Taffy-Arm+Bubble-FX, Galerie grün; check+smoke+shot grün
 - T12 ✅ 2026-10-18 — Charakterauswahl (Karten mit Stats/Moves im Lobby-Menü, localStorage, ☰-Wechsel ab Respawn); CP3, e2e+healthz grün
+- T13 ✅ 2026-10-18 — Juice-Pass: Partikel (Mündungsfeuer, Impact-Ringe, Funken, Staub, KO-Sterne), Hitstop, Screenshake-Toggle, Vignette, lowfx-Budget; check+e2e+shot grün

@@ -12,6 +12,11 @@ import { mountMenu, showInvite } from './ui/menu.ts';
 
 const params = new URLSearchParams(location.search);
 const net = new Net();
+/** `?lowfx=1` forces the reduced particle budget; touch devices get half the screenshake. */
+const fxOpts = {
+  lowfx: params.has('lowfx'),
+  mobile: navigator.maxTouchPoints > 0 || 'ontouchstart' in window,
+};
 
 // ?room=…&name/bots (our own links) goes straight in; a plain invite link always
 // shows the "Join room x" screen with the (saved) name prefilled. No ?room= → lobby.
@@ -46,7 +51,7 @@ const game = new Phaser.Game({
   parent: 'game',
   backgroundColor: '#0e2a3a',
   scale: { mode: Phaser.Scale.RESIZE, width: '100%', height: '100%' },
-  scene: [new GameScene(net, VIEW_H), new HudScene()],
+  scene: [new GameScene(net, VIEW_H, fxOpts), new HudScene()],
 });
 
 declare global {
