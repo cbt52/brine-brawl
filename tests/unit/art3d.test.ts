@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { layoutShelves } from '../../scripts/lib/pack.mjs';
-import { validateSpec } from '../../scripts/lib/spec3d.mjs';
+import { specColours, validateSpec } from '../../scripts/lib/spec3d.mjs';
+import { MODELS } from '../../scripts/art-models.mjs';
 
 const rects = (n: number, seed = 1) => {
   let s = seed;
@@ -85,5 +86,39 @@ describe('validateSpec', () => {
     expect(validateSpec(s).join('\n')).toMatch(/duplicated/);
     expect(validateSpec({ ...selftest(), parts: [] }).join('\n')).toMatch(/non-empty/);
     expect(validateSpec(null)).toEqual(['spec must be an object']);
+  });
+
+  it('validates pivots, features and the face', () => {
+    const s = JSON.parse(readFileSync('scripts/blender/specs/voltbun.json', 'utf8'));
+    s.parts[1].pivot = [1, 2];
+    s.features[0].fn = 'earsShort';
+    s.features[1].band = 'teal';
+    s.features.push({ fn: 'tailBattery', parent: 'body', at: [0, 0, 0] });
+    s.face.part = 'hat';
+    const errs = validateSpec(s).join('\n');
+    expect(errs).toMatch(/parts\[1\]\.pivot/);
+    expect(errs).toMatch(/features\[0\]\.fn/);
+    expect(errs).toMatch(/features\[1\]\.band/);
+    expect(errs).toMatch(/features\[2\] adds part "tail"/);
+    expect(errs).toMatch(/face\.part/);
+  });
+});
+
+describe('fighter specs', () => {
+  const ids = ['voltbun'];
+  const spec = (id: string) => JSON.parse(readFileSync(`scripts/blender/specs/${id}.json`, 'utf8'));
+
+  it.each(ids)('%s is valid', (id) => {
+    expect(validateSpec(spec(id))).toEqual([]);
+  });
+
+  it.each(ids)('%s pal equals the art-models pal', (id) => {
+    const model = MODELS.find((m) => m.id === id);
+    expect(model).toBeDefined();
+    expect(spec(id).pal).toEqual(model!.pal);
+  });
+
+  it('paints every palette colour, the faction gold included', () => {
+    expect(specColours(spec('voltbun')).map(([k]) => k).sort()).toEqual(['body', 'detail', 'prop', 'trim']);
   });
 });

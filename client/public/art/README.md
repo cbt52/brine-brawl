@@ -96,13 +96,25 @@ scripts/blender/specs/<id>.json   parts (primitives) + palette + face + anim sty
 scripts/art3d.mjs ──► blender -b --factory-startup --python scripts/blender/render_fighter.py
         │                 lib/cam.py    ortho camera 35° down from screen-south, sun from above-front
         │                 lib/build.py  prims → part meshes (voxel remesh + subdiv) + inverted hull
+        │                 lib/features.py  spec features (earsLong, tailBattery) → extra parts
+        │                 lib/face.py   eye/brow/mouth decals wrapped onto the head; `normal` + `hurt` sets
         │                 lib/toon.py   Shader-to-RGB → constant ramp: shadow | base | highlight, rim 35 %
         ▼
 .loop/tmp/art3d/<id>/<anim>_<dir>_<i>.png (2×) ──► 2× box downsample ──► scripts/lib/pack.mjs atlas
 ```
 
 - Model units are **px at 1×**, z up, the model faces −Y (towards the camera); the feet sit on the origin,
-  which lands on y = 112 of the 128 px cell. Prim `size` is the full bounding box, `at` its centre.
+  which lands on y = 112 of the 128 px cell. Prim `size` is the full bounding box, `at` its centre,
+  relative to the part's `pivot` (model space, default origin); a part may also carry a `rot` (degrees).
+  The puppet animation turns parts about these pivots.
+- Features (`{fn, parent, at, …}`) expand into ordinary parts whose pivot is `at`; colour keys
+  (`c`, `tip`, `band`, `cap`) take pal keys. The `face` (`{part, eyeDx, eyeZ, eyeW, eyeH, brow, mouth, nose}`,
+  offsets from the head ellipsoid centre) is unlit decals with no hull: white eyes, `#1b1b2f` pupils with a
+  glint, brows and mouth, plus a `hurt` set (X eyes, open mouth). `--still` renders one idle frame per
+  direction plus `hurt_S_0`.
+- Toon shadow band = base × 0.68 in HSV value (HLS would push pale colours like cream into orange); a surface
+  is lit when its diffuse value is above 0.1, so camera-facing fronts show the base hex.
+- 35° pitch shows the ground footprint below the origin: keep low parts slim and tucked under the body.
 - Directions S, SE, E, NE, N are rendered by turning the model; the camera and sun never move, so the rig
   can mirror the E side with `flipX` without the light flipping.
 - **Lighting replaces the top-left rule above for 3D sprites**: one sun from above, slightly in front of the

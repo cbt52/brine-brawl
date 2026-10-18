@@ -10,7 +10,9 @@ import colorsys
 import bpy
 
 OUTLINE_HEX = '#1b1b2f'
-LIT_THRESHOLD = 0.2  # Shader-to-RGB value above which a surface is "lit" (sun strength 1)
+# Shader-to-RGB value above which a surface is "lit" (sun strength 1 gives cos/pi, so 0.1 lights
+# surfaces within ~72 degrees of the sun: camera-facing fronts lit, sides and undersides shaded)
+LIT_THRESHOLD = 0.1
 HIGHLIGHT_NZ = 0.85  # world normal z above which a lit surface gets the highlight band
 RIM_FACING = 0.65  # Layer Weight facing above which the rim kicks in
 RIM_MIX = 0.35
@@ -30,9 +32,10 @@ def lin4(rgb):
 
 
 def shadow_rgb(rgb):
-    """Base colour at 0.68x lightness, hue shifted -8 degrees."""
-    h, l, s = colorsys.rgb_to_hls(*rgb)
-    return colorsys.hls_to_rgb((h - 8 / 360) % 1.0, l * 0.68, s)
+    """Base colour at 0.68x brightness, hue shifted -8 degrees. Scaled in HSV, not HLS: HLS
+    gives pale colours full saturation, so cream would darken into orange."""
+    h, s, v = colorsys.rgb_to_hsv(*rgb)
+    return colorsys.hsv_to_rgb((h - 8 / 360) % 1.0, s, v * 0.68)
 
 
 def highlight_rgb(rgb):

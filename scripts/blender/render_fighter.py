@@ -38,17 +38,25 @@ def main():
         spec = json.load(f)
     os.makedirs(a.out, exist_ok=True)
     engine = cam.setup(a.res, a.engine)
-    root = build.build(spec, workbench=engine == 'workbench')
+    root, face = build.build(spec, workbench=engine == 'workbench')
     scene = bpy.context.scene
     frames = []
-    # T34/T35 render stills only; T36 adds the puppet animation frames.
-    for d in cam.dirs_for(spec.get('dirs', 5)):
+
+    def shot(name, d):
         root.rotation_euler = (0, 0, math.radians(cam.DIR_ANGLES[d]))
-        name = f'idle_{d}_0'
         scene.render.filepath = os.path.join(os.path.abspath(a.out), name + '.png')
         bpy.ops.render.render(write_still=True)
         frames.append(name)
         print(f'[art3d] frame {name}', flush=True)
+
+    # Stills: one idle frame per direction, plus the hurt face from the front when there is a
+    # face. T36 adds the puppet animation frames.
+    for d in cam.dirs_for(spec.get('dirs', 5)):
+        shot(f'idle_{d}_0', d)
+    if face:
+        face('hurt')
+        shot('hurt_S_0', 'S')
+        face('normal')
     result = {'id': spec['id'], 'engine': engine, 'blender': bpy.app.version_string,
               'frames': frames, 'sec': round(time.time() - t0, 1)}
     print('[art3d] result ' + json.dumps(result), flush=True)

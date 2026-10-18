@@ -482,7 +482,8 @@ Rules for every task:
     - `tests/unit/art3d.test.ts` covers `layoutShelves` (no overlap, ≤ max, deterministic) and `validateSpec`.
   - Test: `npm run check && npm run art:selftest -- --contact`
 
-- [ ] **T35 — Voltbun model (stills)**
+- [x] **T35 — Voltbun model (stills)**
+  - Note: `lib/features.py` (`earsLong`: splayed ears with a teal cap and 3 zigzag teeth; `tailBattery`: gold cell, teal band, capped + terminal) and `lib/face.py` (decals wrapped onto the head ellipsoid, no hull; `normal` + `hurt` = X eyes/open mouth) are split out of `build.py` to keep files small. Parts got `pivot`/`rot` (prims are pivot-relative) so T36 can turn them. Added a big gold collar (`prop`) as the faction-gold part; 3D drops the blush (LIKENESS row updated). `--still` now also renders `hurt_S_0`. Toon fixes (global): shadow = HSV value ×0.68 (HLS turned cream orange), lit threshold 0.2 → 0.1 so camera-facing fronts show the base hex; selftest still exact. Numbers: S 100 px, but E/SE are 105–106 px and the bottoms sit at y 115–118 (35° pitch shows the feet in front of the origin). T36 must settle the feet line (lift or slimmer feet). Far-eye decals show as white ticks just inside the outline at SE/E (outline unbroken: 0 decal px touch the background).
   - Do:
     - Write `scripts/blender/specs/voltbun.json` per §4: round cream bunny, teal zigzag ear tips, battery tail, grin. Use the `pal` from art-models.
     - Add feature generators `earsLong` and `tailBattery`, plus the face (eyes, brows, mouth, `hurt` variant), in `lib/build.py`.
@@ -794,3 +795,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T99 ✅ 2026-10-18 — Galleon part 3c-1 (#26): `Arena` gets id/shallows/bushes, tide, kelp, snail + predictor use the match's arena, `MatchInfo.ar`; 5 tests, check 709 grün → §5 #26 (3d), #41
 - T99 ✅ 2026-10-18 — Galleon part 3d-1 (#26): `join.arena` picks the room's layout at creation (`arenaById`, unknown = docks), `Room` builds its `World` on it; 5 tests, check 714 grün → §5 #26 (3d-2), #42
 - T99 ✅ 2026-10-18 — JoinOpts (backlog #42): `RoomManager.join(ws, opts)` takes one `JoinOpts` object, `server/index.ts` is the only production call site, 6 test files moved over; check 778 grün, serve.sh + smoke ok → §5 #60
+- T35 ✅ 2026-10-18 — Voltbun 3D stills: spec + earsLong/tailBattery/face(hurt), part pivots, gold collar, HSV toon shadow; S 100 px, E 106 / bottoms 115–118 → T36

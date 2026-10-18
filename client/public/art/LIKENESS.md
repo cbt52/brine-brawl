@@ -15,7 +15,7 @@ archetype cues beyond "friendly sailor".
 
 | id | matched cues | to stay legal |
 |---|---|---|
-| `voltbun` | round body with oversized head · long upright ears · zigzag energy motif | teal ear tips + battery-shaped tail instead of a lightning-bolt tail; cream/teal palette; no cheek patches |
+| `voltbun` | round body with oversized head · long upright ears · zigzag energy motif | teal ear tips + battery-shaped tail instead of a lightning-bolt tail; cream/teal palette; no cheek patches (3D: no blush at all; a big gold collar carries the faction gold) |
 | `embercub` | chubby cub proportions · tufted triangular ears · glowing ember carried at the tail | red-panda coat and soot-smudged nose; a ring of embers instead of a flame tip; no head flame |
 | `mossback` | dome shell with plate seams · squat low stance · tiny head poking forward | bonsai tree growing out of the shell, leaf-green palette, gold collar instead of a shell rim |
 | `gloomoth` | rounded fuzzy body · four-lobed wings · glowing antenna tips | lavender fur-moth instead of a sheet ghost; lantern-bead antennae; sleepy half-lidded eyes |

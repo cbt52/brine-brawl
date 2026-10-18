@@ -5,6 +5,10 @@
 export const PAL_KEYS = ['body', 'detail', 'trim', 'prop'];
 export const PRIM_TYPES = ['sphere', 'capsule', 'cone', 'box', 'cylinder'];
 export const ANIM_STYLES = ['biped', 'blob', 'hover'];
+/** Feature generators in `scripts/blender/lib/features.py` and the parts each one adds. */
+export const FEATURE_FNS = { earsLong: ['ear_r', 'ear_r_tip', 'ear_l', 'ear_l_tip'], tailBattery: ['tail', 'tail_band', 'tail_cap'] };
+/** Feature keys that hold a colour (pal key or #RRGGBB). */
+export const FEATURE_COLOUR_KEYS = ['c', 'tip', 'band', 'cap'];
 
 const HEX = /^#[0-9a-fA-F]{6}$/;
 const isNum = (v) => typeof v === 'number' && Number.isFinite(v);
@@ -30,6 +34,8 @@ export function validateSpec(spec) {
     if (p?.parent != null && !seen.has(p.parent)) errs.push(`${at}.parent "${p.parent}" must name an earlier part`);
     if (p?.c !== undefined && !PAL_KEYS.includes(p.c) && !HEX.test(p.c)) errs.push(`${at}.c must be a pal key or #RRGGBB`);
     if (p?.remesh !== undefined && (!isNum(p.remesh) || p.remesh <= 0)) errs.push(`${at}.remesh must be a positive voxel size`);
+    if (p?.pivot !== undefined && !isVec3(p.pivot)) errs.push(`${at}.pivot must be [x, y, z]`);
+    if (p?.rot !== undefined && !isVec3(p.rot)) errs.push(`${at}.rot must be [x, y, z] degrees`);
     const prims = Array.isArray(p?.prims) ? p.prims : [];
     if (!prims.length) errs.push(`${at}.prims must be a non-empty array`);
     prims.forEach((q, j) => {
@@ -43,7 +49,34 @@ export function validateSpec(spec) {
   });
 
   if (!Array.isArray(spec.features)) errs.push('features must be an array');
+  (Array.isArray(spec.features) ? spec.features : []).forEach((f, i) => {
+    const at = `features[${i}]`;
+    const adds = FEATURE_FNS[f?.fn];
+    if (!adds) errs.push(`${at}.fn must be one of ${Object.keys(FEATURE_FNS).join('|')}`);
+    if (!isVec3(f?.at)) errs.push(`${at}.at must be [x, y, z]`);
+    if (f?.parent != null && !seen.has(f.parent)) errs.push(`${at}.parent "${f.parent}" must name a part`);
+    for (const k of FEATURE_COLOUR_KEYS) {
+      if (f?.[k] !== undefined && !PAL_KEYS.includes(f[k]) && !HEX.test(f[k])) errs.push(`${at}.${k} must be a pal key or #RRGGBB`);
+    }
+    for (const name of adds ?? []) {
+      if (seen.has(name)) errs.push(`${at} adds part "${name}" which already exists`);
+      seen.add(name);
+    }
+  });
   if (spec.face !== null && typeof spec.face !== 'object') errs.push('face must be an object or null');
+  if (spec.face && typeof spec.face === 'object') {
+    const f = spec.face;
+    if (!parts.some((p) => p?.name === f.part)) errs.push('face.part must name a spec part');
+    for (const k of ['eyeDx', 'eyeZ']) if (!isNum(f[k])) errs.push(`face.${k} must be a number`);
+    if (f.nose !== undefined && !HEX.test(f.nose)) errs.push('face.nose must be #RRGGBB');
+  }
   if (!ANIM_STYLES.includes(spec.anim?.style)) errs.push(`anim.style must be one of ${ANIM_STYLES.join('|')}`);
   return errs;
+}
+
+/** Every [key, #hex] the model paints with (parts and features; face decals excluded). */
+export function specColours(spec) {
+  const keys = new Set(spec.parts.map((p) => p.c ?? 'body'));
+  for (const f of spec.features ?? []) for (const k of FEATURE_COLOUR_KEYS) if (f[k]) keys.add(f[k]);
+  return [...keys].map((c) => [c, spec.pal[c] ?? c]);
 }

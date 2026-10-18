@@ -3,7 +3,10 @@
 Each part = its primitives joined into one mesh, optionally voxel-remeshed and subdivided
 (vinyl-toy look), coloured with one toon material and wrapped in an inverted-hull outline.
 Parts hang under a root empty that the renderer turns per direction.
-Prim `size` is the full bounding box (x, y, z) of the primitive; `at` is its centre.
+Prim `size` is the full bounding box (x, y, z) of the primitive; `at` is its centre, relative to
+the part's `pivot` (model space, default origin). A part may carry a `rot` (degrees) about its
+pivot; the puppet animation (T36) turns parts about the same pivots.
+Spec `features` expand into extra parts (`features.py`); the `face` is unlit decals (`face.py`).
 """
 import math
 
@@ -11,6 +14,8 @@ import bmesh
 import bpy
 from mathutils import Euler, Matrix, Vector
 
+from . import face as face_mod
+from . import features as feat_mod
 from . import toon
 
 OUTLINE_PX = 3.0  # at 1x; model units are px at 1x
@@ -119,8 +124,13 @@ def color_of(spec, key):
     return spec['pal'][key] if key in spec['pal'] else key
 
 
+def all_parts(spec):
+    """Spec parts followed by the parts its features expand into."""
+    return list(spec['parts']) + feat_mod.expand(spec.get('features', []))
+
+
 def build(spec, workbench=False):
-    """Create the model in the current scene. Returns the root empty."""
+    """Create the model in the current scene. Returns (root empty, face switcher or None)."""
     scene = bpy.context.scene
     scale = spec.get('scale', 1.0)
     root = bpy.data.objects.new(spec['id'], None)
@@ -128,7 +138,8 @@ def build(spec, workbench=False):
     line = toon.outline(workbench)
     mats = {}
     objs = {}
-    for part in spec['parts']:
+    pivots = {}
+    for part in all_parts(spec):
         c = color_of(spec, part.get('c', 'body'))
         if c not in mats:
             mats[c] = toon.toon('toon_' + c, c, workbench)
@@ -136,7 +147,11 @@ def build(spec, workbench=False):
         me.materials.append(mats[c])
         ob = bpy.data.objects.new(part['name'], me)
         scene.collection.objects.link(ob)
-        ob.parent = objs.get(part.get('parent'), root)
+        parent = part.get('parent')
+        ob.parent = objs.get(parent, root)
+        pivot = Vector(part.get('pivot', [0, 0, 0])) * scale
+        ob.location = pivot - pivots.get(parent, Vector((0, 0, 0)))
+        ob.rotation_euler = [math.radians(a) for a in part.get('rot', [0, 0, 0])]
         hull = bpy.data.objects.new(part['name'] + '_hull', hull_mesh(me, OUTLINE_PX))
         hull.data.materials.append(line)
         if hasattr(hull, 'visible_shadow'):
@@ -144,4 +159,10 @@ def build(spec, workbench=False):
         scene.collection.objects.link(hull)
         hull.parent = ob
         objs[part['name']] = ob
-    return root
+        pivots[part['name']] = pivot
+    switch = None
+    if spec.get('face'):
+        f = spec['face']
+        head = next(p for p in spec['parts'] if p['name'] == f['part'])
+        switch = face_mod.build(f, head, objs[f['part']], scale, workbench)
+    return root, switch

@@ -9,7 +9,7 @@
 import { spawnSync } from 'node:child_process';
 import { accessSync, constants, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { delimiter, join } from 'node:path';
-import { validateSpec } from './lib/spec3d.mjs';
+import { specColours, validateSpec } from './lib/spec3d.mjs';
 import { packAtlas } from './lib/pack.mjs';
 import { alphaBox, contactSheet, downsample2x, paletteHits, pixelHex, readRGBA } from './lib/frames3d.mjs';
 
@@ -82,11 +82,6 @@ function render(blender, specPath, frameDir, engine) {
     runBlender(blender, specPath, frameDir, 'workbench', false));
 }
 
-function usedColours(spec) {
-  const cs = new Set(spec.parts.map((p) => p.c ?? 'body'));
-  return [...cs].map((c) => [c, spec.pal[c] ?? c]);
-}
-
 async function processId(blender, id, o) {
   const specPath = join(SPECS, `${id}.json`);
   if (!existsSync(specPath)) fail(`no spec ${specPath}`);
@@ -111,14 +106,14 @@ async function processId(blender, id, o) {
   let ok = true;
   const hits = new Map();
   for (const f of frames) {
-    for (const [h, v] of paletteHits(f, usedColours(spec).map(([, x]) => x))) {
+    for (const [h, v] of paletteHits(f, specColours(spec).map(([, x]) => x))) {
       const cur = hits.get(h) ?? { count: 0, at: null, frame: null };
       cur.count += v.count;
       if (!cur.at && v.at) Object.assign(cur, { at: v.at, frame: f });
       hits.set(h, cur);
     }
   }
-  for (const [key, h] of usedColours(spec)) {
+  for (const [key, h] of specColours(spec)) {
     const v = hits.get(h.toUpperCase());
     if (!v?.count) {
       ok = false;
@@ -134,6 +129,11 @@ async function processId(blender, id, o) {
     const tall = FEET_Y - box.y;
     const flag = tall >= 96 && tall <= 104 ? '✓' : '(target 96–104)';
     console.log(`art3d: ${frames[0].name} figure ${tall} px above the feet line, bottom y=${box.y + box.h - 1}, width ${box.w} px ${flag}`);
+  }
+  const boxes = frames.map(alphaBox).filter(Boolean);
+  if (boxes.length > 1) {
+    const span = (vals) => `${Math.min(...vals)}–${Math.max(...vals)}`;
+    console.log(`art3d: all frames: top y ${span(boxes.map((b) => b.y))}, bottom y ${span(boxes.map((b) => b.y + b.h - 1))}, width ${span(boxes.map((b) => b.w))} px`);
   }
 
   if (o.contact) {

@@ -1,0 +1,31 @@
+{
+  "id": "voltbun",
+  "pal": { "body": "#FFF3D6", "detail": "#E4D3B0", "trim": "#2EC4B6", "prop": "#FFC93C" },
+  "dirs": 5,
+  "scale": 1,
+  "parts": [
+    { "name": "body", "parent": null, "c": "body", "remesh": 1.5,
+      "prims": [{ "type": "sphere", "at": [0, 0, 28], "size": [46, 42, 40] }] },
+    { "name": "foot_r", "parent": "body", "c": "detail", "remesh": 1.2, "pivot": [7.5, 0, 12],
+      "prims": [{ "type": "sphere", "at": [0, -1, -6], "size": [12, 14, 8] }] },
+    { "name": "foot_l", "parent": "body", "c": "detail", "remesh": 1.2, "pivot": [-7.5, 0, 12],
+      "prims": [{ "type": "sphere", "at": [0, -1, -6], "size": [12, 14, 8] }] },
+    { "name": "arm_r", "parent": "body", "c": "body", "remesh": 1.2, "pivot": [19, -2, 36], "rot": [0, -18, 0],
+      "prims": [{ "type": "capsule", "at": [0, 0, -8], "size": [12, 12, 20] }] },
+    { "name": "arm_l", "parent": "body", "c": "body", "remesh": 1.2, "pivot": [-19, -2, 36], "rot": [0, 18, 0],
+      "prims": [{ "type": "capsule", "at": [0, 0, -8], "size": [12, 12, 20] }] },
+    { "name": "collar", "parent": "body", "c": "prop", "remesh": 1.2,
+      "prims": [{ "type": "sphere", "at": [0, 0, 47], "size": [54, 48, 10] }] },
+    { "name": "head", "parent": "body", "c": "body", "remesh": 1.5, "pivot": [0, 0, 48],
+      "prims": [{ "type": "sphere", "at": [0, 0, 20], "size": [52, 48, 46] }] }
+  ],
+  "features": [
+    { "fn": "earsLong", "parent": "head", "at": [9, 2, 86], "len": 28, "w": 14, "d": 8,
+      "splay": 8, "lean": 4, "c": "body", "tip": "trim" },
+    { "fn": "tailBattery", "parent": "body", "at": [0, 18, 22], "len": 16, "r": 15, "tilt": 30,
+      "c": "prop", "band": "trim", "cap": "detail" }
+  ],
+  "face": { "part": "head", "eyeDx": 10, "eyeZ": 1, "eyeW": 12, "eyeH": 14,
+    "brow": "grin", "mouth": "smirk", "nose": "#FF9FB0" },
+  "anim": { "style": "biped" }
+}
