@@ -106,7 +106,7 @@ function hitAll(
     const uy = d > 1e-6 ? dy / d : 0;
     if (push) shove(v, ux, uy, push);
     if (pull) shove(v, -ux, -uy, Math.min(pull, Math.max(0, d)));
-    if (o.status && !v.down) {
+    if (o.status && !v.down && v.shield <= 0) {
       applyStatus(v, o.status, o.statusSec ?? 1);
       h.events.push({ k: 'status', v: v.id, s: o.status, sec: o.statusSec ?? 1 });
     }
@@ -164,7 +164,7 @@ export function castAbility(h: CastHost, p: SimPlayer, def: AbilityDef): boolean
         if (d > v.r && Math.abs(wrapPi(Math.atan2(dy, dx) - p.aim)) > half) continue;
         h.damage(p.id, v, def.dmg, v.x, v.y);
         if (def.knockback) shove(v, d > 1e-6 ? dx / d : ax, d > 1e-6 ? dy / d : ay, def.knockback);
-        if (def.status && !v.down) {
+        if (def.status && !v.down && v.shield <= 0) {
           applyStatus(v, def.status, def.statusSec ?? 1);
           h.events.push({ k: 'status', v: v.id, s: def.status, sec: def.statusSec ?? 1 });
         }
@@ -308,16 +308,14 @@ export function stepDash(h: CastHost, p: SimPlayer, dt: number): boolean {
       });
     }
   }
-  if (d.dmg > 0) {
-    for (const v of enemies(h, p.id)) {
-      if (d.hit.has(v.id)) continue;
-      if (Math.hypot(v.x - p.x, v.y - p.y) < v.r + p.r) {
-        d.hit.add(v.id);
-        h.damage(p.id, v, d.dmg, v.x, v.y);
-        if (d.stopOnContact) {
-          p.dash = null;
-          return true;
-        }
+  for (const v of enemies(h, p.id)) {
+    if (d.hit.has(v.id)) continue;
+    if (Math.hypot(v.x - p.x, v.y - p.y) < v.r + p.r) {
+      d.hit.add(v.id);
+      if (d.dmg > 0) h.damage(p.id, v, d.dmg, v.x, v.y);
+      if (d.stopOnContact) {
+        p.dash = null;
+        return true;
       }
     }
   }

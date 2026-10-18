@@ -318,6 +318,26 @@ describe('T10 kits: Voltbun + Mira Tidecaller', () => {
     expect(b.status).toBe('stun');
   });
 
+  it('a stunned victim cannot move, aim or attack for the stun duration', () => {
+    const { w, a, b } = setup('default', 300);
+    b.status = 'stun';
+    b.statusLeft = 1;
+    const x0 = b.x;
+    const ammo0 = b.ammo;
+    const aim0 = b.aim;
+    for (let i = 0; i < TICK_HZ / 3; i++) {
+      w.setInput(2, inp({ seq: 10 + i, mx: -1, ax: 0, ay: 1, atk: true, spc: true, ult: true }));
+      w.step();
+    }
+    expect(b.x).toBe(x0);
+    expect(b.ammo).toBe(ammo0);
+    expect(b.aim).toBe(aim0);
+    expect(b.status).toBe('stun');
+    run(w, 1);
+    expect(b.status).toBeNull();
+    expect(a.hp).toBe(a.mhp); // no shots landed on A either
+  });
+
   it('Water Whip is a long thin lash that soaks the target', () => {
     const { w, a, b } = setup('mira', 240);
     const behind = w.addPlayer(3, 'C');
@@ -429,6 +449,15 @@ describe('T11 kits: Cap\'n Noodle + Sudsy Loofah', () => {
     expect(b.status).toBeNull();
   });
 
+  it('a spawn shield absorbs the hit entirely: no damage and no status', () => {
+    const { w, a, b } = setup('sudsy', 300);
+    b.shield = 1;
+    castAbility(w, a, getFighter('sudsy').special);
+    run(w, 0.6);
+    expect(b.hp).toBe(b.mhp);
+    expect(b.status).toBeNull();
+  });
+
   it('a trapped victim breaks out early after 25 damage', () => {
     const { w, a, b } = setup('sudsy', 300);
     castAbility(w, a, getFighter('sudsy').special);
@@ -439,6 +468,16 @@ describe('T11 kits: Cap\'n Noodle + Sudsy Loofah', () => {
     w.damage(1, b, 5, b.x, b.y);
     expect(b.status).toBeNull();
     expect(w.events.some((e) => e.k === 'status' && e.v === 2 && e.s === 'trapped' && e.sec === 0)).toBe(true);
+  });
+
+  it('a stop-on-contact dash with no contact damage still stops on a player', () => {
+    const { w, a, b } = setup('default', 150);
+    const def: AbilityDef = { kind: 'dash', dist: 400, dur: 0.25, contactDmg: 0, stopOnContact: true };
+    expect(castAbility(w, a, def)).toBe(true);
+    run(w, 0.4);
+    expect(a.dash).toBeNull();
+    expect(a.x).toBeLessThan(1300); // stopped on B, not the full 400 px
+    expect(b.hp).toBe(b.mhp);
   });
 
   it('Mega Bubble rolls through and traps everything it touches', () => {

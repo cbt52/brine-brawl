@@ -156,26 +156,27 @@ export class World {
         p.statusLeft -= dt;
         if (p.statusLeft <= 0) { p.statusLeft = 0; p.status = null; p.trapTook = 0; }
       }
-      // a bubble trap holds the victim in place: no move, no dash, no attacks
+      // a bubble trap holds the victim in place; a stun locks input the same way
       const trapped = p.status === 'trapped';
-      if (trapped) p.dash = null;
+      const disabled = trapped || p.status === 'stun';
+      if (disabled) p.dash = null;
       const burrowing = stepBurrow(this, p, dt);
       if (burrowing) { p.fireLatch = false; continue; }
-      const dashing = !trapped && stepDash(this, p, dt);
+      const dashing = !disabled && stepDash(this, p, dt);
       if (i) {
-        if (!dashing && !trapped) {
+        if (!dashing && !disabled) {
           const spd = BASE_SPEED * p.speedMul * (p.buffLeft > 0 ? p.buffMul : 1);
           stepMove(p, i.mx, i.my, spd, dt);
         }
-        if (!trapped && Number.isFinite(i.ax) && Number.isFinite(i.ay) && (i.ax !== 0 || i.ay !== 0)) p.aim = Math.atan2(i.ay, i.ax);
+        if (!disabled && Number.isFinite(i.ax) && Number.isFinite(i.ay) && (i.ax !== 0 || i.ay !== 0)) p.aim = Math.atan2(i.ay, i.ax);
         p.ack = i.seq;
       }
       this.reloadStep(p, dt);
-      if (!trapped && (p.fireLatch || i?.atk) && p.ammo > 0 && p.fireCd <= 0) this.fire(p);
+      if (!disabled && (p.fireLatch || i?.atk) && p.ammo > 0 && p.fireCd <= 0) this.fire(p);
       p.fireLatch = false;
       // specials/ults are hold-to-cast, gated by cooldown / charge (works the same for bots)
-      if (!trapped && i?.spc && p.spcCd <= 0 && castAbility(this, p, p.def.special)) p.spcCd = p.def.special.cd > 0 ? p.def.special.cd : 1;
-      if (!trapped && i?.ult && p.uc >= p.def.ultCharge && castAbility(this, p, p.def.ult)) p.uc = 0;
+      if (!disabled && i?.spc && p.spcCd <= 0 && castAbility(this, p, p.def.special)) p.spcCd = p.def.special.cd > 0 ? p.def.special.cd : 1;
+      if (!disabled && i?.ult && p.uc >= p.def.ultCharge && castAbility(this, p, p.def.ult)) p.uc = 0;
     }
     stepZones(this, dt);
     const alive = list.filter((p) => !p.down && !p.burrow);
@@ -243,7 +244,8 @@ export class World {
             pr.hit.add(v.id);
           } else dead = true;
           this.damage(pr.owner, v, pr.dmg, pr.x, pr.y);
-          if (pr.status && !v.down) {
+          // a spawn shield absorbs the hit entirely: no status either
+          if (pr.status && !v.down && v.shield <= 0) {
             applyStatus(v, pr.status, pr.statusSec ?? 1);
             this.events.push({ k: 'status', v: v.id, s: pr.status, sec: pr.statusSec ?? 1 });
           }
