@@ -6,8 +6,8 @@ import { resultsFooter, readyLine } from '../../client/src/ui/results.ts';
 describe('results ready count (backlog #28)', () => {
   it('tallies Ready taps out of the connected humans', () => {
     const mgr = new RoomManager();
-    const a = mgr.join({} as WebSocket, 'rdy-tally', 'A', 'default', 0)!;
-    const b = mgr.join({} as WebSocket, 'rdy-tally', 'B', 'default', 0)!;
+    const a = mgr.join({} as WebSocket, { room: 'rdy-tally', name: 'A', fighter: 'default', bots: 0 })!;
+    const b = mgr.join({} as WebSocket, { room: 'rdy-tally', name: 'B', fighter: 'default', bots: 0 })!;
     const room = a.room;
     room.match.phase = 'results';
     expect(room.readyTally()).toEqual({ ready: 0, of: 2 });
@@ -19,8 +19,8 @@ describe('results ready count (backlog #28)', () => {
 
   it('a leaver no longer counts, even after tapping Ready', () => {
     const mgr = new RoomManager();
-    const a = mgr.join({} as WebSocket, 'rdy-leave', 'A', 'default', 0)!;
-    mgr.join({} as WebSocket, 'rdy-leave', 'B', 'default', 0)!;
+    const a = mgr.join({} as WebSocket, { room: 'rdy-leave', name: 'A', fighter: 'default', bots: 0 })!;
+    mgr.join({} as WebSocket, { room: 'rdy-leave', name: 'B', fighter: 'default', bots: 0 })!;
     const room = a.room;
     room.match.phase = 'results';
     room.rematch(a.client);
@@ -30,7 +30,7 @@ describe('results ready count (backlog #28)', () => {
 
   it('a lone human is 0/1 until they tap', () => {
     const mgr = new RoomManager();
-    const { client, room } = mgr.join({} as WebSocket, 'rdy-lone', 'A', 'default', 0)!;
+    const { client, room } = mgr.join({} as WebSocket, { room: 'rdy-lone', name: 'A', fighter: 'default', bots: 0 })!;
     room.match.phase = 'results';
     expect(room.readyTally()).toEqual({ ready: 0, of: 1 });
     room.rematch(client);

@@ -457,7 +457,6 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 ## 5. IMPROVEMENT BACKLOG (ordered; T99 takes from the top; user feedback goes first)
 11. Optional ONLY if the user asks: ComfyUI portraits (127.0.0.1:8188, 2–7 min/img, 16 GB RAM, never while the user is using it).
 
-42. Join options are positional: `RoomManager.join` now takes 11 positional arguments (the `arena` pick was the last). Pass one `JoinOpts` object from `server/index.ts` so the next lobby option does not add a 12th, and keep the `rooms.join` call sites in one place.
 43. Galleon tips say the docks: the tips card always reads "Welcome to the docks" and lists the kelp and tide tip, which do not exist on the deck. Pick the card's heading and tips by the room's arena (`tutorialTips` takes the layout id, like the mode tip in #34).
 44. Cannon warning cue: a volley's telegraph and bar are drawn (`client/src/fx/cannonFx.ts`) but silent. Play a short warning tick the first time a lane shows `st: 'warn'` in `snap.cn`, and a thud when it turns to `fire`, in `client/src/audio/map.ts` terms (kept quiet, one cue per volley per lane).
 45. Host hand-over toast: the bot controls now follow the host role (`MatchInfo.host`), so when the host leaves and the next player becomes host their ☰ menu unlocks silently. Show a one-line toast "You host this room now" on that change (client compares `host` between snapshots), so the newly enabled controls are explained.
@@ -477,6 +476,7 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 
 58. Slab bump cue: a knockback or pull that a stone slab stops now halts cleanly (#40), but the victim just slides to a stop with no feedback. Emit a `bump` event when `shove()` is stopped by a solid (`shared/sim/abilities.ts`), and play a short dust puff plus a soft thud in `client/src/audio/map.ts` terms, with a unit test on the event.
 59. Predictor and World still default to the docks: `replay()`'s `area` and the predictor's `area` field (`client/src/net/predict.ts`) fall back to `DOCKS_ARENA`, and so does the `World` constructor (`shared/sim/world.ts`). Make the predictor's arena required the way #41 did for the sim helpers, so a galleon client cannot predict on the docks by accident. Decide the `World` default separately, since most unit tests call `new World()`.
+60. Debug gate untested: `matchsec` and `tide` reach `RoomManager.join` only when `ALLOW_DEBUG` is set, and that ternary lives in `server/index.ts` (no unit test covers it). Move the `JoinOpts` mapping from the `join` message into a small pure helper (`joinOptsFromMsg(msg, allowDebug)`) and unit-test that production drops both fields.
 
 ---
 
@@ -511,3 +511,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T99 ✅ 2026-10-18 — Galleon part 3b (#26): bots steer + spawn on `World.arena`, dash/burrow/shove use its scenery; 2 tests, check 704 grün → §5 #26 (3c), #40
 - T99 ✅ 2026-10-18 — Galleon part 3c-1 (#26): `Arena` gets id/shallows/bushes, tide, kelp, snail + predictor use the match's arena, `MatchInfo.ar`; 5 tests, check 709 grün → §5 #26 (3d), #41
 - T99 ✅ 2026-10-18 — Galleon part 3d-1 (#26): `join.arena` picks the room's layout at creation (`arenaById`, unknown = docks), `Room` builds its `World` on it; 5 tests, check 714 grün → §5 #26 (3d-2), #42
+- T99 ✅ 2026-10-18 — JoinOpts (backlog #42): `RoomManager.join(ws, opts)` takes one `JoinOpts` object, `server/index.ts` is the only production call site, 6 test files moved over; check 778 grün, serve.sh + smoke ok → §5 #60

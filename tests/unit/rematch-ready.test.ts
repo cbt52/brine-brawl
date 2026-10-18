@@ -25,7 +25,7 @@ describe('results Ready taps (backlog #15)', () => {
 
   it('a lone human taps Ready → the round restarts 10 s later', () => {
     const mgr = new RoomManager();
-    const { client, room } = mgr.join({} as WebSocket, 'rdy-solo', 'A', 'default', 0)!;
+    const { client, room } = mgr.join({} as WebSocket, { room: 'rdy-solo', name: 'A', fighter: 'default', bots: 0 })!;
     room.match.phase = 'results';
     room.match.timer = 2;
     expect(room.rematch(client)).toBe(true);
@@ -34,8 +34,8 @@ describe('results Ready taps (backlog #15)', () => {
 
   it('waits for every human: the first Ready tap leaves the normal results wait alone', () => {
     const mgr = new RoomManager();
-    const a = mgr.join({} as WebSocket, 'rdy-pair', 'A', 'default', 0)!;
-    const b = mgr.join({} as WebSocket, 'rdy-pair', 'B', 'default', 0)!;
+    const a = mgr.join({} as WebSocket, { room: 'rdy-pair', name: 'A', fighter: 'default', bots: 0 })!;
+    const b = mgr.join({} as WebSocket, { room: 'rdy-pair', name: 'B', fighter: 'default', bots: 0 })!;
     const room = a.room;
     room.match.phase = 'results';
     room.match.timer = 5;
@@ -47,7 +47,7 @@ describe('results Ready taps (backlog #15)', () => {
 
   it('a repeat Ready tap from the same human does not push the round start back', () => {
     const mgr = new RoomManager();
-    const { client, room } = mgr.join({} as WebSocket, 'rdy-repeat', 'A', 'default', 0)!;
+    const { client, room } = mgr.join({} as WebSocket, { room: 'rdy-repeat', name: 'A', fighter: 'default', bots: 0 })!;
     room.match.phase = 'results';
     room.match.timer = 2;
     expect(room.rematch(client)).toBe(true);
@@ -59,7 +59,7 @@ describe('results Ready taps (backlog #15)', () => {
 
   it('a Ready tap outside the results screen is ignored', () => {
     const mgr = new RoomManager();
-    const { client, room } = mgr.join({} as WebSocket, 'rdy-playing', 'A', 'default', 0)!;
+    const { client, room } = mgr.join({} as WebSocket, { room: 'rdy-playing', name: 'A', fighter: 'default', bots: 0 })!;
     room.match.phase = 'playing';
     room.match.timer = 40;
     expect(room.rematch(client)).toBe(false);

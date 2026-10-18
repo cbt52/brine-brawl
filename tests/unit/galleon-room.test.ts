@@ -6,9 +6,8 @@ import { DOCKS_ARENA, GALLEON_ARENA } from '../../shared/arena/arena.ts';
 // join() only stores the socket and never writes to it here, so a null socket is enough
 const ws = null as unknown as WebSocket;
 
-/** join(ws, room, name, fighter, bots, matchSec, tide, mode, level, skin, arena) */
 const join = (rooms: RoomManager, room: string, arena?: unknown) =>
-  rooms.join(ws, room, 'Tester', 'default', 0, undefined, undefined, undefined, undefined, undefined, arena);
+  rooms.join(ws, { room, name: 'Tester', fighter: 'default', bots: 0, arena });
 
 describe('room arena pick (backlog #26)', () => {
   it('a room is built on the arena it was created with', () => {

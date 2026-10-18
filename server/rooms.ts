@@ -276,6 +276,22 @@ export class Room {
   }
 }
 
+/** A `join` message's fields, still raw: `RoomManager.join` sanitizes each one. */
+export interface JoinOpts {
+  room: unknown;
+  name: unknown;
+  fighter: unknown;
+  bots?: unknown;
+  /** debug builds only: match length override (index.ts gates it behind ALLOW_DEBUG) */
+  matchSec?: unknown;
+  /** debug builds only: rising-tide jump (`?tide=high`) */
+  tide?: unknown;
+  mode?: unknown;
+  level?: unknown;
+  skin?: unknown;
+  arena?: unknown;
+}
+
 export class RoomManager {
   rooms = new Map<string, Room>();
   private nextId = 1;
@@ -286,38 +302,32 @@ export class RoomManager {
     this.timer.unref();
   }
 
-  join(
-    ws: WebSocket, roomRaw: unknown, nameRaw: unknown, fighterRaw: unknown, botsRaw?: unknown,
-    matchSecRaw?: unknown, tideRaw?: unknown, modeRaw?: unknown, levelRaw?: unknown, skinRaw?: unknown,
-    arenaRaw?: unknown,
-  ): { room: Room; client: Client } | null {
-    const id = sanitizeRoom(roomRaw);
+  join(ws: WebSocket, opts: JoinOpts): { room: Room; client: Client } | null {
+    const id = sanitizeRoom(opts.room);
     let room = this.rooms.get(id);
     const created = !room;
     if (!room) {
-      room = new Room(id, sanitizeMode(modeRaw) ?? 'bounty', arenaById(arenaRaw));
+      room = new Room(id, sanitizeMode(opts.mode) ?? 'bounty', arenaById(opts.arena));
       this.rooms.set(id, room);
     }
     if (room.clients.size >= MAX_HUMANS) return null;
-    // match length override (debug builds only — index.ts gates it behind ALLOW_DEBUG)
-    if (created && matchSecRaw !== undefined) room.match.setMatchSec(matchSecRaw);
-    // rising-tide debug jump (`?tide=high`), same gate
-    if (tideRaw !== undefined) room.world.debugTide(String(tideRaw));
+    if (created && opts.matchSec !== undefined) room.match.setMatchSec(opts.matchSec);
+    if (opts.tide !== undefined) room.world.debugTide(String(opts.tide));
     const cid = this.nextId++;
     const client: Client = {
       id: cid,
       ws,
-      name: sanitizeName(nameRaw),
-      fighter: resolveFighterId(fighterRaw),
+      name: sanitizeName(opts.name),
+      fighter: resolveFighterId(opts.fighter),
     };
     room.clients.set(cid, client);
     room.world.addPlayer(cid, client.name, client.fighter);
     // skin (backlog #3): cosmetic only, so it is set straight on the sim player
-    room.world.setSkin(cid, sanitizeSkin(skinRaw));
+    room.world.setSkin(cid, sanitizeSkin(opts.skin));
     room.emptySince = null;
-    if (room.clients.size === 1) room.botLevel = sanitizeBotLevel(levelRaw);
-    if (room.clients.size === 1 && typeof botsRaw === 'number' && Number.isFinite(botsRaw)) {
-      room.wantBots = Math.max(0, Math.min(7, Math.floor(botsRaw)));
+    if (room.clients.size === 1) room.botLevel = sanitizeBotLevel(opts.level);
+    if (room.clients.size === 1 && typeof opts.bots === 'number' && Number.isFinite(opts.bots)) {
+      room.wantBots = Math.max(0, Math.min(7, Math.floor(opts.bots)));
     }
     room.syncBots();
     return { room, client };
