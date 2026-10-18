@@ -18,6 +18,8 @@ export interface JoinMsg {
   name?: string;
   fighter?: string;
   bots?: number;
+  /** room mode picked in the lobby (T26); defaults to bounty */
+  mode?: string;
   /** match length override in seconds — ALLOW_DEBUG servers only */
   matchsec?: number;
   /** jump the tide to a phase (`?tide=high` screenshots) — ALLOW_DEBUG servers only */
@@ -26,6 +28,9 @@ export interface JoinMsg {
 
 /** Match phases: waiting for players → 3 s countdown → playing → results → countdown… */
 export type MatchPhase = 'waiting' | 'countdown' | 'playing' | 'results';
+
+/** Room mode (T26): Bounty Brawl or Treasure Tide (the chest objective arrives in T27). */
+export type RoomMode = 'bounty' | 'treasure';
 
 /** One scoreboard row (sent in the results phase). */
 export interface ScoreRow {
@@ -39,6 +44,8 @@ export interface ScoreRow {
   f: string;
   /** 1 = bot */
   bot: number;
+  /** crew 0/1 when the match runs teams; absent in a free-for-all */
+  tm?: number;
 }
 
 export interface MatchInfo {
@@ -53,6 +60,8 @@ export interface MatchInfo {
   /** every combatant (id/name/kos/deaths), unfiltered — the scoreboard uses this because the
    * snapshot `players` list hides fighters behind kelp */
   ros?: ScoreRow[];
+  /** room mode (bounty / treasure) — HUD + scoreboard label */
+  mode?: RoomMode;
 }
 
 export interface DbgMsg {
@@ -99,6 +108,8 @@ export interface SnapPlayer {
   uc: number;
   /** 1 = evolved (Critterkin EVOLVE passive, T20) */
   ev?: number;
+  /** crew 0/1 when the match runs teams (T26); absent in a free-for-all */
+  tm?: number;
   /** special cooldown remaining in seconds */
   cd: number;
 }

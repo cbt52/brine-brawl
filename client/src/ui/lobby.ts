@@ -1,6 +1,7 @@
 import { friendlyRoom, parseRoomCode, quickRoom } from './rooms.ts';
 import { mountFighterGrid, savedFighter } from './select.ts';
 import { escapeHtml } from './util.ts';
+import type { RoomMode } from '../../../shared/protocol.ts';
 
 export interface JoinChoice {
   room: string;
@@ -10,6 +11,8 @@ export interface JoinChoice {
   invite: boolean;
   /** registry id picked in the character select grid */
   fighter: string;
+  /** room mode picked in the lobby (T26) */
+  mode: RoomMode;
 }
 
 const NAME_KEY = 'brawl.name';
@@ -23,6 +26,7 @@ export function showLobby(prefillRoom: string | null, prefillName: string | null
     el.setAttribute('data-testid', 'lobby');
     const joining = !!prefillRoom;
     let fighter = savedFighter();
+    let mode: RoomMode = 'bounty';
     el.innerHTML = `<div class="lobby-inner">
       <h1 class="title"><span>B</span><span>R</span><span>I</span><span>N</span><span>E</span> <span>B</span><span>R</span><span>A</span><span>W</span><span>L</span></h1>
       <input class="field" data-testid="name-input" maxlength="12" placeholder="Your pirate name" autocomplete="off" />
@@ -30,6 +34,11 @@ export function showLobby(prefillRoom: string | null, prefillName: string | null
         <button class="big go" data-testid="join-go">Join!</button>` : `
       <button class="big go" data-testid="quick-play">Quick Play</button>
       <button class="big alt" data-testid="create-room">Create Room</button>
+      <div class="row mode-row" data-testid="mode-select">
+        <button class="big sm mode on" data-mode="bounty" data-testid="mode-bounty">Bounty</button>
+        <button class="big sm alt mode" data-mode="treasure" data-testid="mode-treasure">Treasure</button>
+      </div>
+      <p class="sub small" data-testid="mode-hint">Bounty Brawl: most doubloons wins · Treasure Tide: guard the chest</p>
       <div class="row"><input class="field code" data-testid="code-input" placeholder="Room code or link" autocomplete="off" />
       <button class="big sm" data-testid="join-code">Join</button></div>
       <p class="err" data-testid="lobby-err"></p>`}
@@ -51,13 +60,24 @@ export function showLobby(prefillRoom: string | null, prefillName: string | null
       resolve({ ...c, name: n, fighter });
     };
     const on = (id: string, fn: () => void) => el.querySelector(`[data-testid=${id}]`)?.addEventListener('click', fn);
-    on('join-go', () => done({ room: prefillRoom!, bots: 0, invite: false }));
-    on('quick-play', () => done({ room: quickRoom(), bots: 3, invite: false }));
-    on('create-room', () => done({ room: friendlyRoom(), bots: 0, invite: true }));
+    // mode selector: Quick Play throws the dice, Create Room uses the picked one (T26)
+    const modeBtns = [...el.querySelectorAll<HTMLButtonElement>('[data-mode]')];
+    const pickMode = (m: RoomMode) => {
+      mode = m;
+      for (const b of modeBtns) {
+        const active = b.dataset.mode === m;
+        b.classList.toggle('on', active);
+        b.classList.toggle('alt', !active);
+      }
+    };
+    for (const b of modeBtns) b.addEventListener('click', () => pickMode(b.dataset.mode as RoomMode));
+    on('join-go', () => done({ room: prefillRoom!, bots: 0, invite: false, mode }));
+    on('quick-play', () => done({ room: quickRoom(), bots: 3, invite: false, mode: Math.random() < 0.5 ? 'bounty' : 'treasure' }));
+    on('create-room', () => done({ room: friendlyRoom(), bots: 0, invite: true, mode }));
     on('join-code', () => {
       const code = parseRoomCode(el.querySelector<HTMLInputElement>('[data-testid=code-input]')!.value);
       if (!code) el.querySelector('[data-testid=lobby-err]')!.textContent = 'Enter a room code or invite link';
-      else done({ room: code, bots: 0, invite: false });
+      else done({ room: code, bots: 0, invite: false, mode });
     });
   });
 }

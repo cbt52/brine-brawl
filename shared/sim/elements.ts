@@ -9,6 +9,7 @@ import type { Element, StatusKind } from '../fighters/types.ts';
 import type { SimEvent } from '../protocol.ts';
 import type { Zone } from './abilities.ts';
 import type { SimPlayer } from './world.ts';
+import { sameTeam } from './teams.ts';
 
 /** Status a hit of this element leaves behind (`null` = pure knockback, no status). */
 export const ELEMENT_STATUS: Record<Element, StatusKind | null> = {
@@ -139,8 +140,12 @@ export function applyElementHit(
   v.status = null;
   v.statusLeft = 0;
   h.events.push({ k: 'react', v: v.id, r: react, x: Math.round(v.x), y: Math.round(v.y) });
-  const others = (): SimPlayer[] =>
-    [...h.players.values()].filter((o) => o.id !== v.id && !o.down && o.hp > 0 && !o.burrow);
+  const others = (): SimPlayer[] => {
+    // a reaction never spreads onto the caster's own crew (T26)
+    const src = h.players.get(srcId);
+    return [...h.players.values()].filter((o) => o.id !== v.id && !o.down && o.hp > 0 && !o.burrow
+      && !(src && sameTeam(src, o)));
+  };
 
   switch (react) {
     case 'shock': {

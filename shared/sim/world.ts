@@ -15,6 +15,7 @@ import {
   bountyMulFor, noteAttackHit, onKO, resetOnDeath, resetOnSpawn, stepPassives, takeFlow, toonSave, ultGainMul,
 } from './passives.ts';
 import { canSee, REVEAL_SEC } from './visibility.ts';
+import { sameTeam, type Team } from './teams.ts';
 import {
   CHEST_HP, CHEST_RADIUS, CHEST_SPOTS, PICKUP_HEAL, PICKUP_RADIUS, PICKUP_SEC, PICKUP_ULT_FRAC,
   Tide, inWater, pickupFor, WATER_SLOW, WATER_WET_SEC,
@@ -123,6 +124,8 @@ export interface SimPlayer {
   /** TOON LOGIC (T20): the free save is used per life; `toonLeft` = pancake seconds */
   toonUsed: boolean;
   toonLeft: number;
+  /** team A/B for crew matches (T26); `null` = no teams, i.e. friendly fire is on */
+  team: Team | null;
   bot?: boolean;
 }
 
@@ -167,7 +170,7 @@ export class World {
   /** rotates the pickup reward so chests do not always drop the same thing */
   private pickupRotor = 0;
 
-  addPlayer(id: number, name: string, fighter = 'default', bot = false): SimPlayer {
+  addPlayer(id: number, name: string, fighter = 'default', bot = false, team: Team | null = null): SimPlayer {
     const s = SPAWNS[(id - 1) % SPAWNS.length];
     const def = getFighter(fighter);
     const p: SimPlayer = {
@@ -176,7 +179,7 @@ export class World {
       ammo: def.ammo, reload: 0, fireCd: 0, fireLatch: false, spcCd: 0, uc: 0, dash: null, burrow: null,
       buffMul: 1, buffLeft: 0, dmgMul: 1, dmgMulLeft: 0, status: null, statusLeft: 0, rootLeft: 0, burnT: 0, trapTook: 0,
       revealT: 0, down: false, respawn: 0, shield: C.SHIELD_SEC, kos: 0, deaths: 0, pendingFighter: null,
-      gold: 0, bounty: BOUNTY_START, waterT: 0, bot,
+      gold: 0, bounty: BOUNTY_START, waterT: 0, bot, team,
       evolveKos: 0, evolved: false, flowHits: 0, flowT: 0, flowReady: false, toonUsed: false, toonLeft: 0,
     };
     this.players.set(id, p);
@@ -186,6 +189,18 @@ export class World {
 
   removePlayer(id: number): void {
     this.players.delete(id);
+  }
+
+  /** Put a fighter on crew A/B (rooms auto-balance; tests set it directly). */
+  setTeam(id: number, team: Team | null): void {
+    const p = this.players.get(id);
+    if (p) p.team = team;
+  }
+
+  /** True when a hit from `attacker` must not land on `v` because both are on the same crew. */
+  friendly(attacker: number, v: SimPlayer): boolean {
+    const a = this.players.get(attacker);
+    return !!a && a.id !== v.id && sameTeam(a, v);
   }
 
   /**
@@ -459,6 +474,8 @@ export class World {
         }
         for (const v of this.players.values()) {
           if (v.id === pr.owner || v.down || v.burrow) continue;
+          // a teammate never blocks the shot: it flies straight through (T26)
+          if (this.friendly(pr.owner, v)) continue;
           if (Math.hypot(v.x - pr.x, v.y - pr.y) >= v.r + pr.r) continue;
           if (pr.pierce) {
             pr.hit ??= new Set();
@@ -509,13 +526,14 @@ export class World {
   /** Single damage entry point: also feeds the attacker's ult charge. */
   damage(attacker: number, v: SimPlayer, dmg: number, x: number, y: number): void {
     if (v.shield > 0 || v.down || v.burrow) return;
+    // no friendly fire (T26): a teammate's shot, zone or splash passes through
+    if (this.friendly(attacker, v)) return;
     // Shell Spin and friends take less damage while their buff runs
     if (v.dmgMulLeft > 0) dmg *= v.dmgMul;
     const dealt = Math.max(0, Math.min(v.hp, dmg));
     v.hp = Math.max(0, v.hp - dmg);
     this.events.push({ k: 'hit', a: attacker, v: v.id, dmg, x: Math.round(x), y: Math.round(y) });
-    const a = this.players.get(attacker);
-    if (a && a.id !== v.id && dealt > 0) a.uc = Math.min(a.def.ultCharge, a.uc + dealt * ultGainMul(a));
+    const a = this.players.get(attacker);    if (a && a.id !== v.id && dealt > 0) a.uc = Math.min(a.def.ultCharge, a.uc + dealt * ultGainMul(a));
     if (v.status === 'trapped' && v.hp > 0) {
       v.trapTook += dealt;
       if (v.trapTook >= TRAP_BREAK_DMG) {
@@ -683,6 +701,7 @@ export class World {
         uc: Math.round(Math.max(0, Math.min(1, p.uc / p.def.ultCharge)) * 100),
         cd: Math.round(p.spcCd * 10) / 10,
         ev: p.evolved ? 1 : undefined,
+        tm: p.team ?? undefined,
       });
     }
     return {

@@ -360,7 +360,8 @@ Each fighter task: SVG + hurt SVG, data kit, hooks if needed, unit test per abil
 
 ### CP7 — "Team-Modus: Treasure Tide + Crew-Kombos"
 
-- [ ] **T26 — Teams**
+- [x] **T26 — Teams**
+  - Note: `RoomMode` + `mode` query param through lobby → join → `Room.mode`; teams A/B in `shared/sim/teams.ts` with `autoTeams()` (assignments sticky, humans split, bots fill the smaller crew); ships with **no friendly fire** (single `damage()` chokepoint + projectile/ability/element/bot targeting all respect `sameTeam`), crew ring + ally-coloured names in the rig, bots regroup on allies and only target enemies; lobby mode row (`mode-bounty`/`mode-treasure`), Quick Play randomises it. Treasure *rules* land in T27 — for now the mode only travels with the room. 9 new tests in `tests/unit/teams.test.ts`, `check` 407 green + smoke OK + e2e 15/15.
   - Do:
     - Room `mode` (`bounty`|`treasure`).
     - Teams A/B with auto-balance (humans spread out, bots fill), no friendly fire, team ring colors under the feet, ally names in a team color, bots team-aware (target enemies only, regroup).
@@ -538,3 +539,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T22 ✅ 2026-10-18 — Pip+Brak-Kits (Gust-Pair, Kite-Dash, Pull-Zone; Wall-Primitive `shared/sim/walls.ts`), 14 neue Tests, check+378 grün
 - T23 ✅ 2026-10-18 — Sable+Bisque-Kits (breiter Saber-Arc, Claw-Dash, Spin-Ult; Fire-Dash-Trail, 5-Gang-Combo-Cone), 8 neue Tests, check+386+shot grün
 - T25 ✅ 2026-10-18 — Balance-Harness (`npm run balance`, --quick 1 s): 12×12-Paare ×10 Seeds ×60 s + FFA×20, `.loop/balance.md`; Bot-Nahkampf-Fix (prefRange aus der eigenen Reichweite); 3 Balance-Pässe, Outliers 11→5; CP6, 397 Tests+e2e 15/15+healthz grün
+- T26 ✅ 2026-10-18 — Teams: RoomMode (bounty|treasure) Lobby→Join→Room, autoTeams (sticky, Humans gespreizt), kein Friendly Fire (damage/Projektil/Ability/Element/Bot-Ziel), Crew-Ring+Ally-Namen, Bots regroup; 407 Tests+e2e 15/15 grün

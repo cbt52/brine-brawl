@@ -53,6 +53,8 @@ export class Net {
         fighter: p.get('fighter') ?? undefined,
         bots: bots === null ? undefined : Number(bots),
         matchsec: ms === null ? undefined : Number(ms),
+        // room mode from the lobby selector (T26)
+        mode: p.get('mode') ?? undefined,
         // debug-only on the server (ALLOW_DEBUG): `?tide=high` screenshots
         tide: p.get('tide') ?? undefined,
       });

@@ -1,8 +1,9 @@
 import type { WebSocket } from 'ws';
 import { MAX_HUMANS, MAX_NAME_LEN, TICK_HZ } from '../shared/constants.ts';
-import type { InputMsg, ScoreRow } from '../shared/protocol.ts';
+import type { InputMsg, RoomMode, ScoreRow } from '../shared/protocol.ts';
 import { World } from '../shared/sim/world.ts';
 import { BotBrain } from '../shared/sim/bot.ts';
+import { autoTeams, type Team } from '../shared/sim/teams.ts';
 import { randomFighterId, resolveFighterId } from '../shared/fighters/index.ts';
 import { Match, rankPlayers } from './match.ts';
 
@@ -22,6 +23,10 @@ export function sanitizeName(raw: unknown): string {
   return `${r(ADJ)} ${r(NOUN)}`;
 }
 
+export function sanitizeMode(raw: unknown): RoomMode | null {
+  return raw === 'bounty' || raw === 'treasure' ? raw : null;
+}
+
 export interface Client {
   id: number;
   ws: WebSocket;
@@ -33,13 +38,15 @@ export class Room {
   clients = new Map<number, Client>();
   world = new World();
   match = new Match();
+  /** Bounty Brawl (default) or Treasure Tide (T26/T27) */
+  mode: RoomMode = 'bounty';
   emptySince: number | null = Date.now();
   bots = new Map<number, BotBrain>();
   wantBots = 0;
   private nextBot = 1000;
   acc = 0;
   last = Date.now();
-  constructor(public id: string) {}
+  constructor(public id: string, mode: RoomMode = 'bounty') { this.mode = mode; }
 
   /**
    * Full roster for the scoreboard — every combatant, including fighters the viewer's snapshot
@@ -49,9 +56,18 @@ export class Room {
     return rankPlayers(
       [...this.world.players.values()].map((p) => ({
         id: p.id, name: p.name, kos: p.kos, deaths: p.deaths, bounty: p.bounty,
-        fighter: p.fighter, bot: this.bots.has(p.id),
+        fighter: p.fighter, bot: this.bots.has(p.id), team: p.team ?? undefined,
       })),
     );
+  }
+
+  /** Auto-balance the crews: existing sides stay, newcomers join the smaller crew (T26). */
+  assignTeams(): void {
+    const members = [...this.world.players.values()].map((p) => ({
+      id: p.id, human: this.clients.has(p.id), team: p.team,
+    }));
+    const teams = autoTeams(members);
+    for (const [id, team] of teams) this.world.setTeam(id, team as Team);
   }
 
   /** Advance the sim by wall-clock time using a fixed 30 Hz step. */
@@ -88,10 +104,11 @@ export class Room {
       const id = this.nextBot++;
       const used = new Set([...this.world.players.values()].map((p) => p.name));
       const name = BOT_NAMES.find((n) => !used.has(n)) ?? `Bot ${id}`;
-      // bots show up with a random real kit (T10)
+      // bots show up with a random real kit (T10) and join the smaller crew (T26)
       this.world.addPlayer(id, name, randomFighterId(), true);
       this.bots.set(id, new BotBrain(id, 'normal'));
     }
+    this.assignTeams();
   }
 
   /** Fighter change from the in-game menu: takes effect on the client's next respawn. */
@@ -122,13 +139,13 @@ export class RoomManager {
 
   join(
     ws: WebSocket, roomRaw: unknown, nameRaw: unknown, fighterRaw: unknown, botsRaw?: unknown,
-    matchSecRaw?: unknown, tideRaw?: unknown,
+    matchSecRaw?: unknown, tideRaw?: unknown, modeRaw?: unknown,
   ): { room: Room; client: Client } | null {
     const id = sanitizeRoom(roomRaw);
     let room = this.rooms.get(id);
     const created = !room;
     if (!room) {
-      room = new Room(id);
+      room = new Room(id, sanitizeMode(modeRaw) ?? 'bounty');
       this.rooms.set(id, room);
     }
     if (room.clients.size >= MAX_HUMANS) return null;
@@ -176,6 +193,7 @@ export class RoomManager {
       const info = r.match.info();
       // unfiltered roster: the per-viewer snapshot list hides fighters behind kelp
       info.ros = r.roster();
+      info.mode = r.mode;
       for (const c of r.clients.values()) {
         if (c.ws.readyState !== 1) continue;
         const snap = r.world.snapshotFor(c.id);

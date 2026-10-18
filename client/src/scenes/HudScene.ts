@@ -238,8 +238,14 @@ export class HudScene extends Phaser.Scene {
       // prefer the server's unfiltered roster: `view` hides fighters behind kelp
       const roster = m?.ros?.length ? m.ros : view;
       const rows = [...roster].sort((a, b) => b.b - a.b || b.k - a.k || a.d - b.d || a.n.localeCompare(b.n));
-      const lines = ['SCOREBOARD'];
-      rows.forEach((p, i) => lines.push(`${i + 1}. ${p.n}${p.id === selfId ? ' (you)' : ''} — ${p.b} 🪙 · ${p.k} KO${p.k === 1 ? '' : 's'}`));
+      const teamMatch = rows.some((p) => p.tm !== undefined);
+      const lines = [m?.mode === 'treasure' ? 'SCOREBOARD · TREASURE TIDE' : 'SCOREBOARD · BOUNTY'];
+      rows.forEach((p, i) => {
+        // crew letter in front of the row, `*` marks your own crew (T26)
+        const crew = p.tm === undefined ? '' : `${p.tm === 0 ? 'A' : 'B'}${p.tm === me?.tm ? '*' : ' '} `;
+        lines.push(`${i + 1}. ${crew}${p.n}${p.id === selfId ? ' (you)' : ''} — ${p.b} 🪙 · ${p.k} KO${p.k === 1 ? '' : 's'}`);
+      });
+      if (teamMatch) lines.push('A* your crew · B enemies');
       this.sbText.setText(lines.join('\n'));
     }
     this.lastPhase = phase;

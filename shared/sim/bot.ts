@@ -3,6 +3,7 @@ import { WORLD_W, WORLD_H } from '../constants.ts';
 import { pushOutRect } from './collide.ts';
 import { abilityReach } from './abilities.ts';
 import { canSee } from './visibility.ts';
+import { sameTeam } from './teams.ts';
 import type { SimInput, SimPlayer, World } from './world.ts';
 
 export type BotDifficulty = 'easy' | 'normal';
@@ -81,12 +82,13 @@ export class BotBrain {
   private perceive(world: World, me: SimPlayer, dt: number): void {
     this.reactT -= dt;
     const cur = this.seen ? world.players.get(this.seen.id) : undefined;
-    if (this.reactT > 0 && cur && !cur.down && canSee(me, cur)) return;
+    if (this.reactT > 0 && cur && !cur.down && canSee(me, cur) && !sameTeam(me, cur)) return;
     this.reactT = this.prm.react;
     let best: SimPlayer | null = null;
     let bd = SEE_RANGE;
     for (const o of world.players.values()) {
       if (o.id === me.id || o.down) continue;
+      if (sameTeam(me, o)) continue; // teammates are never targets (T26)
       if (!canSee(me, o)) continue; // kelp hides targets from bots too
       const d = Math.hypot(o.x - me.x, o.y - me.y);
       if (d < bd) { bd = d; best = o; }
@@ -96,6 +98,18 @@ export class BotBrain {
       this.vel = { x: (best.x - this.seen.x) / this.prm.react, y: (best.y - this.seen.y) / this.prm.react };
     } else this.vel = { x: 0, y: 0 };
     this.seen = { x: best.x, y: best.y, id: best.id };
+  }
+
+  /** Nearest living teammate inside `range` (a bot regroups when there is nothing to fight). */
+  private nearestAlly(world: World, me: SimPlayer, range: number): SimPlayer | null {
+    let best: SimPlayer | null = null;
+    let bd = range;
+    for (const o of world.players.values()) {
+      if (o.id === me.id || o.down || !sameTeam(me, o)) continue;
+      const d = Math.hypot(o.x - me.x, o.y - me.y);
+      if (d < bd) { bd = d; best = o; }
+    }
+    return best;
   }
 
   think(world: World, dt: number): SimInput {
@@ -124,10 +138,17 @@ export class BotBrain {
 
     if (!t) {
       this.state = 'wander';
-      this.wanderT -= dt;
-      if (this.wanderT <= 0) { this.wanderT = 1 + this.rng() * 2; this.wanderAng = this.rng() * Math.PI * 2; }
-      heading = this.wanderAng;
-      move = 0.6;
+      // nothing to fight: regroup with the crew instead of drifting alone (T26)
+      const ally = this.nearestAlly(world, me, SEE_RANGE);
+      if (ally) {
+        heading = Math.atan2(ally.y - me.y, ally.x - me.x);
+        move = Math.hypot(ally.x - me.x, ally.y - me.y) > 140 ? 0.8 : 0;
+      } else {
+        this.wanderT -= dt;
+        if (this.wanderT <= 0) { this.wanderT = 1 + this.rng() * 2; this.wanderAng = this.rng() * Math.PI * 2; }
+        heading = this.wanderAng;
+        move = 0.6;
+      }
     } else {
       const dx = t.x - me.x;
       const dy = t.y - me.y;

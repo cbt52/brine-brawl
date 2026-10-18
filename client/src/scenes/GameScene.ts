@@ -443,6 +443,7 @@ export class GameScene extends Phaser.Scene {
     const nowMs = performance.now();
     const view = interpolate(this.net.buffer, nowMs - INTERP_DELAY_MS);
     this.applyPrediction(view);
+    const myTeam = view.find((p) => p.id === this.net.id)?.tm;
     const seen = new Set<number>();
     for (const p of view) {
       seen.add(p.id);
@@ -465,6 +466,8 @@ export class GameScene extends Phaser.Scene {
         this.rigs.set(p.id, rig);
       }
       rig.setLabel(p.n);
+      // crew colours (T26): ring under every body, ally names in the crew colour
+      rig.setTeam(p.tm ?? null, p.tm !== undefined && p.tm === myTeam);
       rig.setEvolved(Boolean(p.ev));
       rig.sync(p.x, p.y, p.a, Boolean(p.dn));
       rig.setBars(p.hp / p.mhp, p.am, def.ammo, art.color);

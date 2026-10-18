@@ -6,6 +6,7 @@ import { noteAttackHit } from './passives.ts';
 import { resolveWalls } from './collide.ts';
 import type { Projectile } from './combat.ts';
 import { wallFor, wallRects, type Wall } from './walls.ts';
+import { sameTeam } from './teams.ts';
 import type { Chest, SimPlayer } from './world.ts';
 import { CHEST_RADIUS } from './tide.ts';
 
@@ -92,8 +93,14 @@ export interface CastHost {
 }
 
 function enemies(h: CastHost, owner: number): SimPlayer[] {
+  // no friendly fire (T26): abilities and zones only ever target the other crew
+  const me = h.players.get(owner);
   const out: SimPlayer[] = [];
-  for (const v of h.players.values()) if (v.id !== owner && !v.down && v.hp > 0 && !v.burrow) out.push(v);
+  for (const v of h.players.values()) {
+    if (v.id === owner || v.down || v.hp <= 0 || v.burrow) continue;
+    if (me && sameTeam(me, v)) continue;
+    out.push(v);
+  }
   return out;
 }
 

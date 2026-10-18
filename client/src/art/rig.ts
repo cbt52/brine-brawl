@@ -1,6 +1,10 @@
 import Phaser from 'phaser';
 import { ART, FACTION_COLOR, artKey, artUrl, getArt, hurtKey, hurtUrl } from './manifest.ts';
 import type { Faction } from '../../../shared/fighters/types.ts';
+import { TEAM_COLORS } from '../../../shared/sim/teams.ts';
+
+/** Phaser wants 0xrrggbb; the name plate wants a CSS colour. */
+const hex = (c: number): string => `#${c.toString(16).padStart(6, '0')}`;
 
 export type RigState = 'idle' | 'run' | 'attack' | 'hit' | 'ko';
 
@@ -57,6 +61,10 @@ export class FighterSprite extends Phaser.GameObjects.Container {
   private ultTween?: Phaser.Tweens.Tween;
   /** evolved body scale flag (EVOLVE passive, T20) */
   private evolved = false;
+  /** crew colour state (T26) */
+  private teamKey: number | null | undefined;
+  private teamAlly = false;
+  private teamRing?: Phaser.GameObjects.Ellipse;
 
   constructor(scene: Phaser.Scene, x: number, y: number, cfg: RigConfig) {
     super(scene, x, y);
@@ -113,6 +121,27 @@ export class FighterSprite extends Phaser.GameObjects.Container {
 
   setLabel(name: string): void {
     if (this.nameText && this.nameText.text !== name) this.nameText.setText(name);
+  }
+
+  /**
+   * Crew colours (T26): a ring in the crew colour under every body, and the name plate in that
+   * colour for your own crew (so allies stand out at a glance). `team: null` clears both.
+   */
+  setTeam(team: number | null, ally = false): void {
+    const key = team === null ? null : team;
+    if (key === this.teamKey && ally === this.teamAlly) return;
+    this.teamKey = key;
+    this.teamAlly = ally;
+    this.teamRing?.destroy();
+    this.teamRing = undefined;
+    if (key !== null) {
+      const color = TEAM_COLORS[key === 1 ? 1 : 0];
+      this.teamRing = this.scene.add
+        .ellipse(0, this.feetY + this.h * 0.02, this.h * 0.8, this.h * 0.3)
+        .setStrokeStyle(Math.max(2, this.h * 0.05), color, ally ? 0.95 : 0.55);
+      this.addAt(this.teamRing, 0);
+    }
+    this.nameText?.setColor(ally && key !== null ? hex(TEAM_COLORS[key === 1 ? 1 : 0]) : '#ffffff');
   }
 
   /** EVOLVE (T20): the golden crest makes the body a touch bigger. */

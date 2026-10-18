@@ -37,6 +37,7 @@ if (roomParam && (params.has('name') || params.has('bots'))) {
     if (c.name) q.set('name', c.name);
     q.set('bots', String(c.bots));
     q.set('fighter', c.fighter);
+    q.set('mode', c.mode);
     history.replaceState(null, '', `/?room=${encodeURIComponent(c.room)}`);
     net.start(q);
     mountMenu(net);

@@ -1,4 +1,5 @@
 import type { MatchInfo, MatchPhase, ScoreRow } from '../shared/protocol.ts';
+import type { Team } from '../shared/sim/teams.ts';
 
 export const COUNTDOWN_SEC = 3;
 export const MATCH_SEC = 150;
@@ -105,13 +106,18 @@ export class Match {
  * Rows without a bounty (older scoreboard callers) keep the plain KO order because they all tie at 0.
  */
 export function rankPlayers(
-  ps: { id: number; name: string; kos: number; deaths: number; bounty?: number; fighter?: string; bot?: boolean }[],
+  ps: {
+    id: number; name: string; kos: number; deaths: number; bounty?: number; fighter?: string; bot?: boolean;
+    /** crew 0/1 (T26); omitted in a free-for-all */
+    team?: Team;
+  }[],
 ): ScoreRow[] {
   return ps
     .map((p) => ({
       id: p.id, n: p.name, k: p.kos, d: p.deaths,
       b: typeof p.bounty === 'number' && Number.isFinite(p.bounty) ? p.bounty : 0,
       f: p.fighter ?? '', bot: p.bot ? 1 : 0,
+      ...(p.team === 0 || p.team === 1 ? { tm: p.team } : {}),
     }))
     .sort((a, b) => b.b - a.b || b.k - a.k || a.d - b.d || a.n.localeCompare(b.n));
 }
