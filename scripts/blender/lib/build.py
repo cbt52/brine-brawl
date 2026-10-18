@@ -48,16 +48,18 @@ def _box(bm):
 
 def _torus(bm, size, waves=None, u=48, v=12):
     """Ring in the xy plane: `size` = full box, z = tube diameter (the ring may be elliptical).
-    `waves` = [count, amp, radial?] ripples the ring `count` times, `amp` px up and down (z) and
-    `radial` px in and out: a scalloped wave trim."""
+    `waves` = [count, amp, radial?, lag?] ripples the ring `count` times, `amp` px up and down (z) and
+    `radial` px in and out: a scalloped wave trim. `lag` (degrees) shifts the z ripple against the
+    radial one (90 = lifted where the ring bulges out, -amp = dipped there: a tricorn brim)."""
     sx, sy, sz = size
     r = sz / 2
     rx, ry = max(r, sx / 2 - r), max(r, sy / 2 - r)
-    n, amp, rad = (list(waves) + [0])[:3] if waves else (0, 0, 0)
+    n, amp, rad, lag = (list(waves) + [0, 0])[:4] if waves else (0, 0, 0, 0)
+    lag = math.radians(lag)
     grid = []
     for i in range(u):
         th = 2 * math.pi * i / u
-        wz = amp * math.sin(n * th)
+        wz = amp * math.sin(n * th + lag)
         wr = rad * math.cos(n * th)
         row = []
         for j in range(v):

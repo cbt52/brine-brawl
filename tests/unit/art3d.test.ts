@@ -108,6 +108,7 @@ describe('validateSpec', () => {
   it('accepts torus rings with waves and rejects a tube as wide as the ring', () => {
     const s = selftest();
     s.parts[0].prims.push({ type: 'torus', at: [0, 0, 10], size: [40, 40, 6], waves: [7, 1.5, 1] });
+    s.parts[0].prims.push({ type: 'torus', at: [0, 0, 20], size: [40, 40, 6], waves: [3, -4, 6, 90] });
     expect(validateSpec(s)).toEqual([]);
     s.parts[0].prims.push({ type: 'torus', at: [0, 0, 10], size: [10, 10, 12], waves: [1.5, 'x'] });
     const errs = validateSpec(s).join('\n');
@@ -117,7 +118,7 @@ describe('validateSpec', () => {
 });
 
 describe('fighter specs', () => {
-  const ids = ['voltbun', 'mira'];
+  const ids = ['voltbun', 'mira', 'noodle'];
   const spec = (id: string) => JSON.parse(readFileSync(`scripts/blender/specs/${id}.json`, 'utf8'));
 
   it.each(ids)('%s is valid', (id) => {

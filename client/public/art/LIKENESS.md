@@ -37,7 +37,7 @@ archetype cues beyond "friendly sailor".
 
 | id | matched cues | to stay legal |
 |---|---|---|
-| `noodle` | sea hat with upturned brims · striped shirt · rubbery grin | seashell tricorn in teal; no hay-coloured headwear and no red vest; stripes are faction red on teal |
+| `noodle` | sea hat with upturned brims · striped shirt · rubbery grin | seashell tricorn in teal; no hay-coloured headwear and no red vest; stripes are faction red on teal (3D: lanky long-legged build, teal three-cornered hat with a cream rim and a cream shell badge in front, dark hair under it, red rings on the teal shirt, navy shorts, wide five-point grin; no blush) |
 | `sable` | eye patch · twin sabers · mechanical claw arm | crab-claw third blade; navy coat with a single red sash |
 | `bisque` | long bill · chef's toque · bird legs with a ladle in hand | orange bill, cream feathers, red toque band (faction accent) |
 | `nova` | compass staff · map scarf · cloud companion | gold compass dial, red scarf, cloud pet as a small puff |

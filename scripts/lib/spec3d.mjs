@@ -61,8 +61,8 @@ export function validateSpec(spec) {
         errs.push(`${pat}.size z (tube) must be smaller than the ring`);
       }
       const w = q?.waves;
-      if (w !== undefined && !(Array.isArray(w) && (w.length === 2 || w.length === 3) && Number.isInteger(w[0]) && w.slice(1).every(isNum))) {
-        errs.push(`${pat}.waves must be [count, amp, radial?]`);
+      if (w !== undefined && !(Array.isArray(w) && w.length >= 2 && w.length <= 4 && Number.isInteger(w[0]) && w.slice(1).every(isNum))) {
+        errs.push(`${pat}.waves must be [count, amp, radial?, lag?]`);
       }
     });
     if (typeof p?.name === 'string') seen.add(p.name);

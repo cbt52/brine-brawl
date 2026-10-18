@@ -530,7 +530,8 @@ Rules for every task:
   - Accept: same as T35+T36 (reads at 48 px, within budget, 70 frames). Her silhouette is distinct from Voltbun's in the 48 px row.
   - Test: `npm run check && npm run art:3d -- mira --contact`
 
-- [ ] **T39 — Cap'n Noodle (model + anims + atlas)**
+- [x] **T39 — Cap'n Noodle (model + anims + atlas)**
+  - Note: spec `noodle.json`: lanky biped (26 px capsule legs + dark shoes, long 30 px arms with teal puff sleeves), teal shirt with 2 red torus stripes, navy shorts, cream collar ring, dark hair cap, teal hat tilted back (−12°) whose brim is a torus with new 4th `waves` value `lag` (`[3, 5, 10, 90]`: 3 lobes, lifted where the ring bulges out = tricorn corners) + cream rim torus + cream shell badge in front; new `grin` mouth (5-point wide arc) in `face.py`. Scale 0.85 clipped the hat at the cell top in `run_N_1/4` → 0.83: S 96 px, tops 5–32, bottoms all y=113, width 59–91, 1002×640 atlas 173 KB, 22 s render. Added to `SHEET_IDS`, LIKENESS row gets the 3D note. Taffy arm: the in-game shot (`.loop/tmp/t39-arm.mjs`, tips pre-dismissed) cropped off-player (camera not centred), so the shoulder start was checked by geometry: arm path starts at the rig origin, sheet feet sit 0.30·h below it, shoulder pivot z 54·0.83 → 0.29·h above the feet ⇒ within 0.01·h of the arm origin. Open look issues: from S/N the brim reads more like a round saucer than three corners; the hat hides most of the hair; the face sits low under the brim.
   - Do:
     - Write the spec per §4: lanky, seashell tricorn (NOT a straw hat), teal striped shirt, rubbery grin. Respect the §2.8 don'ts.
     - Add him to `SHEET_IDS` and add a LIKENESS row.
@@ -802,3 +803,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T36 ✅ 2026-10-18 — puppet.py (biped/blob/hover, ground snap) + Voltbun atlas 70 frames 1022×525 157 KB indexed, feet y=113 all; check 813 grün
 - T37 ✅ 2026-10-18 — rig plays Voltbun sheet (8 facings, hysteresis, hurt frame, lazy skin atlases), botf, y-sort; check 824 + e2e 34 grün
 - T38 ✅ 2026-10-18 — Mira atlas (torus prim + waves, hood/rim/braid/ribbons), 70 frames ~158 KB, feet y=113; check 831 grün
+- T39 ✅ 2026-10-18 — Noodle atlas (torus `lag` → tricorn brim, grin mouth, lanky biped), 70 frames 173 KB, feet y=113; check 837 grün

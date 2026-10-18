@@ -6,7 +6,7 @@
  */
 
 /** Fighters with a rendered atlas in `client/public/art/sprites/<id>.{png,json}`. */
-export const SHEET_IDS: readonly string[] = ['voltbun', 'mira'];
+export const SHEET_IDS: readonly string[] = ['voltbun', 'mira', 'noodle'];
 
 export type SheetAnim = 'idle' | 'run' | 'attack' | 'hurt';
 
