@@ -30,7 +30,7 @@ import {
   JELLY_STING, JELLY_STING_CD, jellyLunging, jellyTouches, makeJellies, stepJellies, type Jelly,
 } from './jellies.ts';
 import {
-  SHOWDOWN_EDGE_TICK_SEC, edgeDamage, lastSideInRing, outsideRing, showdownTideLevel,
+  SHOWDOWN_EDGE_TICK_SEC, edgeDamage, lastSideIds, lastSideInRing, outsideRing, showdownTideLevel,
 } from './showdown.ts';
 import { COIN_SEC, DROP_MAX, SPOT, Treasure, teamTotals } from './treasure.ts';
 import {
@@ -274,6 +274,17 @@ export class World {
   /** Showdown last-standing finish (backlog #20): true once one side is the only one left inside the ring. */
   lastStanding(): boolean {
     return this.mode === 'showdown' && lastSideInRing([...this.players.values()], this.roundT);
+  }
+
+  /**
+   * Backlog #33: the name of the side that won a last-standing finish, for the results banner —
+   * "CREW A" / "CREW B" in a crew match, the fighter's name in a free-for-all. Null when nobody won that way.
+   */
+  lastStandingLabel(): string | null {
+    if (this.mode !== 'showdown') return null;
+    const winner = this.players.get(lastSideIds([...this.players.values()], this.roundT)[0] ?? -1);
+    if (!winner) return null;
+    return winner.team === null ? winner.name : `CREW ${winner.team === 0 ? 'A' : 'B'}`;
   }
 
   /** Set the round's Weird Weather modifier (backlog #4). */

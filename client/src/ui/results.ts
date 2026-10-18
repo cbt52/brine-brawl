@@ -79,6 +79,9 @@ const nextText = (t: number): string => `Next round in ${t}s`;
 export const readyLine = (rd: { ready: number; of: number } | undefined): string =>
   rd ? `${rd.ready}/${rd.of} ready` : '';
 
+/** Banner above the table (backlog #33): a Showdown ring finish names the side that won it. */
+export const lastStandLine = (ls: string | undefined): string => (ls ? `LAST STANDING · ${ls}` : '');
+
 /**
  * Footer under the buttons (backlog #28): "Next round in Ns" only once everyone has tapped Ready.
  * Until then the results timer still restarts the round on its own, so the footer says that instead.
@@ -118,6 +121,7 @@ export function syncResults(m: MatchInfo | undefined, actions: ResultsActions = 
     div.innerHTML = `${confetti()}
       <h2 data-testid="results-title">🏆 ${escapeHtml(win?.n ?? 'Nobody')} wins!</h2>
       ${newBest ? `<small class="new-best" data-testid="results-best">★ New best bounty · ${newBest} 🪙</small>` : ''}
+      ${m.ls ? `<small class="ls-banner" data-testid="results-ls">${escapeHtml(lastStandLine(m.ls))}</small>` : ''}
       <ol class="rank-list" data-testid="results-list">${rows.map((r, i) => row(r, i + 1)).join('')}</ol>
       <div class="row">
         <button class="big" data-testid="results-rematch">Rematch</button>

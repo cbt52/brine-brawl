@@ -72,6 +72,7 @@ body.in-lobby #rotate { display: none; }
 #results .rank-list li:first-child { background: #ffc93c2e; }
 #results .pos { font-size: 18px; color: #ffc93c; }
 #results .new-best { color: #ffc93c; font-size: 15px; font-weight: 700; }
+#results .ls-banner { color: #2ec4b6; font-size: 15px; font-weight: 700; letter-spacing: .04em; opacity: 1; }
 #results .who { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 #results .bot { font-size: 11px; opacity: .7; }
 #results .score { font-size: 13px; opacity: .9; }

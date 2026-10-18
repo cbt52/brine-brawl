@@ -89,6 +89,9 @@ export interface MatchInfo {
   rd?: { ready: number; of: number };
   /** results phase only (backlog #32): id of the round's Most KOs fighter; absent when nobody scored */
   mv?: number;
+  /** results phase only (backlog #33): the side that won a Showdown last-standing finish ("CREW A" or a
+   * fighter's name); absent when the clock ran out */
+  ls?: string;
 }
 
 export interface DbgMsg {

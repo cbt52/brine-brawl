@@ -90,3 +90,12 @@ export function lastSideInRing(bodies: RingBody[], t: number): boolean {
   }
   return sides.size === 1;
 }
+
+/**
+ * The fighters of the side that won a last-standing finish (backlog #33): the ones still standing inside
+ * the ring. Empty unless `lastSideInRing` holds, so the results banner can name the winning side.
+ */
+export function lastSideIds(bodies: RingBody[], t: number): number[] {
+  if (!lastSideInRing(bodies, t)) return [];
+  return bodies.filter((b) => !b.down && !outsideRing(b.x, b.y, t)).map((b) => b.id);
+}

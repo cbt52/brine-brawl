@@ -59,6 +59,8 @@ export class Room {
   private streakSent = new Set<number>();
   /** the round's Most KOs fighter, frozen with the ranking (backlog #32) */
   mvp: number | null = null;
+  /** the side that won this round's Showdown last-standing finish (backlog #33); null when the clock ran out */
+  lastStand: string | null = null;
   acc = 0;
   last = Date.now();
   /** the layout is fixed when the room is created (backlog #26, the Galleon room pick) */
@@ -134,6 +136,7 @@ export class Room {
     if (ev === 'start') {
       this.world.resetScores();
       this.streakSent.clear();
+      this.lastStand = null;
       // Weird Weather (backlog #4): each round rolls its own modifier
       this.world.setWeather(pickWeather(Math.random(), this.mode));
     }
@@ -141,6 +144,7 @@ export class Room {
     // Treasure Tide (T27) and Showdown (backlog #20) can end a round before its clock runs out
     const early = this.world.treasure?.won != null || this.world.lastStanding();
     if (this.match.phase === 'playing' && early) {
+      this.lastStand = this.world.lastStandingLabel();
       if (this.match.finish() === 'end') this.freezeResults();
     }
     // Weird Weather lasts one round: calm skies again outside 'playing' (results, lobby, countdown)
@@ -345,6 +349,7 @@ export class RoomManager {
       if (r.match.phase === 'results') {
         info.rd = r.readyTally();
         if (r.mvp !== null) info.mv = r.mvp;
+        if (r.lastStand) info.ls = r.lastStand;
       }
       if (r.mode === 'showdown') info.sd = Math.round(r.world.roundT * 10) / 10;
       const host = r.hostId();
