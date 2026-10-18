@@ -239,7 +239,7 @@ const EDITS: readonly string[] = [
   'Left open (3-pass budget spent): noodle / embercub / voltbun still >60 %, pinchpenny / sudsy still <40 % — mobility (dash kits) decides bot duels more than the numbers do, so the next pass belongs in T99 or T33.',
 ];
 
-/** Markdown report written to `.loop/balance.md`. */
+/** Markdown report written to `.loop/balance.md` (full) or `.loop/balance-quick.md` (--quick). */
 export function formatReport(r: Report): string {
   const lines: string[] = [];
   lines.push(`# Balance${r.quick ? ' (quick)' : ''} — ${r.overall.reduce((n, t) => n + t.matches, 0) / 2} 1v1s`);

@@ -5,7 +5,7 @@ import { applyElementHit, applyStatus as storeStatus, ELEMENT_OF_STATUS } from '
 import { noteAttackHit } from './passives.ts';
 import { resolveWalls } from './collide.ts';
 import type { Projectile } from './combat.ts';
-import { wallFor, type Wall } from './walls.ts';
+import { wallFor, wallRects, type Wall } from './walls.ts';
 import type { Chest, SimPlayer } from './world.ts';
 import { CHEST_RADIUS } from './tide.ts';
 
@@ -379,7 +379,8 @@ export function stepDash(h: CastHost, p: SimPlayer, dt: number): boolean {
   const wantY = d.vy * dt;
   p.x += wantX;
   p.y += wantY;
-  resolveWalls(p, OBSTACLES);
+  // stone slabs are as solid as the coral: a dash must not cross (or end inside) one
+  resolveWalls(p, h.walls?.length ? OBSTACLES.concat(wallRects(h.walls)) : OBSTACLES);
   // a wall blocked most of the intended step: a contact dash stops here
   if (d.stopOnContact && Math.hypot(p.x - x0, p.y - y0) < Math.hypot(wantX, wantY) * 0.7) {
     p.dash = null;
@@ -424,7 +425,7 @@ export function stepBurrow(h: CastHost, p: SimPlayer, dt: number): boolean {
   if (b.left > 0) return true;
   p.x = b.tx;
   p.y = b.ty;
-  resolveWalls(p, OBSTACLES);
+  resolveWalls(p, h.walls?.length ? OBSTACLES.concat(wallRects(h.walls)) : OBSTACLES);
   p.burrow = null;
   hitAll(h, p.id, p.x, p.y, b.radius, b.dmg, 0, 0, { status: b.status, statusSec: b.statusSec, element: b.element });
   h.events.push({ k: 'cast', id: p.id, ab: 'burrow', x: Math.round(p.x), y: Math.round(p.y), a: 0 });

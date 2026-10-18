@@ -11,6 +11,7 @@ import { SHOCK_DMG, SHOCK_CHAIN_RANGE, applyElementHit } from '../../shared/sim/
 import { hasStatus, statusMask } from '../../shared/fighters/types.ts';
 import { TICK_HZ } from '../../shared/constants.ts';
 import { BASE_SPEED } from '../../shared/sim/world.ts';
+import { seeded } from '../../scripts/lib/balance.ts';
 
 const POOL = SHALLOWS[0];
 const POOL_CENTRE = { x: POOL.x + POOL.w / 2, y: POOL.y + POOL.h / 2 };
@@ -260,7 +261,7 @@ describe('bots and the tide', () => {
     const a = w.addPlayer(1, 'bot', 'default', true);
     a.shield = 0;
     a.x = POOL_CENTRE.x; a.y = POOL_CENTRE.y;
-    const brain = new BotBrain(1, 'normal');
+    const brain = new BotBrain(1, 'normal', seeded(7));
     let wasIn = false;
     for (let i = 0; i < 3 * TICK_HZ; i++) {
       w.setInput(1, brain.think(w, 1 / TICK_HZ));
@@ -278,7 +279,7 @@ describe('bots and the tide', () => {
     a.shield = 0; b.shield = 0;
     a.x = POOL.x - 220; a.y = POOL_CENTRE.y;
     b.x = POOL.x + POOL.w + 120; b.y = POOL_CENTRE.y;
-    const brain = new BotBrain(1, 'normal');
+    const brain = new BotBrain(1, 'normal', seeded(11));
     for (let i = 0; i < 3 * TICK_HZ; i++) {
       w.setInput(1, brain.think(w, 1 / TICK_HZ));
       w.step();

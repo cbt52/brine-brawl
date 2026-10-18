@@ -324,6 +324,11 @@ Each reaction shows a big popup word ("SHOCK!").
   - Note: `shared/sim/bounty.ts` (`BOUNTY_START` 100, +100 per KO, purse `50 + 50 %` floored, 3 coins, `crownHolder`); `SimPlayer.bounty`/`gold`, KO pays the killer + drops 3 gold pickups, victim resets to 100, `resetScores` clears bounty+stash; snapshot `b`, `ScoreRow {b,f}`, `rankPlayers` sorts by bounty; HUD shows own bounty + bounty scoreboard, GameScene draws the crown + `WANTED` tag over the leader; results = canvas parchment posters (`client/src/ui/wanted.ts`, portrait from `/art/<id>.svg`) with runner-up mini sheets; 9 tests in tests/unit/bounty.test.ts, 339 green, e2e 15/15; shot T19-0.
 
 - [x] **T20 — Faction passives** · CP: yes
+
+### CP6 — "Die Crew wächst: 12 Kämpfer + Balance"
+
+Each fighter task: SVG + hurt SVG, data kit, hooks if needed, unit test per ability, gallery shot ≤1 PNG viewed.
+
 - [x] **T21 — Critterkin: Embercub + Mossback**
   - Note: kits registered — Embercub (Flame Swipe melee cone burn / Ember Roll burn-trail dash / Bonfire aim zone that ticks burn and heals the caster), Mossback (Seed Spit 3-seed tangled spread / Shell Spin buff dmgMul 0.5 for 2 s / Overgrowth root AoE). New primitive bits: `AoeAbility.selfHeal` (zone heals its owner per ½ s tick), `AoeAbility.rootSec` (rootLeft on victims), `BuffAbility.dmgMul` + `SimPlayer.dmgMul/dmgMulLeft` applied in `World.damage`; buff summary shows the multiplier. 8 new tests, 364 green, gallery shot T21-0 shows both new cards.
   - Test: `npm run check && npm run shot -- --name T21 --path /gallery.html`
@@ -351,6 +356,7 @@ Each reaction shows a big popup word ("SHOCK!").
   - Checkpoint: "CP6 ✅ 12 Kämpfer", the new names plus a one-liner on balance.
   - Test: `npm run check && npm run balance -- --quick`
   - Note: `scripts/balance.ts` + `scripts/lib/balance.ts` (`npm run balance`, `--quick` ≈1 s): headless `World` + `BotBrain(normal)` with a seeded mulberry32, every SELECTABLE pair ×10 seeds ×60 s (fresh `World` per match, 60 s ≈ 10 s wall clock), 6-bot FFA ×20, KOs→deaths→damage decides the winner, `.loop/balance.md` holds the tables + the edit history. Enabling fix: `shared/sim/bot.ts` used the flat 380 u stand-off for every kit, so melee bots never swung and every melee kit scored 0–31 % — `prefRangeFor()` now takes 0.75× its own reach for melee kits (unit test in tests/unit/bot.test.ts). 3 data passes (all ≤10 % steps, logged in `.loop/balance.md`): outliers 11 → 5, mean winrate 50 %. Still outside 40–60 %: noodle 73, embercub 70, voltbun 66, pinchpenny 31, sudsy 27 — mobility decides bot duels more than the numbers, so the next pass goes to T99/T33. 397 unit tests green, e2e 15/15, healthz on 8720 OK.
+  - Waiver (review 20261018-045112): the Do's 40–60 % band is **not** met and stays open — noodle 73 %, embercub 70 %, voltbun 66 %, pinchpenny 31 %, sudsy 27 %. The 3-pass budget is spent and mobility decides bot duels more than the numbers, so the closing pass is deferred to **T99** (first `.loop/balance.md` outlier, per §5). The harness itself is done and green.
 
 ### CP7 — "Team-Modus: Treasure Tide + Crew-Kombos"
 

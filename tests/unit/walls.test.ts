@@ -100,4 +100,23 @@ describe('wall primitive (Brak Stone Wall)', () => {
     w.resetScores();
     expect(w.walls.length).toBe(0);
   });
+
+  it('stops a dash: Ember Roll does not cross the slab', () => {
+    const w = new World();
+    const a = w.addPlayer(1, 'A', 'embercub'); // Ember Roll: 300 u dash along the aim
+    const b = w.addPlayer(2, 'B', 'default');
+    a.x = 1000; a.y = 1000; a.aim = 0;
+    b.x = 1500; b.y = 1000; b.aim = Math.PI;
+    a.shield = 0; b.shield = 0;
+    // a slab straight across the dash lane, 120 u ahead (the dash would reach 300 u)
+    const def = getFighter('brak').special;
+    if (def.kind !== 'wall') throw new Error('Brak special should be a wall');
+    const spot = wallFor(a.x, a.y, a.aim, { ...def, range: 120 });
+    w.walls.push({ id: 999, owner: 9, ...spot, hp: 60, mhp: 60, left: 4 });
+    expect(castAbility(w, a, getFighter('embercub').special, 'special')).toBe(true);
+    run(w, 0.6);
+    // never on the far side of the slab, never inside it
+    expect(a.x).toBeLessThanOrEqual(spot.x - a.r + 1);
+    expect(b.hp).toBe(b.mhp);
+  });
 });
