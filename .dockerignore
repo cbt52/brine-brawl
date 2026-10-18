@@ -1,0 +1,11 @@
+node_modules
+dist
+.loop
+test-results
+playwright-report
+.git
+*.log
+.DS_Store
+__pycache__
+*.blend
+*.blend1
