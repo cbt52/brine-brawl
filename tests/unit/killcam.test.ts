@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { KILLCAM_KEEP_MS, KILLCAM_MS, KillCam, trimHistory } from '../../client/src/net/killcam.ts';
+import { KILLCAM_KEEP_MS, KILLCAM_MS, KILLCAM_SLOW_MS, KillCam, trimHistory } from '../../client/src/net/killcam.ts';
 
 /** snapshots every 33 ms from `from` to `to` (local arrival times, oldest first) */
 const history = (from: number, to: number) => {
@@ -12,13 +12,34 @@ describe('kill-cam replay (backlog #5)', () => {
   it('replays the 2 s before the KO in real time, then hands back to live', () => {
     const cam = new KillCam();
     cam.start(history(0, 3000), 3000, 5);
-    // starts at the playhead two seconds back, moves at 1x
+    // starts at the playhead two seconds back, moves at 1x until the slow part
     expect(cam.frame(3000)).toEqual({ at: 3000 - KILLCAM_MS, killer: 5 });
     expect(cam.frame(3500)).toEqual({ at: 3500 - KILLCAM_MS, killer: 5 });
     expect(cam.frame(3999)?.at).toBeCloseTo(3999 - KILLCAM_MS);
-    // the playhead reaches the KO moment: the replay is over and stays over
-    expect(cam.frame(5000)).toBeNull();
-    expect(cam.frame(5100)).toBeNull();
+    // 1.5 s at 1x + 0.5 s at half speed = 2.5 s of wall time: the KO moment ends the replay for good
+    expect(cam.frame(5400)?.at).toBeLessThan(3000);
+    expect(cam.frame(5500)).toBeNull();
+    expect(cam.frame(5600)).toBeNull();
+  });
+
+  it('plays the last half second before the KO at half speed', () => {
+    const cam = new KillCam();
+    cam.start(history(0, 3000), 3000, 5);
+    const slowAt = 3000 - KILLCAM_SLOW_MS;
+    // the normal part runs up to the slow part after 1500 ms of wall time
+    expect(cam.frame(3000 + 1500)?.at).toBe(slowAt);
+    // then 200 ms of wall time moves the playhead only 100 ms
+    expect(cam.frame(3000 + 1700)?.at).toBeCloseTo(slowAt + 100);
+    expect(cam.frame(3000 + 2300)?.at).toBeCloseTo(slowAt + 400);
+  });
+
+  it('a tap ends the replay early and the camera goes back to live', () => {
+    const cam = new KillCam();
+    cam.start(history(0, 3000), 3000, 5);
+    expect(cam.frame(3500)).not.toBeNull();
+    cam.skip();
+    expect(cam.running).toBe(false);
+    expect(cam.frame(3600)).toBeNull();
   });
 
   it('clamps the lead-up to the oldest snapshot it has', () => {
@@ -26,7 +47,9 @@ describe('kill-cam replay (backlog #5)', () => {
     // only 1.2 s of history: the replay covers that and no more
     cam.start(history(1800, 3000), 3000, 2);
     expect(cam.frame(3000)?.at).toBe(1800);
-    expect(cam.frame(3000 + 1200)).toBeNull();
+    // 700 ms at 1x + 500 ms at half speed = 1700 ms of wall time
+    expect(cam.frame(3000 + 1200)).not.toBeNull();
+    expect(cam.frame(3000 + 1700)).toBeNull();
   });
 
   it('does not replay a thin buffer', () => {

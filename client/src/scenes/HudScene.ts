@@ -160,7 +160,7 @@ export class HudScene extends Phaser.Scene {
   setKillCam(killer: string | null): void {
     if (!this.killCamText || killer === this.killCamFor) return;
     this.killCamFor = killer;
-    this.killCamText.setText(killer === null ? '' : `KO CAM · ${killer}`).setVisible(killer !== null);
+    this.killCamText.setText(killer === null ? '' : `KO CAM · ${killer} · tap to skip`).setVisible(killer !== null);
   }
 
   /** Crew Combo (T28): big centred banner for the pair name, then fade. */

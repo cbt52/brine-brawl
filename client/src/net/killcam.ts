@@ -2,6 +2,10 @@
 export const KILLCAM_MS = 2000;
 /** How much snapshot history `Net.buffer` keeps: the lead-up plus slack for late snapshots. */
 export const KILLCAM_KEEP_MS = 3000;
+/** The last part of the lead-up (before the KO) plays in slow motion (backlog #18). */
+export const KILLCAM_SLOW_MS = 500;
+/** Playback speed of that slow part. */
+export const KILLCAM_SLOW_RATE = 0.5;
 /** A lead-up shorter than this is not worth a replay (joined a moment ago, or a thin buffer). */
 const MIN_MS = 300;
 
@@ -10,6 +14,8 @@ export interface Replay {
   startedAt: number;
   /** playhead (local time) the replay starts from: `KILLCAM_MS` before the KO */
   fromAt: number;
+  /** playhead where the slow motion starts (`KILLCAM_SLOW_MS` before the KO, or `fromAt`) */
+  slowAt: number;
   /** local time of the KO: the replay ends here */
   endAt: number;
   /** who the camera follows during the replay */
@@ -24,7 +30,8 @@ export function trimHistory(buf: { at: number }[], now: number): void {
 
 /**
  * Replays the lead-up to the local fighter's KO in real time from the snapshot buffer, so the
- * killer's approach is seen again before the death screen takes over.
+ * killer's approach is seen again before the death screen takes over. The final half second
+ * before the hit runs at half speed, and a tap ends the replay early (`skip`).
  */
 export class KillCam {
   private replay: Replay | null = null;
@@ -40,18 +47,27 @@ export class KillCam {
     if (first === undefined) return;
     const fromAt = Math.max(first, now - KILLCAM_MS);
     if (now - fromAt < MIN_MS) return;
-    this.replay = { startedAt: now, fromAt, endAt: now, killer };
+    const slowAt = Math.max(fromAt, now - KILLCAM_SLOW_MS);
+    this.replay = { startedAt: now, fromAt, slowAt, endAt: now, killer };
+  }
+
+  /** Stop the running replay now (a tap during it); the camera goes back to following the killer. */
+  skip(): void {
+    this.replay = null;
   }
 
   /** This frame's replay (playhead + camera target), or `null` once it is over or never started. */
   frame(now: number): { at: number; killer: number } | null {
     const r = this.replay;
     if (!r) return null;
-    const at = r.fromAt + (now - r.startedAt);
-    if (at >= r.endAt) {
+    const wall = now - r.startedAt;
+    const normalMs = r.slowAt - r.fromAt;
+    // the playhead moves 1:1 through the normal part, then at the slow rate up to the KO
+    if (wall >= normalMs + (r.endAt - r.slowAt) / KILLCAM_SLOW_RATE) {
       this.replay = null;
       return null;
     }
+    const at = wall <= normalMs ? r.fromAt + wall : r.slowAt + (wall - normalMs) * KILLCAM_SLOW_RATE;
     return { at, killer: r.killer };
   }
 }

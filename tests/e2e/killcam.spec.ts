@@ -18,3 +18,20 @@ test('a KO replays the lead-up, then the replay ends without errors', async ({ p
   await expect.poll(() => page.evaluate(() => (window as any).__brawl.replaying), { timeout: 5_000 }).toBe(false);
   expect(errors).toEqual([]);
 });
+
+// landscape on purpose: the portrait rotate hint (mobile project) covers the game otherwise
+test.describe('tap to skip', () => {
+  test.use({ viewport: { width: 915, height: 412 } });
+
+  test('a tap ends the kill-cam replay early', async ({ page }) => {
+    await page.goto('/?room=killcam-' + Math.random().toString(36).slice(2, 8) + '&name=Diver&bots=2&fighter=mira');
+    await expect.poll(() => page.evaluate(() => (window as any).__brawl.state()?.m?.st), { timeout: 20_000 }).toBe('playing');
+
+    await page.evaluate(() => (window as any).__brawl.send({ t: 'dbg', op: 'kill' }));
+    await expect.poll(() => page.evaluate(() => (window as any).__brawl.replaying), { timeout: 3_000 }).toBe(true);
+    // a tap (touch on the phone project, click on desktop) skips the rest of it (about 2.5 s in all)
+    if (test.info().project.name === 'mobile') await page.touchscreen.tap(200, 200);
+    else await page.mouse.click(200, 200);
+    await expect.poll(() => page.evaluate(() => (window as any).__brawl.replaying), { timeout: 1_000 }).toBe(false);
+  });
+});

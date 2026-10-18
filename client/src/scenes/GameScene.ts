@@ -110,6 +110,8 @@ export class GameScene extends Phaser.Scene {
     this.applyZoom();
     this.scale.on('resize', () => this.applyZoom());
     this.controls = new Controls(this, this.net, () => this.self);
+    // kill-cam (backlog #18): any tap or click ends the replay early
+    this.input.on('pointerdown', () => this.killCam.skip());
     // own body is predicted locally: replay every input until the server acks it
     this.controls.onSend = (m) => this.pred.applyInput(m);
     this.fx = new CombatFx(this, { ...this.fxOpts, shake: shakeEnabled() });

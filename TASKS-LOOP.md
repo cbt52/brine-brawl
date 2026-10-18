@@ -456,7 +456,6 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 ---
 ## 5. IMPROVEMENT BACKLOG (ordered; T99 takes from the top; user feedback goes first)
 11. Optional ONLY if the user asks: ComfyUI portraits (127.0.0.1:8188, 2–7 min/img, 16 GB RAM, never while the user is using it).
-18. Kill-cam part 2 (slice 1 = `client/src/net/killcam.ts`, our own KO replays the 2 s before it from `Net.buffer`, camera follows the killer, "KO CAM · name" tag): slow motion (0.5x) for the last 0.5 s before the hit, a tap-to-skip on touch, and a short replay for the killer's own best KO too.
 
 19. Lint: `tests/e2e/emotes.spec.ts:1` has an unused `eslint-disable` directive, so `npm run check` prints a warning. Drop the directive so the lint output is clean.
 20. Showdown part 3 (slice 2 = ring wiring in `World.step`, room round clock, bot edge-flee, HUD timer, shot-checked): a last-standing finish (the round ends early when one crew or one fighter is left inside the ring), a tinted outside-of-ring wash (only the bright edge line is drawn now), and a Showdown-only weather roll, because Double Tide does nothing there (the flood follows the ring).
@@ -470,6 +469,7 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 28. Ready count on the results screen: the poster shows "2/3 ready" (a `rd` count in MatchInfo, from `Room.rematch`'s ready set) so players see who the round is waiting for, and the footer shows "Next round in Ns" only once the round is ready.
 29. Portraits in the ☰ fighter row: the row is text-only, so a skin change shows on the body and nowhere else in the menu. Give each button a small portrait via `skinnedPortrait` (`client/src/art/skinPortrait.ts`) at the picked skin, and keep the `on` state from `markFighterRow`.
 30. Weird Weather part 3 (slice 2a = bubble storm: `shared/sim/bubbles.ts`, carry + slow in `stepMove`, `bb` snapshot, predicted, `dbg wx` op): jellyfish rain as a third `Weather` entry, drifting stinging jellies that dash through the open sand, with their own sim hook and a shot check.
+31. Kill-cam part 3 (the remaining piece of old #18; slow motion and tap-to-skip are done in `client/src/net/killcam.ts`): the killer's own best KO also gets a short replay, so a KO you were in is seen again after the round. Reuse the 2 s lead-up and `KillCam.start`, and tag it "BEST KO CAM".
 
 ---
 ## 6. LOG (one line per task/hotfix; archive older lines to `.loop/log-archive.md` if >40 lines)
@@ -508,3 +508,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T99 ✅ 2026-10-18 — Rematch = Ready (backlog #15): Ready-Tap pro Mensch, 10 s nach dem letzten Tap wenn alle bereit, sonst 8 s Auto-Restart; Ready-Button + "Next round in Ns"; 5 Unit + e2e match grün, check 650
 - T99 ✅ 2026-10-18 — Skins everywhere (backlog #16): `sk` in results rows, select cards + WANTED posters use `skinnedPortrait` (blob of recoloured SVG), ☰ skin button sends `skin` msg → live; 6 unit tests, check 657 grün, lobby shot ok → §5 #29
 - T99 ✅ 2026-10-18 — Bubble storm (backlog #17, slice 2a): `shared/sim/bubbles.ts` (carry up + 0.6× walk, in `stepMove` so prediction agrees), in the weather roll, `bb` snapshot, `dbg wx` op; 14 unit + e2e, check 671 grün, shot ok → §5 #30
+- T99 ✅ 2026-10-18 — Kill-cam part 2 (backlog #18): last 0,5 s before the KO at half speed, a tap/click ends the replay (`KillCam.skip`), tag says "tap to skip"; 3 new unit tests (9 total), 1 e2e tap test; check 673 grün, e2e killcam 4/4 grün, banner not shot-checked → §5 #31
