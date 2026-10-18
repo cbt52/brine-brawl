@@ -7,7 +7,7 @@ import type { SnapPlayer } from '../../../shared/protocol.ts';
 import { Controls } from '../input/controls.ts';
 import { interpolate, interpolateProjs, type Pos } from '../net/interp.ts';
 import { Predictor } from '../net/predict.ts';
-import { KillCam } from '../net/killcam.ts';
+import { KillCam, bestKo, leadUpClip, type KoClip } from '../net/killcam.ts';
 import { CombatFx } from '../fx/combatFx.ts';
 import { elementColor } from '../fx/style.ts';
 import { drawVolleys } from '../fx/cannonFx.ts';
@@ -69,6 +69,8 @@ export class GameScene extends Phaser.Scene {
   private spectateId: number | null = null;
   /** replays the lead-up to our own KO (backlog #5) */
   private killCam = new KillCam();
+  /** the round's best KO we made so far, replayed once the round ends (backlog #31) */
+  private roundKo: { round: number; ko: KoClip<{ at: number }> } | null = null;
   private predReady = false;
   private camInit = false;
   private fx!: CombatFx;
@@ -204,11 +206,29 @@ export class GameScene extends Phaser.Scene {
       const key = `${this.net.room}:${m.r}`;
       countRound(m.res, this.net.id, key);
       newBest = newBestFor(currentStats(), key);
+      this.startBestKo(m.r);
     }
-    syncResults(m, {
+    // the poster covers the arena, so it waits until the best-KO replay (backlog #31) has played
+    if (this.killCam.label !== 'BEST KO CAM') syncResults(m, {
       rematch: () => this.net.send({ t: 'rematch' }),
       changeFighter: () => window.dispatchEvent(new CustomEvent('brawl:menu')),
     }, newBest);
+  }
+
+  /** A KO we made: keep the round's best one as a copy of its lead-up (backlog #31). */
+  private keepKo(nowMs: number, pay: number): void {
+    const round = this.net.last?.m?.r ?? -1;
+    const ko = { koAt: nowMs, pay, clip: leadUpClip(this.net.buffer, nowMs) };
+    const same = this.roundKo?.round === round ? this.roundKo.ko : null;
+    this.roundKo = { round, ko: bestKo(same, ko) };
+  }
+
+  /** The round ended: replay our best KO of it once (backlog #31). */
+  private startBestKo(round: number): void {
+    const best = this.roundKo;
+    if (!best || best.round !== round) return;
+    this.roundKo = null;
+    this.killCam.startBest(best.ko.clip, best.ko.koAt, performance.now(), this.net.id);
   }
 
   /** Showdown (backlog #6): the closing ring as a bright edge; bodies outside it take edge damage. */
@@ -608,7 +628,9 @@ export class GameScene extends Phaser.Scene {
 
     const nowMs = performance.now();
     const replay = this.killCam.frame(nowMs);
-    const view = interpolate(this.net.buffer, replay?.at ?? nowMs - INTERP_DELAY_MS);
+    // a KO clip replay (backlog #31) draws from its own copy of the snapshots
+    const src = this.killCam.source(this.net.buffer);
+    const view = interpolate(src, replay?.at ?? nowMs - INTERP_DELAY_MS);
     // the replay shows the past, so the live predicted body stays out of it
     if (!replay) this.applyPrediction(view);
     const myTeam = view.find((p) => p.id === this.net.id)?.tm;
@@ -662,7 +684,7 @@ export class GameScene extends Phaser.Scene {
     }
     const pg = this.projGfx;
     pg.clear();
-    for (const pr of interpolateProjs(this.net.buffer, replay?.at ?? nowMs - INTERP_DELAY_MS)) {
+    for (const pr of interpolateProjs(src, replay?.at ?? nowMs - INTERP_DELAY_MS)) {
       pg.fillStyle(0xfff3b0, 1).fillCircle(pr.x, pr.y, 9);
       pg.lineStyle(3, 0x1b1b2f, 1).strokeCircle(pr.x, pr.y, 9);
     }
@@ -725,6 +747,7 @@ export class GameScene extends Phaser.Scene {
           navigator.vibrate?.(30);
         }
       } else if (e.k === 'ko') {
+        if (e.a === this.net.id) this.keepKo(nowMs, e.pay ?? 0);
         if (e.v === this.net.id) {
           // the camera rides with the killer while we wait for the respawn (T28)
           this.spectateId = e.a > 0 ? e.a : null;
@@ -753,7 +776,7 @@ export class GameScene extends Phaser.Scene {
     this.fx.sample(this.game.loop.actualFps, this.game.loop.delta);
     this.hud.addEvents(evs, (id) => this.names.get(id) ?? '?');
     this.updateHud(view);
-    this.hud.setKillCam(replay ? this.names.get(replay.killer) ?? '?' : null);
+    this.hud.setKillCam(replay ? `${this.killCam.label} · ${this.names.get(replay.killer) ?? '?'}` : null);
     for (const [id, rig] of this.rigs) {
       if (!seen.has(id)) {
         rig.destroy();

@@ -20,6 +20,17 @@ export interface Replay {
   endAt: number;
   /** who the camera follows during the replay */
   killer: number;
+  /** HUD name of the replay: "KO CAM", or "BEST KO CAM" for the round-end replay (backlog #31) */
+  label: string;
+  /** the snapshots this replay plays from; `null` = the live buffer (a fresh KO) */
+  clip: { at: number }[] | null;
+}
+
+/** One KO we made this round: when it happened, the doubloons it paid, and its lead-up (backlog #31). */
+export interface KoClip<S extends { at: number }> {
+  koAt: number;
+  pay: number;
+  clip: S[];
 }
 
 /** Drop snapshots older than the kill-cam keeps. Mutates `buf` (oldest first, as `Net.buffer`). */
@@ -28,10 +39,24 @@ export function trimHistory(buf: { at: number }[], now: number): void {
   while (buf.length > 0 && buf[0].at < cut) buf.shift();
 }
 
+/** A copy of the kill-cam window before `koAt`: the live buffer keeps moving, the copy does not. */
+export function leadUpClip<S extends { at: number }>(buf: S[], koAt: number): S[] {
+  return buf.filter((s) => s.at >= koAt - KILLCAM_KEEP_MS && s.at <= koAt);
+}
+
 /**
- * Replays the lead-up to the local fighter's KO in real time from the snapshot buffer, so the
- * killer's approach is seen again before the death screen takes over. The final half second
- * before the hit runs at half speed, and a tap ends the replay early (`skip`).
+ * The KO the round-end replay shows: the most doubloons collected, the earlier KO on a tie.
+ * Without bounty (treasure, showdown) every KO pays 0, so the first KO of the round wins.
+ * `a` is the earlier KO (they arrive in order).
+ */
+export function bestKo<K extends { pay: number }>(a: K | null, b: K): K {
+  return a && a.pay >= b.pay ? a : b;
+}
+
+/**
+ * Replays the lead-up to a KO in real time from the snapshot buffer, so the killer's approach is
+ * seen again before the death screen takes over. The final half second before the hit runs at
+ * half speed, and a tap ends the replay early (`skip`).
  */
 export class KillCam {
   private replay: Replay | null = null;
@@ -41,14 +66,24 @@ export class KillCam {
     return this.replay !== null;
   }
 
+  /** The label of the running replay ("KO CAM" / "BEST KO CAM"), or `null` when none runs. */
+  get label(): string | null {
+    return this.replay?.label ?? null;
+  }
+
   /** Start replaying the `KILLCAM_MS` before `now` (the KO) out of `buf`, oldest first. */
   start(buf: { at: number }[], now: number, killer: number): void {
-    const first = buf[0]?.at;
-    if (first === undefined) return;
-    const fromAt = Math.max(first, now - KILLCAM_MS);
-    if (now - fromAt < MIN_MS) return;
-    const slowAt = Math.max(fromAt, now - KILLCAM_SLOW_MS);
-    this.replay = { startedAt: now, fromAt, slowAt, endAt: now, killer };
+    this.play(buf, now, now, killer, 'KO CAM', null);
+  }
+
+  /** Replay a KO kept as a clip (`leadUpClip`), starting now: the round-end "BEST KO CAM" (backlog #31). */
+  startBest(clip: { at: number }[], koAt: number, now: number, killer: number): void {
+    this.play(clip, koAt, now, killer, 'BEST KO CAM', clip);
+  }
+
+  /** The snapshots to draw from: the running replay's clip, or `live` when no clip replay runs. */
+  source<S extends { at: number }>(live: S[]): S[] {
+    return (this.replay?.clip as S[] | null | undefined) ?? live;
   }
 
   /** Stop the running replay now (a tap during it); the camera goes back to following the killer. */
@@ -69,5 +104,17 @@ export class KillCam {
     }
     const at = wall <= normalMs ? r.fromAt + wall : r.slowAt + (wall - normalMs) * KILLCAM_SLOW_RATE;
     return { at, killer: r.killer };
+  }
+
+  /** Queue the `KILLCAM_MS` before `koAt` out of `src`, playing from `startedAt` (local time). */
+  private play(
+    src: { at: number }[], koAt: number, startedAt: number, killer: number, label: string, clip: { at: number }[] | null,
+  ): void {
+    const first = src[0]?.at;
+    if (first === undefined) return;
+    const fromAt = Math.max(first, koAt - KILLCAM_MS);
+    if (koAt - fromAt < MIN_MS) return;
+    const slowAt = Math.max(fromAt, koAt - KILLCAM_SLOW_MS);
+    this.replay = { startedAt, fromAt, slowAt, endAt: koAt, killer, label, clip };
   }
 }

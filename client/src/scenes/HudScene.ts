@@ -156,11 +156,11 @@ export class HudScene extends Phaser.Scene {
     this.sbPinned = !!e.detail;
   };
 
-  /** Kill-cam (backlog #5): a red "KO CAM · killer" tag while the replay of our KO plays. */
-  setKillCam(killer: string | null): void {
-    if (!this.killCamText || killer === this.killCamFor) return;
-    this.killCamFor = killer;
-    this.killCamText.setText(killer === null ? '' : `KO CAM · ${killer} · tap to skip`).setVisible(killer !== null);
+  /** Kill-cam (backlog #5, #31): a red tag like "KO CAM · killer" while a replay plays (`null` = none). */
+  setKillCam(tag: string | null): void {
+    if (!this.killCamText || tag === this.killCamFor) return;
+    this.killCamFor = tag;
+    this.killCamText.setText(tag === null ? '' : `${tag} · tap to skip`).setVisible(tag !== null);
   }
 
   /** Crew Combo (T28): big centred banner for the pair name, then fade. */

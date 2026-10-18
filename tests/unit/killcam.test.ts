@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { KILLCAM_KEEP_MS, KILLCAM_MS, KILLCAM_SLOW_MS, KillCam, trimHistory } from '../../client/src/net/killcam.ts';
+import {
+  KILLCAM_KEEP_MS, KILLCAM_MS, KILLCAM_SLOW_MS, KillCam, bestKo, leadUpClip, trimHistory,
+} from '../../client/src/net/killcam.ts';
 
 /** snapshots every 33 ms from `from` to `to` (local arrival times, oldest first) */
 const history = (from: number, to: number) => {
@@ -83,5 +85,59 @@ describe('trimHistory', () => {
 
   it('keeps enough for a full two-second replay', () => {
     expect(KILLCAM_KEEP_MS).toBeGreaterThanOrEqual(KILLCAM_MS + 500);
+  });
+});
+
+describe('best-KO replay (backlog #31)', () => {
+  it('keeps a copy of the kill-cam window before the KO', () => {
+    const buf = history(0, 6000);
+    const clip = leadUpClip(buf, 5000);
+    expect(clip[0].at).toBeGreaterThanOrEqual(5000 - KILLCAM_KEEP_MS);
+    expect(clip[clip.length - 1].at).toBeLessThanOrEqual(5000);
+    // a copy: trimming the live buffer leaves the clip alone
+    trimHistory(buf, 6000);
+    expect(clip[0].at).toBeGreaterThanOrEqual(5000 - KILLCAM_KEEP_MS);
+  });
+
+  it('keeps the KO with the most doubloons, the earlier one on a tie', () => {
+    const early = { koAt: 1000, pay: 40, clip: [] };
+    const late = { koAt: 2000, pay: 90, clip: [] };
+    const tie = { koAt: 3000, pay: 90, clip: [] };
+    expect(bestKo(null, early)).toBe(early);
+    expect(bestKo(early, late)).toBe(late);
+    expect(bestKo(late, early)).toBe(late);
+    expect(bestKo(late, tie)).toBe(late);
+    // without bounty every KO pays 0: the first one stays
+    expect(bestKo({ koAt: 1, pay: 0, clip: [] }, { koAt: 2, pay: 0, clip: [] }).koAt).toBe(1);
+  });
+
+  it('replays the clip under its own label, and the live buffer is back afterwards', () => {
+    const cam = new KillCam();
+    const clip = history(1000, 4000);
+    const live = history(20000, 21000);
+    cam.startBest(clip, 4000, 10000, 5);
+    expect(cam.label).toBe('BEST KO CAM');
+    expect(cam.source(live)).toBe(clip);
+    expect(cam.frame(10000)).toEqual({ at: 4000 - KILLCAM_MS, killer: 5 });
+    // about 2.5 s of wall time: the replay ends and the live buffer comes back
+    expect(cam.frame(12600)).toBeNull();
+    expect(cam.label).toBeNull();
+    expect(cam.source(live)).toBe(live);
+  });
+
+  it('a fresh KO replays from the live buffer under the KO CAM label', () => {
+    const cam = new KillCam();
+    const live = history(0, 3000);
+    cam.start(live, 3000, 5);
+    expect(cam.label).toBe('KO CAM');
+    expect(cam.source(live)).toBe(live);
+  });
+
+  it('a tap ends a best-KO replay too', () => {
+    const cam = new KillCam();
+    cam.startBest(history(1000, 4000), 4000, 10000, 5);
+    cam.skip();
+    expect(cam.running).toBe(false);
+    expect(cam.label).toBeNull();
   });
 });
