@@ -50,4 +50,6 @@ export interface Projectile {
   slot?: AbilitySlot;
   /** enemies already hit by a piercing shot */
   hit?: Set<number>;
+  /** summons (decoys/turrets) already hit by a piercing shot */
+  hitSum?: Set<number>;
 }

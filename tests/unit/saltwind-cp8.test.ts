@@ -113,6 +113,22 @@ describe('Saltwind roster (CP8)', () => {
     expect(w.summons[0]?.hp ?? 0).toBeLessThan(70);
   });
 
+  it('a piercing shot damages a decoy exactly once (review 20261018-055109)', () => {
+    const w = new World();
+    const a = w.addPlayer(1, 'Lenny', 'lenny');
+    const b = w.addPlayer(2, 'B', 'default');
+    a.x = 1000; a.y = 1000; a.aim = 0;
+    b.x = 800; b.y = 1000; b.aim = 0; // shoots east through the decoy
+    a.shield = 0; b.shield = 0;
+    castAbility(w, a, getFighter('lenny').special, 'special');
+    const decoy = w.summons[0];
+    expect(decoy).toBeTruthy();
+    const before = decoy.hp;
+    castAbility(w, b, { kind: 'projectile', count: 1, spread: 0, speed: 900, range: 600, dmg: 6, radius: 8, pierce: true }, 'attack');
+    run(w, 0.6);
+    expect(decoy.hp).toBe(before - 6); // not 4+ sub-step hits
+  });
+
   it('Lenny: the decoy expires on its own clock and does not block his own shots', () => {
     const w = new World();
     const a = w.addPlayer(1, 'Lenny', 'lenny');

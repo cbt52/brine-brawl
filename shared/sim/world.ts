@@ -571,6 +571,11 @@ export class World {
             const so = this.players.get(s.owner);
             if (so && this.friendly(pr.owner, so)) continue;
             if (Math.hypot(s.x - pr.x, s.y - pr.y) >= s.r + pr.r) continue;
+            if (pr.pierce) {
+              pr.hitSum ??= new Set();
+              if (pr.hitSum.has(s.id)) continue;
+              pr.hitSum.add(s.id);
+            }
             s.hp -= pr.dmg;
             if (!pr.pierce) dead = true;
             if (dead) break;
@@ -630,6 +635,7 @@ export class World {
           // turn the boomerang around: the way back can hit every enemy once more
           pr.returning = true;
           pr.hit = new Set();
+          pr.hitSum = new Set();
           pr.left = RETURN_RANGE;
         } else dead = true;
       }
