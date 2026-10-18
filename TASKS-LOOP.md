@@ -455,7 +455,7 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 
 ---
 ## 5. IMPROVEMENT BACKLOG (ordered; T99 takes from the top; user feedback goes first)
-3. Skins: 2 palette swaps per fighter (data-driven SVG color replacement).
+3. Skins, part 2 (slice 1 = `shared/skins.ts`: 3 skins, hue-rotated saturated colours, unit-tested, not wired): `join` carries `skin` (0–2, `skinAt`), the room keeps it per player and the snapshot sends `sk`; select screen gets a Skin button (localStorage, like the fighter pick); the rig recolours the SVG text (`recolorSvg`) before a per-skin texture is made, for the body and the hurt face, and the gallery shows all 3. Test: `npm run check` + one shot of two skins.
 4. "Weird Weather" match modifiers: jellyfish rain, bubble storm, double tide.
 5. Kill-cam: 2 s replay of the last KO from the snapshot buffer.
 6. Showdown battle-royale mode where the tide permanently rises and shrinks the island.
@@ -467,17 +467,15 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 12. Bots go for Purrl (the sea snail) when they are hurt and it is within reach; today the snail is scenery for bots.
 13. Taffy Galleon, part 2 (slice 1 = `shared/sim/cannon.ts`, telegraph + moving bar, unit-tested, not wired): second arena data (rocking ship deck, own spawns/coral/sand), `World` + bots + prediction take an arena instead of the docks constants, lane cannons placed in that arena and damaging bodies once per volley, rocking deck art in `client/src/art/arena.ts`.
 14. Bot level in the in-game ☰ menu: the host can switch the level for bots already in the room (today the lobby picks it once, for the first human).
+15. Rematch countdown: after the results screen, the match restarts on its own 10 s after the last human taps Ready (today every human must tap Rematch).
 
 ---
 ## 6. LOG (one line per task/hotfix; archive older lines to `.loop/log-archive.md` if >40 lines)
+- T99 ✅ 2026-10-18 — Skins slice 1: `shared/skins.ts` (3 skins, hue-rotate of saturated colours; outline/whites/clip refs kept), 60 Tests, check 570 grün; wiring → §5 #3
 - T99 ✅ 2026-10-18 — bot level easy/normal/sharky picked in lobby (Quick Play + Create Room), `join.level` → `room.botLevel` (first human sets it); `BOT_PARAMS`/`sanitizeBotLevel`; 4 tests, check green
 - T29 ✅ 2026-10-18 — Gloomoth (Dust Puff/Phase Flutter/Lantern Swarm), Pebblor (Pebble Lob/Hunker/Avalanche Egg), Dozelump (Belly Bump/Snooze/Body Slam); `homing`+`aoeOnEnd.status`-Primitive, buff 0-Multiplikatoren; 11 Tests, check 440+shot grün
 - T24 ✅ 2026-10-18 — Pinchpenny (piercing coins, claw pull, coin slam) + Hammy (chop, tank dash, slow field); dropGold bit; 394 green
 - T16 ✅ 2026-10-18 — client prediction (ack-rollback, 100 ms blend, 120 u snap), ping HUD, ?lag=ms; e2e green; CP4 checkpoint
-- T01-partial 🟡 2026-10-18 — server/client/smoke/shot done+green; PARTIAL: serve.sh not runnable (needs approval) → T01a
-- T01/T01a 🔴 2026-10-18 — BLOCKED: harness requires user approval to run scripts/serve.sh; check+smoke green; see checkpoint
-- T02 ✅ 2026-10-18 — shared World sim, docks arena, interp+camera, kb/mouse/touch stick; unit+smoke green
-- T03 ✅ 2026-10-18 — attack/ammo/KO/respawn, hit FX+HUD, tap-fire, cp1 e2e green; serve.sh step needs user approval (see checkpoint)
 - T04 ✅ 2026-10-18 — twin-stick touch.ts, DOM buttons+rings, rotate overlay, fullscreen, mobile e2e green
 - RF ✅ 2026-10-18 — input throttle 30/s w/ immediate flag edges, per-input aim source, serve.sh verified (T01/T01a ticked)
 - HF ✅ 2026-10-18 — serve.sh mkdir lock (.loop/serve.lock, stale >5 min dropped)
