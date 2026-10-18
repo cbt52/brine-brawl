@@ -117,6 +117,8 @@ export class Room {
     if (this.match.phase === 'playing' && this.world.treasure?.won != null) {
       if (this.match.finish() === 'end') this.match.ranking = this.roster();
     }
+    // Weird Weather lasts one round: calm skies again outside 'playing' (results, lobby, countdown)
+    if (this.match.phase !== 'playing') this.world.setWeather('clear');
   }
 
   /** Bots fill free slots up to the requested count; humans take priority. */
