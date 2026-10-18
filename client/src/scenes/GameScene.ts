@@ -596,6 +596,8 @@ export class GameScene extends Phaser.Scene {
     // Showdown (backlog #6): the server's flood level follows the ring, so take it as sent
     const flood = tide ? (m?.mode === 'showdown' ? tide.level : tideLevel(tide.phase, tide.t)) : 0;
     this.drawRing(m?.mode === 'showdown' && m.st === 'playing' ? m.sd : undefined);
+    // the match's layout (backlog #26): repaints only when it changes
+    this.arena.setArena(arenaById(m?.ar));
     this.arena.setTide(flood);
     this.pred.setWater(flood);
     this.arena.updateWaves(time);

@@ -56,6 +56,8 @@ export class Net {
         matchsec: ms === null ? undefined : Number(ms),
         // room mode from the lobby selector (T26)
         mode: p.get('mode') ?? undefined,
+        // layout for a new room (backlog #26): ?arena=galleon; an existing room keeps its own
+        arena: p.get('arena') ?? undefined,
         // bot level from the lobby (T99)
         level: p.get('level') ?? undefined,
         // debug-only on the server (ALLOW_DEBUG): `?tide=high` screenshots

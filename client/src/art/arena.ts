@@ -1,7 +1,9 @@
 import Phaser from 'phaser';
 import { WORLD_W, WORLD_H } from '../../../shared/constants.ts';
-import { BUSHES, DECOR, OBSTACLES, SHALLOWS } from '../../../shared/arena/docks.ts';
+import { DECOR, type Rect } from '../../../shared/arena/docks.ts';
+import { type Arena, type ArenaId, DOCKS_ARENA } from '../../../shared/arena/arena.ts';
 import { waterRects } from '../../../shared/sim/tide.ts';
+import { paintDeck } from './deckArt.ts';
 
 const DEEP = 0x0e3a4e;
 const SAND = 0xe9d6a6;
@@ -10,30 +12,53 @@ const CORAL = 0xff8f7a;
 const CORAL_DARK = 0xc45d51;
 
 /**
- * Static arena background, painted ONCE into a RenderTexture (cheap on phones) plus a thin
- * animated wave layer on top. Visual only — collision lives in `shared/arena/docks.ts`.
+ * Static arena background, painted into a RenderTexture (cheap on phones) plus a thin animated
+ * wave layer on top. `setArena` repaints it for the match's layout (backlog #26). Visual only —
+ * collision lives in `shared/arena/`.
  */
 export class ArenaArt {
+  private scene: Phaser.Scene;
+  private ground: Phaser.GameObjects.RenderTexture;
+  private kelp: Phaser.GameObjects.Graphics;
   private waves: Phaser.GameObjects.Graphics;
   /** rising-tide water overlay, redrawn every frame (depth 1: above the ground, below the rigs) */
   private water: Phaser.GameObjects.Graphics;
   private lowfx: boolean;
   private tideLevel = 0;
+  private arenaId?: ArenaId;
+  /** the on-screen layout's flood pools (empty on the deck) */
+  private pools: readonly Rect[] = [];
 
   constructor(scene: Phaser.Scene, opts: { lowfx?: boolean } = {}) {
+    this.scene = scene;
     this.lowfx = Boolean(opts.lowfx);
-    const rt = scene.add.renderTexture(0, 0, WORLD_W, WORLD_H).setOrigin(0).setDepth(0);
-    const g = scene.make.graphics({}, false);
-    this.paint(g);
-    rt.draw(g);
-    g.destroy();
-    this.paintBushes(scene);
+    this.ground = scene.add.renderTexture(0, 0, WORLD_W, WORLD_H).setOrigin(0).setDepth(0);
+    this.kelp = scene.add.graphics().setDepth(26);
     this.water = scene.add.graphics().setDepth(1);
     this.waves = scene.add.graphics().setDepth(2);
+    this.setArena(DOCKS_ARENA);
   }
 
-  /** lagoon, sand island, pier planks, shallows, coral walls, props, vignette */
-  private paint(g: Phaser.GameObjects.Graphics): void {
+  /** Paints the ground and kelp for `arena`; a no-op when that layout is already on screen. */
+  setArena(arena: Arena): void {
+    if (arena.id === this.arenaId) return;
+    this.arenaId = arena.id;
+    this.pools = arena.shallows;
+    const g = this.scene.make.graphics({}, false);
+    this.paint(g, arena);
+    this.ground.clear();
+    this.ground.draw(g);
+    g.destroy();
+    this.kelp.clear();
+    this.paintBushes(arena.bushes);
+  }
+
+  /** lagoon, sand island, pier planks, shallows, coral walls, props, vignette (the deck has its own) */
+  private paint(g: Phaser.GameObjects.Graphics, arena: Arena): void {
+    if (arena.id === 'galleon') {
+      paintDeck(g, arena);
+      return;
+    }
     g.fillStyle(DEEP, 1).fillRect(0, 0, WORLD_W, WORLD_H);
     // deep-water bands give the lagoon some depth without a texture
     g.fillStyle(0x124a62, 0.75).fillRect(0, 0, WORLD_W, 240).fillRect(0, WORLD_H - 300, WORLD_W, 300);
@@ -53,14 +78,14 @@ export class ArenaArt {
     }
 
     // tide-pool beds: the water itself is the animated overlay (setTide/updateWaves)
-    for (const s of SHALLOWS) {
+    for (const s of arena.shallows) {
       g.fillStyle(0x8fa88f, 0.55).fillRoundedRect(s.x, s.y, s.w, s.h, 70);
       g.lineStyle(4, 0xc0d8c8, 0.6).strokeRoundedRect(s.x, s.y, s.w, s.h, 70);
       g.fillStyle(0x7d967f, 0.5).fillEllipse(s.x + s.w / 2, s.y + s.h / 2, s.w * 0.62, s.h * 0.62);
     }
 
     // coral walls, exactly on the collision rects
-    for (const o of OBSTACLES) {
+    for (const o of arena.obstacles) {
       g.fillStyle(CORAL_DARK, 1).fillRoundedRect(o.x + 4, o.y + 6, o.w, o.h, 18);
       g.fillStyle(CORAL, 1).fillRoundedRect(o.x, o.y, o.w, o.h, 18);
       g.lineStyle(4, 0x8e3f36, 1).strokeRoundedRect(o.x, o.y, o.w, o.h, 18);
@@ -103,9 +128,9 @@ export class ArenaArt {
   }
 
   /** kelp patches sit above the rigs so a hidden fighter is genuinely obscured */
-  private paintBushes(scene: Phaser.Scene): void {
-    const g = scene.add.graphics().setDepth(26);
-    for (const b of BUSHES) {
+  private paintBushes(bushes: readonly Rect[]): void {
+    const g = this.kelp;
+    for (const b of bushes) {
       g.fillStyle(0x0f5c46, 0.55).fillRoundedRect(b.x, b.y, b.w, b.h, 46);
       g.fillStyle(0x1c8a63, 0.85).fillRoundedRect(b.x + 6, b.y + 6, b.w - 12, b.h - 12, 40);
       // kelp leaves
@@ -162,7 +187,7 @@ export class ArenaArt {
     const g = this.water;
     g.clear();
     const level = this.tideLevel;
-    const rects = waterRects(level);
+    const rects = waterRects(level, this.pools);
     const t = nowMs / 700;
     for (const r of rects) {
       // the water is brighter and more opaque the higher the tide
