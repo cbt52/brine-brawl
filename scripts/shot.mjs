@@ -23,7 +23,15 @@ let browser;
 try {
   const mobile = device !== 'desktop';
   browser = await (mobile ? webkit : chromium).launch();
-  const ctxOpts = mobile ? { ...devices[device] } : { viewport: { width: 1280, height: 720 } };
+  // the game is landscape-only: a phone held upright just shows the rotate overlay, so turn the
+  // preset viewport 90° and report a landscape screen (matches a phone in the hand)
+  const ctxOpts = !mobile
+    ? { viewport: { width: 1280, height: 720 } }
+    : (() => {
+        const d = devices[device];
+        const landscape = { width: d.viewport.height, height: d.viewport.width };
+        return { ...d, viewport: landscape, screen: landscape };
+      })();
   for (let i = 0; i < clients; i++) {
     const ctx = await browser.newContext(ctxOpts);
     // the first-visit tutorial card covers the match; `--tips` keeps it

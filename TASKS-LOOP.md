@@ -591,7 +591,8 @@ Rules for every task:
   - Accept: shots at low and high tide read clearly, with the flooded shallows obviously slow water. No FPS drop in lowfx.
   - Test: `npm run check && npm run shot -- --name T44h --query "room=shot&bots=3&tide=high" && npm run shot -- --name T44l --query "room=shot&bots=3&tide=low"`
 
-- [ ] **T45 — Loot + pilot projectile sprites**
+- [x] **T45 — Loot + pilot projectile sprites**
+  - Note: `scripts/blender/render_props.py` + `scripts/blender/lib/loot.py` (chest, doubloon, heal cross, ult star, volt bolt, bubble, water drop, taffy fist) via `npm run art:fx` (`scripts/art-fx.mjs`, PX 2, frames in world units, `clippedEdges` guard, preview `.loop/shots/fx.png`) → `client/public/art/fx/fx.{png,json}` 254×260, 9.6 KB, 8 frames, every origin centred. `client/src/art/fxSprites.ts`: `pickupFrame`/`projFrame`/`fxTurns`/`FX_SCALE` + `preloadFx` (`?art=svg` keeps painted) + `FxSprites` image pool (`begin`/`draw`/`end`; `ready` false without the atlas, so the old painted chest/pickup/ball/fist stay as fallback). Draw sites: chests + pickups in `drawLoot`, projectiles in the proj pass (heading from the last drawn spot, `projHead`), fist in the arm overlay; `__brawl.fx` reports the drawn frames. Also fixed `scripts/shot.mjs`: a `--device` shot turns the preset viewport 90° (before, every mobile shot was just the "rotate your phone" overlay). Shots: `.loop/shots/T45-0.png` (iPhone 13, landscape) and `T45c-0.png` (chest next to the player, readable).
   - Do:
     - Write `render_props.py` and `npm run art:fx`, output `client/public/art/fx/fx.{png,json}` (≤ 512², ≤ 150 KB).
     - Contents: chest, coin, heal/ult pickups, volt bolt, bubble, water drop, taffy fist.
@@ -804,3 +805,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T42 ✅ 2026-10-18 — Docks ground: render_arena.py top-down 1800×1200 jpg 121 KB, sat p95 39 %, piers/pads, beds, contact shadows; ?rects=1; check 856 + e2e 34 grün
 - T43 ✅ 2026-10-18 — Docks props atlas (procedural coral/barrel/crate/kelp, 35° + depth stretch), 14 frames 144 KB, y-sort; check 867 + e2e 36 grün
 - T44 ✅ 2026-10-18 — Water: seamless Blender caustics tile 21.6 KB, masked lagoon scroll, toon flood pools (foam/ripples), still in lowfx; check 880 + e2e 39 grün
+- T45 ✅ 2026-10-18 — FX-Atlas (`npm run art:fx`): 8 Loot-/Projektil-Sprites, 254×260, 9,6 KB, Sprite-Pool + Painter-Fallback, `?art=svg` unverändert; `shot.mjs` schießt Handys jetzt im Querformat; 4 Unit, check 884 + e2e 39 grün

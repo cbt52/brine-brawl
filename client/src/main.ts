@@ -94,6 +94,7 @@ window.__brawl = {
   get looks() { return (game.scene.getScene('game') as GameScene | null)?.looks ?? []; },
   get props() { return (game.scene.getScene('game') as GameScene | null)?.props ?? []; },
   get water() { return (game.scene.getScene('game') as GameScene | null)?.water ?? null; },
+  get fx() { return (game.scene.getScene('game') as GameScene | null)?.fxLooks ?? []; },
   build: BUILD_ID,
   state: () => net.last,
   send: (m: C2S) => net.send(m),

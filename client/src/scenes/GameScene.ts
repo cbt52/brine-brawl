@@ -25,6 +25,7 @@ import { ArenaArt } from '../art/arena.ts';
 import { preloadGround } from '../art/ground.ts';
 import { preloadProps, sortDepth, type PropLook } from '../art/props.ts';
 import { preloadWater, type WaterLook } from '../art/water.ts';
+import { FxSprites, pickupFrame, preloadFx, projFrame, type FxLook } from '../art/fxSprites.ts';
 import { musicEnabled, sfxEnabled, shakeEnabled } from '../ui/settings.ts';
 import { Sfx } from '../audio/sfx.ts';
 import { Shanty } from '../audio/music.ts';
@@ -61,6 +62,10 @@ export class GameScene extends Phaser.Scene {
   private overGfx!: Phaser.GameObjects.Graphics;
   /** "WANTED" tag floating above the crown holder (T19) */
   private wantedText!: Phaser.GameObjects.Text;
+  /** Blender loot + projectile sprites (T45); painted graphics when the atlas is missing */
+  private sprites!: FxSprites;
+  /** last drawn spot + heading per projectile, so bolts and drops point where they fly */
+  private projHead = new Map<number, { x: number; y: number; a: number }>();
   private armUntil = new Map<number, { until: number; a: number; range: number }>();
   private kinds = new Map<number, string>();
   private rigs = new Map<number, FighterSprite>();
@@ -99,11 +104,17 @@ export class GameScene extends Phaser.Scene {
     preloadGround(this);
     preloadProps(this);
     preloadWater(this);
+    preloadFx(this);
   }
 
   /** The arena's prop sprites (debug hook / e2e, T43): frame, anchor and depth. */
   get props(): PropLook[] {
     return this.arena?.propLooks ?? [];
+  }
+
+  /** Loot + projectile sprites drawn this frame (debug hook / e2e, T45). */
+  get fxLooks(): FxLook[] {
+    return this.sprites?.looks ?? [];
   }
 
   /** Lagoon caustics + flood pools (debug hook / e2e, T44). */
@@ -133,6 +144,7 @@ export class GameScene extends Phaser.Scene {
     this.ringGfx = this.add.graphics().setDepth(9);
     this.projGfx = this.add.graphics().setDepth(10);
     this.lootGfx = this.add.graphics().setDepth(12);
+    this.sprites = new FxSprites(this);
     this.overGfx = this.add.graphics().setDepth(30);
     this.wantedText = this.add
       .text(0, 0, 'WANTED', {
@@ -288,12 +300,9 @@ export class GameScene extends Phaser.Scene {
     for (const c of snap.chests ?? []) {
       const bob = Math.sin(nowMs / 420 + c.id) * 2;
       const y = c.y + bob;
-      g.fillStyle(0x6b4326, 1).fillRoundedRect(c.x - 26, y - 14, 52, 34, 7);
-      g.fillStyle(0x8d5c34, 1).fillRoundedRect(c.x - 26, y - 14, 52, 18, 7);
-      g.lineStyle(3, 0x33200f, 1).strokeRoundedRect(c.x - 26, y - 14, 52, 34, 7);
-      g.lineStyle(4, 0xe8c265, 1).lineBetween(c.x, y - 14, c.x, y + 20);
-      g.fillStyle(0xffd23f, 1).fillCircle(c.x, y + 3, 5);
-      g.lineStyle(2, 0x8a5a34, 1).strokeCircle(c.x, y + 3, 5);
+      // the sprite sits just under this layer, so the HP bar below still draws over it
+      if (this.sprites.ready) this.sprites.draw('chest', c.x, y + 3, 11.99);
+      else this.paintChest(g, c.x, y);
       // a chest only shows a bar once somebody hit it
       const frac = Math.max(0, Math.min(1, c.hp / c.mhp));
       if (frac < 1) {
@@ -305,8 +314,19 @@ export class GameScene extends Phaser.Scene {
       const bob = Math.sin(nowMs / 260 + pk.id) * 3;
       const y = pk.y - 10 + bob;
       g.fillStyle(0x1b1b2f, 0.55).fillEllipse(pk.x, pk.y + 8, 24, 9);
-      this.drawPickup(g, pk.k, pk.x, y);
+      if (this.sprites.ready) this.sprites.draw(pickupFrame(pk.k), pk.x, y, 12.01);
+      else this.drawPickup(g, pk.k, pk.x, y);
     }
+  }
+
+  /** The painted chest (no FX atlas / `?art=svg`). */
+  private paintChest(g: Phaser.GameObjects.Graphics, x: number, y: number): void {
+    g.fillStyle(0x6b4326, 1).fillRoundedRect(x - 26, y - 14, 52, 34, 7);
+    g.fillStyle(0x8d5c34, 1).fillRoundedRect(x - 26, y - 14, 52, 18, 7);
+    g.lineStyle(3, 0x33200f, 1).strokeRoundedRect(x - 26, y - 14, 52, 34, 7);
+    g.lineStyle(4, 0xe8c265, 1).lineBetween(x, y - 14, x, y + 20);
+    g.fillStyle(0xffd23f, 1).fillCircle(x, y + 3, 5);
+    g.lineStyle(2, 0x8a5a34, 1).strokeCircle(x, y + 3, 5);
   }
 
   /** A decoy (wooden Lenny) or a turret: reads at a glance, with an HP bar once it is chipped. */
@@ -458,6 +478,10 @@ export class GameScene extends Phaser.Scene {
       for (const [x, y] of path) g.lineTo(x, y);
       g.strokePath();
       const fist = path[path.length - 1];
+      if (this.sprites.ready) {
+        this.sprites.draw('fist', fist[0], fist[1], 30.01, arm.a);
+        continue;
+      }
       g.fillStyle(0xe8c7a0, 1).fillCircle(fist[0], fist[1], 15);
       g.lineStyle(4, 0x1b1b2f, 1).strokeCircle(fist[0], fist[1], 15);
     }
@@ -716,10 +740,23 @@ export class GameScene extends Phaser.Scene {
     }
     const pg = this.projGfx;
     pg.clear();
+    this.sprites.begin();
+    const heads = new Map<number, { x: number; y: number; a: number }>();
     for (const pr of interpolateProjs(src, replay?.at ?? nowMs - INTERP_DELAY_MS)) {
-      pg.fillStyle(0xfff3b0, 1).fillCircle(pr.x, pr.y, 9);
-      pg.lineStyle(3, 0x1b1b2f, 1).strokeCircle(pr.x, pr.y, 9);
+      const kind = this.kinds.get(pr.o);
+      const frame = this.sprites.ready ? projFrame(kind, getArt(kind).element) : null;
+      if (!frame) {
+        pg.fillStyle(0xfff3b0, 1).fillCircle(pr.x, pr.y, 9);
+        pg.lineStyle(3, 0x1b1b2f, 1).strokeCircle(pr.x, pr.y, 9);
+        continue;
+      }
+      const last = this.projHead.get(pr.id);
+      const moved = last ? Math.hypot(pr.x - last.x, pr.y - last.y) > 0.5 : false;
+      const a = last && moved ? Math.atan2(pr.y - last.y, pr.x - last.x) : (last?.a ?? 0);
+      heads.set(pr.id, { x: pr.x, y: pr.y, a });
+      this.sprites.draw(frame, pr.x, pr.y, 10, a);
     }
+    this.projHead = heads;
     const evs = this.net.events.splice(0);
     // cannon volleys (backlog #44): the stage per lane is tracked even during a replay, so no stale cue fires after it
     const volley = volleyCues(this.volleyStage, this.net.last?.cn ?? [], arenaById(m?.ar).cannons);
@@ -805,6 +842,7 @@ export class GameScene extends Phaser.Scene {
     }
     this.drawLoot(nowMs);
     this.drawOverlays(view, nowMs);
+    this.sprites.end();
     this.controls.setCooldowns(view.find((p) => p.id === this.net.id));
     if (this.self) this.sfx.setListener(this.self.x, this.self.y);
     this.playMatchSounds();
