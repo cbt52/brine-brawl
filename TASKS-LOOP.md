@@ -351,7 +351,9 @@ Each reaction shows a big popup word ("SHOCK!").
   - Tests: `tests/unit/walls.test.ts` (7) + `tests/unit/weavers.test.ts` (7); `npm run check` green (378 tests).
   - Brak's Stone Wall adds a new primitive `wall` (temporary dynamic obstacle, 4 s, HP 60, in collision + projectile blocking).
   - Test: same pattern
-- [ ] **T23 — Saltwind: Sable Tripleblade + Bisque Legsworth**
+- [x] **T23 — Saltwind: Sable Tripleblade + Bisque Legsworth**
+  - Done: Sable (`shared/fighters/sable.ts`) — Twin Slash (150° arc, 15 dmg) / Claw Dash Cut (290 u, 20 contact) / Three-Tide Tempest (self AoE r 185, 12 + 8 per ½ s, 1 s). Bisque (`shared/fighters/bisque.ts`) — Ladle Kick (85° arc, 19 dmg) / Skillet Rocket Kick (320 u fire dash + burning pan-track) / Five-Course Combo (self cone 110°, r 205, 8 + 5 per ½ s, 2 s, burn). Data-only: existing primitives cover all six moves, no hooks needed. Art already on disk from T08b (`sable.svg` / `bisque.svg` + hurt faces).
+  - Tests: `tests/unit/saltwind.test.ts` (8) + selectable list in `tests/unit/fighter-stats.test.ts`; `npm run check` green (386 tests).
   - Test: same pattern
 - [ ] **T24 — Bubblebottom: Boss Pinchpenny + Hammy Divedome**
   - Test: same pattern
@@ -541,3 +543,5 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - RF ✅ 2026-10-18 — Review 042545: Edge-Cadence (quantized dir, EDGE_MS=TICK_MS), Burn-KO, Ability-Element-Fallback, Chest-Seeding, T20-Spec+Logs; 356 Tests+e2e 15/15 grün
 - T20 ✅ 2026-10-18 — Fraktions-Passives (EVOLVE/FLOW/PLUNDER/TOON LOGIC) im Sim + Aura/Krone/Ribbon/Münzen/Pancake-FX, Passiv-Zeile auf den Karten; CP5, check+347 Tests+smoke+e2e grün
 - T21 ✅ 2026-10-18 — Embercub+Mossback-Kits (Zone-SelfHeal/Tick-Burn, Root-AoE, Buff-DmgMul), 8 neue Tests, check+364 Tests+shot grün
+- T22 ✅ 2026-10-18 — Pip+Brak-Kits (Gust-Pair, Kite-Dash, Pull-Zone; Wall-Primitive `shared/sim/walls.ts`), 14 neue Tests, check+378 grün
+- T23 ✅ 2026-10-18 — Sable+Bisque-Kits (breiter Saber-Arc, Claw-Dash, Spin-Ult; Fire-Dash-Trail, 5-Gang-Combo-Cone), 8 neue Tests, check+386+shot grün

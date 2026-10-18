@@ -4,7 +4,9 @@ import { abilitySummary, attackDamage, fighterStats } from '../../shared/fighter
 
 describe('fighter select data', () => {
   it('offers the registered kits, without the Deckhand fallback', () => {
-    expect(SELECTABLE.map((f) => f.id)).toEqual(['voltbun', 'embercub', 'mossback', 'mira', 'pip', 'brak', 'noodle', 'sudsy']);
+    expect(SELECTABLE.map((f) => f.id)).toEqual([
+      'voltbun', 'embercub', 'mossback', 'mira', 'pip', 'brak', 'noodle', 'sable', 'bisque', 'sudsy',
+    ]);
     expect(SELECTABLE.some((f) => f.id === 'default')).toBe(false);
   });
 
