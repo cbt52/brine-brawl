@@ -13,9 +13,9 @@ export const LENNY: FighterDef = {
   maxHp: 100,
   speedMul: 1.06,
   ammo: 2,
-  reload: 1.35,
+  reload: 1.42,
   // Fib Shot: one enormous slingshot slug that reaches across half the arena
-  attack: { kind: 'projectile', count: 1, spread: 0, speed: 1200, range: 950, dmg: 24, radius: 7, fx: 'fib-shot' },
+  attack: { kind: 'projectile', count: 1, spread: 0, speed: 1200, range: 860, dmg: 18, radius: 7, fx: 'fib-shot' },
   // Decoy Lenny: a wooden stand-in takes the shots he was going to take
   special: { kind: 'summon', type: 'decoy', sec: 5, hp: 70, radius: 30, dist: 90, cd: 10, fx: 'decoy-lenny' },
   // The Big Fib: a rubber-duck bomb lobbed over the coral, then it goes off

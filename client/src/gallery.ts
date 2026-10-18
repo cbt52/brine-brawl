@@ -55,14 +55,18 @@ class GalleryScene extends Phaser.Scene {
       const row = Math.floor(i / cols);
       const x = 14 + col * cellW;
       const y = top + row * cellH;
-      const spriteSize = Math.min(96, cellH * 0.56);
+      const inner = cellW - 10;
+      // bottom band holds the name + faction line (T33: used to overlap the sprites)
+      const bandH = 42;
+      const artH = cellH - 10 - bandH;
+      const spriteSize = Math.min(96, Math.max(40, artH * 0.92));
 
-      bg.fillStyle(0x123647, 1).fillRoundedRect(x, y, cellW - 10, cellH - 10, 14);
-      bg.lineStyle(2, FACTION_COLOR[art.faction], 0.45).strokeRoundedRect(x, y, cellW - 10, cellH - 10, 14);
+      bg.fillStyle(0x123647, 1).fillRoundedRect(x, y, inner, cellH - 10, 14);
+      bg.lineStyle(2, FACTION_COLOR[art.faction], 0.45).strokeRoundedRect(x, y, inner, cellH - 10, 14);
 
-      const spriteX = x + (cellW - 10) * 0.29;
-      const refX = x + (cellW - 10) * 0.7;
-      const bodyY = y + cellH * 0.48;
+      const spriteX = x + inner * 0.27;
+      const refX = x + inner * 0.62;
+      const bodyY = y + artH * 0.5 + 4;
 
       const rig = new FighterSprite(this, spriteX, bodyY + spriteSize * 0.3, { artId: art.id, height: spriteSize });
       rig.setDepth(5);
@@ -74,29 +78,29 @@ class GalleryScene extends Phaser.Scene {
       ref.setVisible(false);
       this.refs.push(ref);
 
-      // 48 px legibility check, bottom right of the card (clear of the name line)
-      const small = new FighterSprite(this, refX, y + cellH - 48, { artId: art.id, height: 44 });
+      // 48 px legibility check, top right of the card, clear of the name band
+      const small = new FighterSprite(this, x + inner * 0.9, bodyY + 14, { artId: art.id, height: Math.min(44, artH * 0.5) });
       small.setDepth(5);
       this.rigs.push(small);
 
       this.add
-        .text(x + 12, y + 8, '48 px', {
+        .text(x + inner - 10, y + 7, '48 px', {
           fontFamily: 'system-ui, sans-serif',
           fontSize: '10px',
           color: '#7fb4ad',
         })
-        .setOrigin(0, 0);
+        .setOrigin(1, 0);
 
       this.add
-        .text(x + 10, y + cellH - 24, art.name, {
+        .text(x + 10, y + cellH - bandH + 2, art.name, {
           fontFamily: '"Lilita One", system-ui, sans-serif',
-          fontSize: '17px',
+          fontSize: '15px',
           color: '#ffffff',
         })
         .setStroke('#1b1b2f', 4);
-      this.add.text(x + 10, y + cellH - 10, `${ELEMENT_LABEL[art.element]} · ${FACTION_LABEL[art.faction]}`, {
+      this.add.text(x + 10, y + cellH - bandH + 22, `${ELEMENT_LABEL[art.element]} · ${FACTION_LABEL[art.faction]}`, {
         fontFamily: 'system-ui, sans-serif',
-        fontSize: '11px',
+        fontSize: '10px',
         color: '#b9dcd6',
       });
     });

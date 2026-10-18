@@ -94,7 +94,7 @@ describe('Saltwind roster (CP8)', () => {
     a.shield = 0; b.shield = 0;
     castAbility(w, a, getFighter('lenny').attack, 'attack');
     run(w, 0.9);
-    expect(b.hp).toBe(b.mhp - 24);
+    expect(b.hp).toBe(b.mhp - 18); // T33: fib shot 24 → 18
   });
 
   it('Lenny: the decoy soaks an enemy shot and leaves the real Lenny untouched', () => {
@@ -167,7 +167,7 @@ describe('Saltwind roster (CP8)', () => {
     doc.team = 0; foe.team = 1;
     castAbility(w, doc, getFighter('fawnsworth').attack, 'attack');
     run(w, 0.5);
-    expect(foe.hp).toBe(foe.mhp - 12);
+    expect(foe.hp).toBe(foe.mhp - 16); // T33: remedy dart 12 → 16
   });
 
   it('Fawnsworth: Grow Form halves incoming damage for its four seconds', () => {

@@ -10,12 +10,12 @@ export const SQUALL: FighterDef = {
   blurb: 'A cuttlefish composer whose every recital clears the dock — mostly by blowing everyone off it.',
   moves: { attack: 'Sour Note', special: 'Ink Cloud', ult: 'Grand Recital' },
   radius: 28,
-  maxHp: 104,
+  maxHp: 118,
   speedMul: 1.1,
   ammo: 3,
   reload: 1.15,
   // Sour Note: one flat honk out of the tuba bell — a wide cone of bad air
-  attack: { kind: 'melee', arcDeg: 100, range: 235, dmg: 15, knockback: 70, fx: 'sour-note' },
+  attack: { kind: 'melee', arcDeg: 100, range: 235, dmg: 23, knockback: 70, fx: 'sour-note' },
   // Ink Cloud: a blot of ink that hangs in the water and hides whoever sits in it
   special: {
     kind: 'aoe',

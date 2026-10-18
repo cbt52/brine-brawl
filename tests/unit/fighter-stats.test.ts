@@ -35,9 +35,9 @@ describe('fighter select data', () => {
   });
 
   it('counts every projectile of a volley as attack damage', () => {
-    expect(attackDamage(getFighter('sudsy'))).toBe(27); // 3 bubbles × 9
+    expect(attackDamage(getFighter('sudsy'))).toBe(39); // 3 bubbles × 13 (T33)
     expect(attackDamage(getFighter('mira'))).toBe(18); // whip
-    expect(attackDamage(getFighter('noodle'))).toBe(22); // jab
+    expect(attackDamage(getFighter('noodle'))).toBe(18); // jab (T33)
   });
 
   it('summarises every ability in one short line', () => {

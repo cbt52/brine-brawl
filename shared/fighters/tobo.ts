@@ -15,7 +15,7 @@ export const TOBO: FighterDef = {
   ammo: 3,
   reload: 1.2,
   // Hot Tea Splash: a cone of scalding tea that leaves the target burning a little
-  attack: { kind: 'melee', arcDeg: 110, range: 150, dmg: 15, knockback: 40, status: 'burn', statusSec: 1.5, fx: 'hot-tea' },
+  attack: { kind: 'melee', arcDeg: 110, range: 180, dmg: 24, knockback: 40, status: 'burn', statusSec: 1.5, fx: 'hot-tea' },
   // Tea Break: he sits down for a cuppa and patches himself up over three seconds
   special: {
     kind: 'aoe',

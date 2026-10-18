@@ -1,6 +1,6 @@
 import { SELECTABLE } from '../../../shared/fighters/index.ts';
 import { abilitySummary, fighterStats } from '../../../shared/fighters/stats.ts';
-import type { Element, FighterDef, Role } from '../../../shared/fighters/types.ts';
+import type { Element, Faction, FighterDef, Role } from '../../../shared/fighters/types.ts';
 import { PASSIVE_OF } from '../../../shared/sim/passives.ts';
 import { ELEMENT_LABEL, FACTION_COLOR, FACTION_LABEL, artUrl } from '../art/manifest.ts';
 import { escapeHtml } from './util.ts';
@@ -63,13 +63,25 @@ const passiveLine = (def: FighterDef): string => {
   return `<span class="passive"><b>${escapeHtml(pas.name)}</b> ${escapeHtml(pas.text)}</span>`;
 };
 
+/** Faction filter for the select grid (T33). */
+export type FighterTab = 'all' | Faction;
+
+const TABS: { id: FighterTab; label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'critterkin', label: 'Critterkin' },
+  { id: 'weavers', label: 'Weavers' },
+  { id: 'saltwind', label: 'Saltwind' },
+  { id: 'bubblebottom', label: 'Bubblebottom' },
+];
+
 function card(def: FighterDef, selected: string): string {
   const st = fighterStats(def);
   const moves = def.moves ?? { attack: 'Attack', special: 'Special', ult: 'Ultimate' };
-  return `<button class="card" type="button" data-fighter="${def.id}" data-testid="fighter-card-${def.id}"
-      aria-pressed="${def.id === selected}">
+  return `<button class="card" type="button" data-fighter="${def.id}" data-faction="${def.faction}"
+      data-testid="fighter-card-${def.id}" aria-pressed="${def.id === selected}">
     <img class="portrait" src="${artUrl(def.id)}" alt="" draggable="false" />
     <span class="cname">${escapeHtml(def.name)}</span>
+    <span class="bio">${escapeHtml(def.blurb)}</span>
     <span class="tags"><i class="faction" style="background:${hex(FACTION_COLOR[def.faction])}">${FACTION_LABEL[def.faction]}</i>
       <i class="elem">${ELEMENT_ICON[def.element]} ${ELEMENT_LABEL[def.element]}</i>
       <i class="role">${ROLE_LABEL[def.role]}</i></span>
@@ -83,18 +95,44 @@ export function fighterCardsHtml(selected: string): string {
   return SELECTABLE.map((d) => card(d, selected)).join('');
 }
 
-/** Fill `root` with the card grid; one card is always selected and every tap persists the choice. */
+/**
+ * Fill `root` with faction tabs, a Random button and the scrollable card grid. One card is always
+ * selected and every tap (or the dice) persists the choice. Tabs only filter, cards stay mounted.
+ */
 export function mountFighterGrid(root: HTMLElement, selected: string, onPick?: (id: string) => void): void {
-  root.innerHTML = fighterCardsHtml(selected);
+  root.innerHTML = `<div class="tabs" role="tablist" data-testid="fighter-tabs">
+      ${TABS.map(
+        (t) =>
+          `<button type="button" class="tab${t.id === 'all' ? ' on' : ''}" role="tab" data-tab="${t.id}"
+            aria-selected="${t.id === 'all'}" data-testid="ftab-${t.id}">${t.label}</button>`,
+      ).join('')}
+      <button type="button" class="tab dice" data-testid="fighter-random" title="Pick a random fighter">🎲 Random</button>
+    </div>
+    <div class="cards" data-testid="fighter-cards">${fighterCardsHtml(selected)}</div>`;
   const cards = [...root.querySelectorAll<HTMLButtonElement>('.card')];
-  for (const el of cards) {
-    el.addEventListener('click', () => {
-      const id = el.dataset.fighter!;
-      for (const other of cards) other.setAttribute('aria-pressed', String(other === el));
-      saveFighter(id);
-      onPick?.(id);
-    });
-  }
+  const tabs = [...root.querySelectorAll<HTMLButtonElement>('[data-tab]')];
+  const select = (id: string) => {
+    for (const other of cards) other.setAttribute('aria-pressed', String(other.dataset.fighter === id));
+    saveFighter(id);
+    onPick?.(id);
+  };
+  // Filter by faction; the picked card stays selected but hidden cards keep their aria state.
+  const filter = (tab: FighterTab) => {
+    for (const t of tabs) {
+      const active = t.dataset.tab === tab;
+      t.classList.toggle('on', active);
+      t.setAttribute('aria-selected', String(active));
+    }
+    for (const c of cards) c.hidden = tab !== 'all' && c.dataset.faction !== tab;
+  };
+  for (const el of cards) el.addEventListener('click', () => select(el.dataset.fighter!));
+  for (const t of tabs) t.addEventListener('click', () => filter(t.dataset.tab as FighterTab));
+  root.querySelector('[data-testid=fighter-random]')!.addEventListener('click', () => {
+    const pick = SELECTABLE[Math.floor(Math.random() * SELECTABLE.length)];
+    select(pick.id);
+    filter('all');
+    cards.find((c) => c.dataset.fighter === pick.id)?.scrollIntoView({ block: 'nearest' });
+  });
 }
 
 /** Compact button row for the in-game menu. */

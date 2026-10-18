@@ -11,11 +11,11 @@ export const ASHKA: FighterDef = {
   moves: { attack: 'Fire Darts', special: 'Flame Step', ult: 'Phoenix Ribbon' },
   radius: 28,
   maxHp: 100,
-  speedMul: 1.12,
+  speedMul: 1.06,
   ammo: 3,
-  reload: 0.95,
+  reload: 1.2,
   // Fire Darts: three quick needles on one line, cheap but they add up
-  attack: { kind: 'projectile', count: 3, spread: 12, speed: 830, range: 470, dmg: 8, radius: 6, fx: 'fire-darts' },
+  attack: { kind: 'projectile', count: 3, spread: 12, speed: 830, range: 470, dmg: 7, radius: 6, fx: 'fire-darts' },
   // Flame Step: a short dancer's step that scorches the floor behind her
   special: {
     kind: 'dash',
@@ -32,7 +32,7 @@ export const ASHKA: FighterDef = {
     kind: 'melee',
     arcDeg: 210,
     range: 200,
-    dmg: 30,
+    dmg: 18,
     knockback: 140,
     status: 'burn',
     statusSec: 2.5,

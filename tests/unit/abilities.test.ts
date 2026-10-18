@@ -386,7 +386,7 @@ describe('T11 kits: Cap\'n Noodle + Sudsy Loofah', () => {
   it('Taffy Jab reaches far past a normal punch', () => {
     const { w, a, b } = setup('noodle', 230);
     castAbility(w, a, getFighter('noodle').attack);
-    expect(b.hp).toBe(b.mhp - 22);
+    expect(b.hp).toBe(b.mhp - 18); // T33: taffy jab 22 → 18
     expect(b.x).toBeGreaterThan(1200); // knockback lands
     const far = setup('noodle', 340);
     castAbility(far.w, far.a, getFighter('noodle').attack);
@@ -496,8 +496,8 @@ describe('T11 kits: Cap\'n Noodle + Sudsy Loofah', () => {
     run(w, 0.7);
     expect(b.status).toBe('trapped');
     expect(c.status).toBe('trapped');
-    expect(b.hp).toBe(b.mhp - 14);
-    expect(c.hp).toBe(c.mhp - 14);
+    expect(b.hp).toBe(b.mhp - 17); // T33: mega bubble 14 → 17
+    expect(c.hp).toBe(c.mhp - 17);
   });
 });
 

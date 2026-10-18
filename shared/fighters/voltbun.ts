@@ -15,7 +15,7 @@ export const VOLTBUN: FighterDef = {
   ammo: 4,
   reload: 1.05,
   // Spark Hop: two quick short bolts per shot
-  attack: { kind: 'projectile', count: 2, spread: 10, speed: 1000, range: 480, dmg: 9, radius: 6, fx: 'spark' },
+  attack: { kind: 'projectile', count: 2, spread: 10, speed: 1000, range: 480, dmg: 8, radius: 6, fx: 'spark' },
   // Static Dash: short dash that leaves a static-charged trail
   special: {
     kind: 'dash',

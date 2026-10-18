@@ -21,7 +21,7 @@ export const PINCHPENNY: FighterDef = {
     spread: 5,
     speed: 760,
     range: 640,
-    dmg: 10,
+    dmg: 11,
     radius: 10,
     pierce: true,
     fx: 'coin-flick',

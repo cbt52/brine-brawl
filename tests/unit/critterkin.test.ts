@@ -35,7 +35,7 @@ describe('Critterkin roster (CP8)', () => {
     b.x = 1120; b.y = 1000; b.aim = Math.PI;
     a.shield = 0; b.shield = 0;
     castAbility(w, a, getFighter('gloomoth').attack, 'attack');
-    expect(b.hp).toBe(b.mhp - 9);
+    expect(b.hp).toBe(b.mhp - 13); // T33: dust puff 9 → 13
     expect(hasStatus(statusMask(b.status), 'heavy')).toBe(true);
   });
 
@@ -126,8 +126,8 @@ describe('Critterkin roster (CP8)', () => {
     a.shield = 0; b.shield = 0; c.shield = 0;
     castAbility(w, a, getFighter('pebblor').ult, 'ult');
     run(w, 1.0);
-    expect(b.hp).toBe(b.mhp - 26);
-    expect(c.hp).toBe(c.mhp - 26);
+    expect(b.hp).toBe(b.mhp - 18); // T33: avalanche egg 26 → 18
+    expect(c.hp).toBe(c.mhp - 18);
   });
 
   it('Dozelump: Belly Bump shoves the target away', () => {
@@ -138,12 +138,12 @@ describe('Critterkin roster (CP8)', () => {
     b.x = 1120; b.y = 1000; b.aim = Math.PI;
     a.shield = 0; b.shield = 0;
     castAbility(w, a, getFighter('dozelump').attack, 'attack');
-    expect(b.hp).toBe(b.mhp - 14);
+    expect(b.hp).toBe(b.mhp - 23); // T33: belly bump 14 → 23
     expect(b.x).toBeGreaterThan(1120);
     expect(b.x).toBeLessThan(1120 + 240); // one shove, then normal control
   });
 
-  it('Dozelump: Snooze heals 40 but roots for the full two seconds', () => {
+  it('Dozelump: Snooze heals 40 but roots for the whole snooze (T33: 1.2 s)', () => {
     const w = new World();
     const a = w.addPlayer(1, 'A', 'dozelump');
     a.x = 1000; a.y = 1000;
@@ -153,7 +153,7 @@ describe('Critterkin roster (CP8)', () => {
     expect(a.hp).toBe(120);
     w.setInput(a.id, inp({ mx: 1, my: 0 }));
     const x0 = a.x;
-    run(w, 1.5);
+    run(w, 1.1);
     expect(a.x).toBeCloseTo(x0, 5); // still planted
     run(w, 0.9); // buff over
     expect(a.x).toBeGreaterThan(x0 + 20);

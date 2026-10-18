@@ -16,7 +16,7 @@ export const GLOOMOTH: FighterDef = {
   reload: 0.8,
   // Dust Puff: a short cone of sleepy wing scale that leaves the target slow-footed (Heavy)
   attack: {
-    kind: 'melee', arcDeg: 95, range: 165, dmg: 9, knockback: 20,
+    kind: 'melee', arcDeg: 95, range: 185, dmg: 13, knockback: 20,
     status: 'heavy', statusSec: 2, fx: 'dust-puff',
   },
   // Phase Flutter: ghost out for a moment and reappear further along the aim

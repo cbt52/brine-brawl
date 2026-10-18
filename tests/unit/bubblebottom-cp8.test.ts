@@ -123,7 +123,7 @@ describe('Bubblebottom roster (CP8)', () => {
     a.shield = 0; b.shield = 0;
     castAbility(w, a, getFighter('krill').attack, 'attack');
     run(w, 0.4);
-    expect(b.hp).toBe(b.mhp - 13);
+    expect(b.hp).toBe(b.mhp - 10); // T33: laser pew 13 → 10
     expect(hasStatus(statusMask(b.status), 'static')).toBe(true);
   });
 

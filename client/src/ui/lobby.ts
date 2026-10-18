@@ -44,10 +44,10 @@ export function showLobby(prefillRoom: string | null, prefillName: string | null
       <p class="err" data-testid="lobby-err"></p>`}
       <section class="fighters">
         <h2 class="fh">Choose fighter</h2>
-        <div class="cards" data-testid="fighter-cards"></div>
+        <div class="select" data-testid="fighter-select"></div>
       </section></div>`;
     document.body.appendChild(el);
-    mountFighterGrid(el.querySelector<HTMLElement>('[data-testid=fighter-cards]')!, fighter, (id) => { fighter = id; });
+    mountFighterGrid(el.querySelector<HTMLElement>('[data-testid=fighter-select]')!, fighter, (id) => { fighter = id; });
     // the portrait "rotate" hint is for gameplay only – it must never cover the lobby
     document.body.classList.add('in-lobby');
     const name = el.querySelector<HTMLInputElement>('[data-testid=name-input]')!;

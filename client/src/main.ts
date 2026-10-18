@@ -84,6 +84,10 @@ document.addEventListener('touchend', (e) => {
   if (t - lastTouchEnd < 350) e.preventDefault();
   lastTouchEnd = t;
 }, { passive: false });
+// PWA (T33): register the pass-through service worker so the game can be added to the home screen.
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => void navigator.serviceWorker.register('/sw.js').catch(() => {}));
+}
 const fs = document.getElementById('fs');
 if (fs && document.documentElement.requestFullscreen && (navigator.maxTouchPoints > 0 || 'ontouchstart' in window)) {
   fs.style.display = 'block';

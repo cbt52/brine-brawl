@@ -66,14 +66,27 @@ body.in-lobby #rotate { display: none; }
 .lobby-inner { margin: auto; display: flex; flex-direction: column; align-items: center; gap: 10px; width: 100%; max-width: 900px; }
 #lobby .fh { margin: 0; font-size: 13px; font-weight: 400; letter-spacing: 2px; text-transform: uppercase; color: #9fd6d0; }
 #lobby .fighters { display: flex; flex-direction: column; align-items: center; gap: 6px; width: 100%; }
+.select { display: flex; flex-direction: column; gap: 6px; width: 100%; align-items: center; }
+/* faction tabs + dice (T33): sticky above the grid so the filter never scrolls away */
+.select .tabs { display: flex; flex-wrap: wrap; gap: 4px; justify-content: center; width: 100%; }
+.select .tab { font: 400 12px 'Lilita One', system-ui, sans-serif; color: #cfe9e5; background: #0b213099;
+  border: 2px solid #ffffff33; border-radius: 999px; padding: 3px 10px; cursor: pointer; touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent; }
+.select .tab.on { background: #ffc93c; border-color: #ffc93c; color: #1b1b2f; }
+.select .tab.dice { background: #2ec4b633; border-color: #2ec4b6aa; color: #eafffb; }
 .cards { display: grid; gap: 8px; width: 100%; justify-content: center;
-  grid-template-columns: repeat(auto-fit, minmax(148px, 168px)); }
+  grid-template-columns: repeat(auto-fit, minmax(148px, 168px));
+  max-height: min(50vh, 420px); overflow-y: auto; overscroll-behavior: contain;
+  touch-action: pan-y; padding: 2px; scrollbar-width: thin; }
+.card[hidden] { display: none; }
 .card { display: flex; flex-direction: column; gap: 3px; align-items: stretch; text-align: left; padding: 7px 8px; border-radius: 12px;
   border: 3px solid #ffffff26; background: #0b2130cc; color: #fff; font: inherit; cursor: pointer; touch-action: manipulation;
   -webkit-tap-highlight-color: transparent; }
 .card[aria-pressed='true'] { border-color: #ffc93c; background: #123647; box-shadow: 0 0 12px #ffc93c55; }
 .card .portrait { width: 52px; height: 52px; align-self: center; pointer-events: none; }
 .card .cname { font-size: 15px; line-height: 1.1; color: #ffc93c; }
+.card .bio { font-family: system-ui, sans-serif; font-size: 9px; line-height: 1.25; color: #9fd6d0;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .card .tags { display: flex; flex-wrap: wrap; gap: 3px; font-family: system-ui, sans-serif; font-size: 9px; }
 .card .tags i { font-style: normal; padding: 1px 5px; border-radius: 999px; border: 1px solid #ffffff33; white-space: nowrap; }
 .card .tags .faction { color: #1b1b2f; border-color: #1b1b2f; font-weight: 700; }
@@ -95,5 +108,5 @@ body.in-lobby #rotate { display: none; }
 @media (max-height: 560px) {
   #lobby .title { font-size: clamp(22px, 6vw, 40px); }
   .card .moves, .card .passive { display: none; }
-  .cards { grid-template-columns: repeat(auto-fit, minmax(120px, 140px)); }
+  .cards { grid-template-columns: repeat(auto-fit, minmax(120px, 140px)); max-height: min(58vh, 360px); }
 }

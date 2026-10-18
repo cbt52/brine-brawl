@@ -15,7 +15,7 @@ export const PIP: FighterDef = {
   ammo: 3,
   reload: 1.03,
   // Gust Darts: a tight pair of fast darts, the lightest attack in the roster but easy to land twice
-  attack: { kind: 'projectile', count: 2, spread: 8, speed: 860, range: 540, dmg: 7, radius: 6, fx: 'gust-darts' },
+  attack: { kind: 'projectile', count: 2, spread: 8, speed: 860, range: 540, dmg: 8, radius: 6, fx: 'gust-darts' },
   // Kite Lift: hops along the wind, clipping whoever is in the way (keeps going)
   special: { kind: 'dash', dist: 300, dur: 0.28, contactDmg: 12, cd: 6.5, fx: 'kite-lift' },
   // Whirlwind: a spinning updraft that grinds and drags everything toward its eye

@@ -81,9 +81,9 @@ describe('Weavers roster (CP8)', () => {
     expect(w.projs[0].returns).toBe(true);
     const hp0 = b.hp;
     run(w, 0.8); // outbound leg: one hit
-    expect(b.hp).toBe(hp0 - 13);
+    expect(b.hp).toBe(hp0 - 15); // T33: boomerang 13 → 15
     run(w, 1.2); // back through the same target
-    expect(b.hp).toBe(hp0 - 26);
+    expect(b.hp).toBe(hp0 - 30); // T33: two hits of 15
     expect(w.projs.length).toBe(0); // caught by its owner
   });
 
@@ -126,7 +126,7 @@ describe('Weavers roster (CP8)', () => {
     b.x = 1090; b.y = 1000; b.aim = Math.PI;
     a.shield = 0; b.shield = 0;
     castAbility(w, a, getFighter('tobo').attack, 'attack');
-    expect(b.hp).toBe(b.mhp - 15);
+    expect(b.hp).toBe(b.mhp - 24); // T33: hot tea splash 15 → 24
     expect(hasStatus(statusMask(b.status), 'burn')).toBe(true);
   });
 

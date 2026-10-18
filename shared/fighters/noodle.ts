@@ -15,13 +15,13 @@ export const NOODLE: FighterDef = {
   ammo: 3,
   reload: 1.42,
   // Taffy Jab: a long stretchy punch thrown well past normal melee range
-  attack: { kind: 'melee', arcDeg: 40, range: 235, dmg: 22, knockback: 70, fx: 'taffy-jab' },
+  attack: { kind: 'melee', arcDeg: 40, range: 235, dmg: 18, knockback: 70, fx: 'taffy-jab' },
   // Sling Grab: rubber-band launch that slams into the first enemy it reaches
   special: {
     kind: 'dash',
     dist: 340,
     dur: 0.2,
-    contactDmg: 24,
+    contactDmg: 19,
     stopOnContact: true,
     cd: 7,
     fx: 'sling-grab',

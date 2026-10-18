@@ -36,7 +36,7 @@ describe('Bubblebottom roster (CP6)', () => {
     a.shield = 0; b.shield = 0; c.shield = 0;
     castAbility(w, a, getFighter('pinchpenny').attack, 'attack');
     run(w, 0.6);
-    expect(b.hp).toBe(b.mhp - 20); // both coins of the volley hit the first body
+    expect(b.hp).toBe(b.mhp - 22); // both coins of the volley hit the first body (T33: 10 → 11 each)
     expect(c.hp).toBeLessThanOrEqual(c.mhp - 10); // the line carries on through it
   });
 

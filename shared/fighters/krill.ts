@@ -13,9 +13,9 @@ export const KRILL: FighterDef = {
   maxHp: 96,
   speedMul: 1.12,
   ammo: 4,
-  reload: 0.72,
+  reload: 0.82,
   // Laser Pew: a thin hot line out of the suit's monocle lens
-  attack: { kind: 'projectile', count: 1, spread: 0, speed: 1150, range: 480, dmg: 13, radius: 6, status: 'static', statusSec: 1.5, fx: 'laser-pew' },
+  attack: { kind: 'projectile', count: 1, spread: 0, speed: 1150, range: 480, dmg: 10, radius: 6, status: 'static', statusSec: 1.5, fx: 'laser-pew' },
   // Mini-Turret: folds a little tripod turret out of the suit's backpack
   special: {
     kind: 'summon',
