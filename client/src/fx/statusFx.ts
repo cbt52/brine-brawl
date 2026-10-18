@@ -4,8 +4,8 @@
  * The drawing itself lives in GameScene.drawOverlays.
  */
 import { ELEMENT_OF_STATUS, REACTION_BY_ID } from '../../../shared/sim/elements.ts';
-import { hasStatus, type StatusKind } from '../../../shared/fighters/types.ts';
-import { ELEMENT_COLOR } from './style.ts';
+import { hasStatus, type Element, type StatusKind } from '../../../shared/fighters/types.ts';
+import { elementColor } from './style.ts';
 
 /** Above one head we show at most this many icons (old ones drop off on the right). */
 export const MAX_STATUS_ICONS = 4;
@@ -32,8 +32,7 @@ const EXTRA_COLOR: Partial<Record<StatusKind, number>> = { trapped: 0x9fe7ff, st
 export function statusColor(status: StatusKind): number {
   const extra = EXTRA_COLOR[status];
   if (extra !== undefined) return extra;
-  const el = ELEMENT_OF_STATUS[status];
-  return el ? ELEMENT_COLOR[el] : ELEMENT_COLOR.neutral;
+  return elementColor(ELEMENT_OF_STATUS[status]);
 }
 
 /** The statuses a snapshot mask carries, in priority order, capped at `MAX_STATUS_ICONS`. */
@@ -60,8 +59,8 @@ export function reactionLabel(id: string): string | null {
 
 /** Popup colour: the element that triggered the reaction. */
 export function reactionColor(id: string): number {
-  const r = (REACTION_BY_ID as Record<string, { element?: keyof typeof ELEMENT_COLOR } | undefined>)[id];
-  return r?.element ? ELEMENT_COLOR[r.element] : ELEMENT_COLOR.neutral;
+  const r = (REACTION_BY_ID as Record<string, { element?: Element } | undefined>)[id];
+  return elementColor(r?.element);
 }
 
 /** Falling-drip phase in 0..1 for wet bodies (`stagger` offsets the drops). */

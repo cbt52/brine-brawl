@@ -2,7 +2,7 @@ import type { Net } from '../net.ts';
 import { BOT_LEVELS } from '../../../shared/sim/bot.ts';
 import { copyText, inviteUrl } from './rooms.ts';
 import { fighterRowHtml, markFighterRow, nextSkin, saveFighter, saveSkin, savedFighter, savedSkin, skinLabel } from './select.ts';
-import { setShakeEnabled, shakeEnabled, setSfxEnabled, sfxEnabled, setMusicEnabled, musicEnabled } from './settings.ts';
+import { setShakeEnabled, shakeEnabled, setSfxEnabled, sfxEnabled, setMusicEnabled, musicEnabled, setColorblindEnabled, colorblindEnabled } from './settings.ts';
 import { showStats } from './statsPage.ts';
 import { showTutorial } from './tutorial.ts';
 
@@ -57,6 +57,7 @@ export function mountMenu(net: Net, touch: boolean): void {
     <button class="big sm alt" data-testid="menu-shake">Screenshake</button>
     <button class="big sm alt" data-testid="menu-sfx">Sound</button>
     <button class="big sm alt" data-testid="menu-music">Music</button>
+    <button class="big sm alt" data-testid="menu-cb">Colour-blind</button>
     <button class="big sm alt" data-testid="menu-leave">Leave</button>`;
   document.body.append(btn, panel);
   const sbBtn = document.createElement('button');
@@ -136,6 +137,11 @@ export function mountMenu(net: Net, touch: boolean): void {
   const syncMusic = () => { musicBtn.textContent = `Music: ${musicEnabled() ? 'On' : 'Off'}`; };
   musicBtn.addEventListener('click', () => { setMusicEnabled(!musicEnabled()); syncMusic(); });
   syncMusic();
+  // backlog #22: colour-blind element set (sparks and reaction words read it on the next hit)
+  const cbBtn = q('menu-cb') as HTMLButtonElement;
+  const syncCb = () => { cbBtn.textContent = `Colour-blind: ${colorblindEnabled() ? 'On' : 'Off'}`; };
+  cbBtn.addEventListener('click', () => { setColorblindEnabled(!colorblindEnabled()); syncCb(); });
+  syncCb();
   q('menu-invite').addEventListener('click', () => { panel.style.display = 'none'; showInvite(net.room); });
   q('menu-stats').addEventListener('click', () => { panel.style.display = 'none'; showStats(); });
   // backlog #21: the first-visit tips card again, same text as before

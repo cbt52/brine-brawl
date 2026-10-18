@@ -3,10 +3,12 @@
 const SHAKE_KEY = 'brawl.shake';
 const SFX_KEY = 'brawl.sfx';
 const MUSIC_KEY = 'brawl.music';
+const COLORBLIND_KEY = 'brawl.cb';
 
 let shake = readOn(SHAKE_KEY);
 let sfx = readOn(SFX_KEY);
 let music = readOn(MUSIC_KEY);
+let colorblind = readOptIn(COLORBLIND_KEY);
 
 /** Missing or unreadable value → on (also covers private mode throwing on getItem). */
 function readOn(key: string): boolean {
@@ -14,6 +16,15 @@ function readOn(key: string): boolean {
     return localStorage.getItem(key) !== 'off';
   } catch {
     return true;
+  }
+}
+
+/** Opt-in flag: missing or unreadable → off. */
+function readOptIn(key: string): boolean {
+  try {
+    return localStorage.getItem(key) === 'on';
+  } catch {
+    return false;
   }
 }
 
@@ -54,4 +65,14 @@ export function setMusicEnabled(on: boolean): void {
   music = on;
   write(MUSIC_KEY, on);
   window.dispatchEvent(new CustomEvent('brawl:music', { detail: on }));
+}
+
+/** Colour-blind element palette (backlog #22). Off by default; `elementColor` reads it on every call. */
+export function colorblindEnabled(): boolean {
+  return colorblind;
+}
+
+export function setColorblindEnabled(on: boolean): void {
+  colorblind = on;
+  write(COLORBLIND_KEY, on);
 }

@@ -8,7 +8,7 @@ import { interpolate, interpolateProjs, type Pos } from '../net/interp.ts';
 import { Predictor } from '../net/predict.ts';
 import { KillCam } from '../net/killcam.ts';
 import { CombatFx } from '../fx/combatFx.ts';
-import { ELEMENT_COLOR, elementColor } from '../fx/style.ts';
+import { elementColor } from '../fx/style.ts';
 import {
   dripPhase, flameAlpha, reactionColor, reactionLabel, STATUS_ICON, statusColor, statusList, type IconKind,
 } from '../fx/statusFx.ts';
@@ -495,14 +495,14 @@ export class GameScene extends Phaser.Scene {
       this.drawGlyph(g, STATUS_ICON[list[i]], x, y, color);
     }
     if (hasStatus(p.st, 'burn')) {
-      g.lineStyle(3, ELEMENT_COLOR.fire, flameAlpha(nowMs)).strokeCircle(p.x, p.y, r * 1.25);
+      g.lineStyle(3, elementColor('fire'), flameAlpha(nowMs)).strokeCircle(p.x, p.y, r * 1.25);
     }
     if (hasStatus(p.st, 'wet')) {
       for (let i = 0; i < 2; i++) {
         const phase = dripPhase(nowMs, i * 0.5);
         const dx = p.x + (i === 0 ? -8 : 7);
         const dy = p.y + r * 0.5 + phase * 16;
-        g.fillStyle(ELEMENT_COLOR.water, 0.75 * (1 - phase)).fillCircle(dx, dy, 3);
+        g.fillStyle(elementColor('water'), 0.75 * (1 - phase)).fillCircle(dx, dy, 3);
       }
     }
   }
