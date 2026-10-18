@@ -197,6 +197,13 @@ export interface SnapSummon {
   o: number;
 }
 
+/** Purrl, the wandering sea snail (backlog #1): where it is and which way it faces (degrees). */
+export interface SnapPurrl {
+  x: number;
+  y: number;
+  a: number;
+}
+
 /** A reward dropped by a broken chest. */
 export interface SnapPickup {
   id: number;
@@ -252,6 +259,8 @@ export interface SnapMsg {
   walls?: SnapWall[];
   /** standing decoys and turrets (T31) */
   sum?: SnapSummon[];
+  /** Purrl, the sea snail that heals once per life (backlog #1) */
+  purrl?: SnapPurrl;
   /** Treasure Tide crew totals + escape countdown (T27) */
   tr?: TreasureInfo;
   /** match phase + timer (added by the room) */

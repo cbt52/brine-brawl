@@ -24,7 +24,7 @@ import { Shanty } from '../audio/music.ts';
 import { cueForEvent } from '../audio/map.ts';
 import { tideLevel } from '../../../shared/sim/tide.ts';
 import { EMOTES } from '../../../shared/emotes.ts';
-import type { PickupKind, SnapSummon, SnapWall } from '../../../shared/protocol.ts';
+import type { PickupKind, SnapPurrl, SnapSummon, SnapWall } from '../../../shared/protocol.ts';
 
 const INTERP_DELAY_MS = 100;
 /** how long the taffy arm stays stretched out after a punch */
@@ -191,6 +191,7 @@ export class GameScene extends Phaser.Scene {
     if (!snap) return;
     for (const wl of snap.walls ?? []) this.drawWall(g, wl);
     for (const su of snap.sum ?? []) this.drawSummon(g, su, nowMs);
+    if (snap.purrl) this.drawPurrl(g, snap.purrl, nowMs);
     for (const c of snap.chests ?? []) {
       const bob = Math.sin(nowMs / 420 + c.id) * 2;
       const y = c.y + bob;
@@ -242,6 +243,26 @@ export class GameScene extends Phaser.Scene {
       g.fillStyle(0x1b1b2f, 0.85).fillRect(su.x - r, su.y - r - 16, r * 2, 6);
       g.fillStyle(frac > 0.5 ? 0xcfd6e0 : 0xff8f7a, 1).fillRect(su.x - r + 1, su.y - r - 15, (r * 2 - 2) * frac, 4);
     }
+  }
+
+  /** Purrl (backlog #1): a pale sea snail with a blue spiral shell; its eyes lead the way it walks. */
+  private drawPurrl(g: Phaser.GameObjects.Graphics, pu: SnapPurrl, nowMs: number): void {
+    const flip = Math.cos((pu.a * Math.PI) / 180) < 0 ? -1 : 1;
+    const bob = Math.sin(nowMs / 380) * 1.5;
+    const x = pu.x;
+    const y = pu.y + bob;
+    g.fillStyle(0x1b1b2f, 0.35).fillEllipse(x, pu.y + 16, 46, 12);
+    // foot: a soft pink slug body under the shell
+    g.fillStyle(0xf4a7b9, 1).fillEllipse(x, y + 8, 40, 16);
+    g.lineStyle(3, 0x8a4a5e, 1).strokeEllipse(x, y + 8, 40, 16);
+    // shell: pale mint with a darker spiral
+    g.fillStyle(0x9fe7ff, 1).fillCircle(x - 5 * flip, y - 7, 15);
+    g.lineStyle(3, 0x3b6e9a, 1).strokeCircle(x - 5 * flip, y - 7, 15);
+    g.lineStyle(2, 0x3b6e9a, 1).strokeCircle(x - 5 * flip, y - 7, 8);
+    // eye stalks with white eyes and pupils facing the walk
+    g.lineStyle(3, 0x8a4a5e, 1).lineBetween(x + 13 * flip, y + 2, x + 17 * flip, y - 12);
+    g.fillStyle(0xffffff, 1).fillCircle(x + 17 * flip, y - 14, 4);
+    g.fillStyle(0x1b1b2f, 1).fillCircle(x + 18 * flip, y - 14, 2);
   }
 
   /** A stone slab from Brak's wall: drawn exactly on its collision rect, with an HP bar when chipped. */

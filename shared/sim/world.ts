@@ -11,6 +11,7 @@ import { castAbility, hitElement, stepBurrow, stepDash, stepZones, type BurrowSt
 import { applyElementHit, applyStatus, BURN_DPS, BURN_TICK_SEC, STATUS_SEC, statusSpeedMul } from './elements.ts';
 import { stepWalls, wallRect, wallRects, type Wall } from './walls.ts';
 import { stepSummons, type Summon } from './summons.ts';
+import { makePurrl, PURRL_HEAL, PURRL_R, stepPurrl, type Purrl } from './purrl.ts';
 import { BOUNTY_START, bountyAfterKO, KO_COINS, koPurse } from './bounty.ts';
 import {
   bountyMulFor, noteAttackHit, onKO, resetOnDeath, resetOnSpawn, stepPassives, takeFlow, toonSave, ultGainMul,
@@ -127,6 +128,8 @@ export interface SimPlayer {
   deaths: number;
   /** fighter id picked mid-match; swapped in by the next respawn */
   pendingFighter: string | null;
+  /** Purrl's heal is spent for this life (backlog #1); respawn clears it */
+  purrlFed: boolean;
   /** doubloons collected from chests and KO purses (the coin stash) */
   gold: number;
   /** Bounty Brawl score (T19): starts at BOUNTY_START and grows with every KO */
@@ -193,6 +196,8 @@ export class World {
   private lootSeeded = false;
   /** unclaimed chest rewards */
   picks: Pickup[] = [];
+  /** the sea snail that wanders the sand and heals the hurt (backlog #1) */
+  purrl: Purrl = makePurrl();
   private nextProj = 1;
   /** rotates the pickup reward so chests do not always drop the same thing */
   private pickupRotor = 0;
@@ -207,7 +212,7 @@ export class World {
       hp: def.maxHp, mhp: def.maxHp, speedMul: def.speedMul, aim: 0, ack: 0, input: null,
       ammo: def.ammo, reload: 0, fireCd: 0, fireLatch: false, spcCd: 0, uc: 0, dash: null, burrow: null,
       buffMul: 1, buffLeft: 0, dmgMul: 1, dmgMulLeft: 0, status: null, statusLeft: 0, rootLeft: 0, burnT: 0, trapTook: 0,
-      revealT: 0, down: false, respawn: 0, shield: C.SHIELD_SEC, kos: 0, deaths: 0, pendingFighter: null,
+      revealT: 0, down: false, respawn: 0, shield: C.SHIELD_SEC, kos: 0, deaths: 0, pendingFighter: null, purrlFed: false,
       gold: 0, bounty: BOUNTY_START, waterT: 0, bot, team, carry: 0,
       evolveKos: 0, evolved: false, flowHits: 0, flowT: 0, flowReady: false, toonUsed: false, toonLeft: 0,
     };
@@ -468,6 +473,7 @@ export class World {
     stepZones(this, dt);
     this.walls = stepWalls(this.walls, dt);
     stepSummons(this, dt);
+    this.stepPurrlSnail(dt);
     const alive = list.filter((p) => !p.down && !p.burrow);
     separate(alive);
     for (const p of alive) resolveWalls(p, block);
@@ -781,11 +787,27 @@ export class World {
     p.uc = Math.min(p.uc, def.ultCharge);
   }
 
+  /** Purrl (backlog #1) wanders the sand and patches up the first hurt fighter it bumps, once per life. */
+  private stepPurrlSnail(dt: number): void {
+    stepPurrl(this.purrl, dt);
+    for (const p of this.players.values()) {
+      if (p.down || p.burrow || p.purrlFed || p.hp >= p.mhp) continue;
+      if (Math.hypot(p.x - this.purrl.x, p.y - this.purrl.y) > p.r + PURRL_R) continue;
+      const before = p.hp;
+      p.hp = Math.min(p.mhp, p.hp + PURRL_HEAL);
+      p.purrlFed = true;
+      this.events.push({
+        k: 'heal', v: p.id, n: Math.round(p.hp - before), x: Math.round(this.purrl.x), y: Math.round(this.purrl.y),
+      });
+    }
+  }
+
   private respawnPlayer(p: SimPlayer): void {
     this.applyPendingFighter(p);
     const s = this.spawnFor(p);
     p.x = s.x; p.y = s.y;
     p.hp = p.mhp;
+    p.purrlFed = false;
     p.down = false;
     p.ammo = p.def.ammo;
     p.reload = 0;
@@ -895,6 +917,9 @@ export class World {
       tide: this.tide.info(),
       chests: this.chests.map((c) => ({ id: c.id, x: Math.round(c.x), y: Math.round(c.y), hp: c.hp, mhp: c.mhp })),
       picks: this.picks.map((k) => ({ id: k.id, x: Math.round(k.x), y: Math.round(k.y), k: k.kind })),
+      purrl: {
+        x: Math.round(this.purrl.x), y: Math.round(this.purrl.y), a: Math.round((this.purrl.a * 180) / Math.PI),
+      },
       tr: this.treasure ? this.treasure.info() : undefined,
       walls: this.walls.length
         ? this.walls.map((w) => ({

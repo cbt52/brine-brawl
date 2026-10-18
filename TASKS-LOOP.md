@@ -455,25 +455,24 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 
 ---
 ## 5. IMPROVEMENT BACKLOG (ordered; T99 takes from the top; user feedback goes first)
-1. Purrl the meowing sea snail: wanders the beach, touching it heals +10 once per life.
-2. Second arena "Taffy Galleon": rocking ship deck, cannon hazard that fires across lanes.
-3. Bot difficulty selector (easy / normal / sharky) in the lobby.
-4. Skins: 2 palette swaps per fighter (data-driven SVG color replacement).
-5. "Weird Weather" match modifiers: jellyfish rain, bubble storm, double tide.
-6. Kill-cam: 2 s replay of the last KO from the snapshot buffer.
-7. Showdown battle-royale mode where the tide permanently rises and shrinks the island.
-8. Tutorial overlay for first-time players (3 tips, dismissible).
-9. Colorblind-friendly team outlines and status shapes.
-10. Local stats page (matches, favorite fighter, best bounty) in localStorage.
-11. Bots answer: a bot that KOs you sends a sticker back over the T99 emote channel (one in three KOs).
-12. Optional ONLY if the user asks: ComfyUI portraits (127.0.0.1:8188, 2–7 min/img, 16 GB RAM, never while the user is using it).
+1. Second arena "Taffy Galleon": rocking ship deck, cannon hazard that fires across lanes.
+2. Bot difficulty selector (easy / normal / sharky) in the lobby.
+3. Skins: 2 palette swaps per fighter (data-driven SVG color replacement).
+4. "Weird Weather" match modifiers: jellyfish rain, bubble storm, double tide.
+5. Kill-cam: 2 s replay of the last KO from the snapshot buffer.
+6. Showdown battle-royale mode where the tide permanently rises and shrinks the island.
+7. Tutorial overlay for first-time players (3 tips, dismissible).
+8. Colorblind-friendly team outlines and status shapes.
+9. Local stats page (matches, favorite fighter, best bounty) in localStorage.
+10. Bots answer: a bot that KOs you sends a sticker back over the T99 emote channel (one in three KOs).
+11. Optional ONLY if the user asks: ComfyUI portraits (127.0.0.1:8188, 2–7 min/img, 16 GB RAM, never while the user is using it).
+12. Bots go for Purrl (backlog #1 snail) when they are hurt and it is within reach; today the snail is scenery for bots.
 
 ---
 ## 6. LOG (one line per task/hotfix; archive older lines to `.loop/log-archive.md` if >40 lines)
 - T29 ✅ 2026-10-18 — Gloomoth (Dust Puff/Phase Flutter/Lantern Swarm), Pebblor (Pebble Lob/Hunker/Avalanche Egg), Dozelump (Belly Bump/Snooze/Body Slam); `homing`+`aoeOnEnd.status`-Primitive, buff 0-Multiplikatoren; 11 Tests, check 440+shot grün
 - T24 ✅ 2026-10-18 — Pinchpenny (piercing coins, claw pull, coin slam) + Hammy (chop, tank dash, slow field); dropGold bit; 394 green
 - T16 ✅ 2026-10-18 — client prediction (ack-rollback, 100 ms blend, 120 u snap), ping HUD, ?lag=ms; e2e green; CP4 checkpoint
-- T00 ✅ 2026-10-18 — scaffold+MCP done; .claude/settings.json write was denied by harness (add manually, MCP works anyway)
 - T01-partial 🟡 2026-10-18 — server/client/smoke/shot done+green; PARTIAL: serve.sh not runnable (needs approval) → T01a
 - T01/T01a 🔴 2026-10-18 — BLOCKED: harness requires user approval to run scripts/serve.sh; check+smoke green; see checkpoint
 - T02 ✅ 2026-10-18 — shared World sim, docks arena, interp+camera, kb/mouse/touch stick; unit+smoke green
@@ -510,3 +509,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T32 ✅ 2026-10-18 — Lumpy (Flop Slap/Rock Nap-Immunität/Big Nap Quake), Squall Mopefin (Sour Note/Ink Cloud via neuem `AoeAbility.hides`/Grand Recital), Teeny Krill (Laser Pew/Mini-Turret-Summon/Mech-Max-Pierce); 10 Tests, check 476+shot grün
 - T33 ✅ 2026-10-18 — Roster-Politur: Fraktions-Tabs + 🎲 Random + Bios + Scroll-Grid, Balance-Vollpass 18→0 Outliers (alle 24 in 40–60 %), Galerie-Textband fix, PWA-Manifest+Icons+SW; CP8, 483 Tests+e2e 34/34+healthz grün
 - T99 ✅ 2026-10-18 — Emote-Rad: 4 Sticker (`shared/emotes.ts`, Index + 1,2 s Cooldown im Room), DOM-Rad oben rechts (Taste 1–4/V), Blase über dem Kämpfer; 4 Unit + 4 e2e-Tests, check 488 grün, Shot ok
+- T99 ✅ 2026-10-18 — Purrl-Schnecke (Backlog #1): `shared/sim/purrl.ts` wandert über Sand (seeded, meidet Korallen+Flut), heilt +10 einmal pro Leben (Respawn setzt zurück), Snapshot `purrl`, Client-Zeichnung; 9 Unit-Tests, check 497 grün, kein Live-Shot (kein Teleport-Hook)
