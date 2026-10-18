@@ -18,6 +18,7 @@ const mmss = (sec: number): string => {
 export class HudScene extends Phaser.Scene {
   private timerText!: Phaser.GameObjects.Text;
   private koText!: Phaser.GameObjects.Text;
+  private abText!: Phaser.GameObjects.Text;
   private cdText!: Phaser.GameObjects.Text;
   private waitText!: Phaser.GameObjects.Text;
   private feedText!: Phaser.GameObjects.Text;
@@ -36,6 +37,7 @@ export class HudScene extends Phaser.Scene {
   create(): void {
     this.timerText = this.txt(30).setOrigin(0.5, 0);
     this.koText = this.txt(22).setOrigin(0, 0);
+    this.abText = this.txt(17).setOrigin(0, 0);
     this.cdText = this.txt(96).setOrigin(0.5).setAlpha(0);
     this.waitText = this.txt(20, { align: 'center' }).setOrigin(0.5);
     this.feedText = this.txt(18, { align: 'right' }).setOrigin(1, 0);
@@ -58,11 +60,21 @@ export class HudScene extends Phaser.Scene {
     const h = this.scale.height;
     this.timerText.setPosition(w / 2, 6);
     this.koText.setPosition(12, 8);
+    this.abText.setPosition(12, 38);
     this.feedText.setPosition(w - 12, 54);
     this.cdText.setPosition(w / 2, h / 2 - 30);
     this.waitText.setPosition(w / 2, h / 2 + 60);
     this.sbText.setPosition(w / 2, h / 2);
   };
+
+  /** Special cooldown + ult charge of the local player (tap/press hints live in the touch UI). */
+  private setAbilities(me: SnapPlayer): void {
+    const ult = Math.max(0, Math.min(100, me.uc));
+    const ready = ult >= 100;
+    const cd = me.cd > 0 ? `SPC ${me.cd.toFixed(1)}s` : 'SPC ready';
+    this.abText.setText(`${cd}   ·   ULT ${ready ? 'READY!' : `${ult}%`}`);
+    this.abText.setColor(ready ? '#ffd23f' : '#ffffff');
+  }
 
   private onKeyDown = (e: KeyboardEvent): void => {
     if (e.key !== 'Tab') return;
@@ -94,6 +106,8 @@ export class HudScene extends Phaser.Scene {
     if (!this.koText) return; // scene still booting
     const me = view.find((p) => p.id === selfId);
     this.koText.setText(`KOs ${me?.k ?? 0}  ·  KO'd ${me?.d ?? 0}`);
+    if (me) this.setAbilities(me);
+    else this.abText.setText('');
 
     const phase = m?.st ?? 'waiting';
     const now = performance.now();

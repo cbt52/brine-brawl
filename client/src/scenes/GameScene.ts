@@ -9,7 +9,7 @@ import { interpolate, interpolateProjs, type Pos } from '../net/interp.ts';
 import { CombatFx } from '../fx/combatFx.ts';
 import { HudScene } from './HudScene.ts';
 import { syncResults } from '../ui/results.ts';
-import { MAX_AMMO } from '../../../shared/sim/combat.ts';
+import { getFighter } from '../../../shared/fighters/index.ts';
 
 const INTERP_DELAY_MS = 100;
 
@@ -55,14 +55,14 @@ export class GameScene extends Phaser.Scene {
     g.lineStyle(6, 0xffc93c, 1).strokeRect(0, 0, WORLD_W, WORLD_H);
   }
 
-  private drawBars(g: Phaser.GameObjects.Graphics, x: number, y: number, frac: number, ammo: number): void {
+  private drawBars(g: Phaser.GameObjects.Graphics, x: number, y: number, frac: number, ammo: number, maxAmmo: number): void {
     const w = 56;
     const top = y - 50;
     g.fillStyle(0x1b1b2f, 0.8).fillRoundedRect(x - w / 2 - 2, top - 2, w + 4, 12, 4);
     const col = frac > 0.6 ? 0x6bd968 : frac > 0.3 ? 0xffd23f : 0xe63946;
     g.fillStyle(col, 1).fillRoundedRect(x - w / 2, top, Math.max(2, w * frac), 8, 3);
-    for (let i = 0; i < MAX_AMMO; i++) {
-      g.fillStyle(i < ammo ? 0xfff3b0 : 0x44506a, 1).fillCircle(x - 12 + i * 12, top + 18, 4);
+    for (let i = 0; i < maxAmmo; i++) {
+      g.fillStyle(i < ammo ? 0xfff3b0 : 0x44506a, 1).fillCircle(x - (maxAmmo - 1) * 6 + i * 12, top + 18, 4);
     }
   }
 
@@ -107,13 +107,14 @@ export class GameScene extends Phaser.Scene {
         g.fillStyle(0xffffff, alpha).fillCircle(ex, ey, 8);
         g.fillStyle(0x1b1b2f, alpha).fillCircle(ex + ax * 3, ey + ay * 3, 4);
       }
-      this.drawBars(g, p.x, p.y, p.hp / p.mhp, p.am);
+      this.drawBars(g, p.x, p.y, p.hp / p.mhp, p.am, getFighter(p.f).ammo);
     }
     for (const pr of interpolateProjs(this.net.buffer, nowMs - INTERP_DELAY_MS)) {
       g.fillStyle(0xfff3b0, 1).fillCircle(pr.x, pr.y, 9);
       g.lineStyle(3, 0x1b1b2f, 1).strokeCircle(pr.x, pr.y, 9);
     }
     const evs = this.net.events.splice(0);
+    this.controls.setCooldowns(view.find((p) => p.id === this.net.id));
     this.fx.handle(evs, this.net.id, () => navigator.vibrate?.(30));
     this.hud.addEvents(evs, (id) => this.names.get(id) ?? '?');
     this.updateHud(view);

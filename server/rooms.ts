@@ -3,6 +3,7 @@ import { MAX_HUMANS, MAX_NAME_LEN, TICK_HZ } from '../shared/constants.ts';
 import type { InputMsg } from '../shared/protocol.ts';
 import { World } from '../shared/sim/world.ts';
 import { BotBrain } from '../shared/sim/bot.ts';
+import { resolveFighterId } from '../shared/fighters/index.ts';
 import { Match, rankPlayers } from './match.ts';
 
 const ROOM_RE = /^[a-z0-9-]{1,24}$/;
@@ -114,7 +115,7 @@ export class RoomManager {
       id: cid,
       ws,
       name: sanitizeName(nameRaw),
-      fighter: typeof fighterRaw === 'string' ? fighterRaw.slice(0, 24) : 'default',
+      fighter: resolveFighterId(fighterRaw),
     };
     room.clients.set(cid, client);
     room.world.addPlayer(cid, client.name, client.fighter);

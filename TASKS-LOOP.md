@@ -224,7 +224,13 @@ Each reaction shows a big popup word ("SHOCK!").
 
 ### CP3 — "Die ersten 4 Kämpfer (je 1 pro Welt)"
 
-- [ ] **T08 — Data-driven fighters + ability primitives**
+- [x] **T08 — Data-driven fighters + ability primitives**
+  - Done: `shared/fighters/{types,default,index}.ts` (FighterDef + 6-primitive `AbilityDef` union, registry with
+    `default` = Deckhand, join id validated via `resolveFighterId`), `shared/sim/abilities.ts` casts generically
+    (projectile count/spread/pierce/bounce/lob/aoeOnEnd, melee arc+knockback, dash+contactDmg, aoe delay/zone/tick/
+    push/pull, buff, status), `SimPlayer.def` drives radius/HP/speed/ammo/reload. Ult charge from damage dealt,
+    special+ult hold-to-cast gated by `cd`/charge, bots press both. Snapshot `uc` (%) + `cd` (s); HUD shows
+    "SPC ready/cd · ULT n%", touch buttons get their rings filled. 23 new unit tests (vitest 56 total).
   - Do:
     - `shared/fighters/types.ts`:
       - `FighterDef {id,name,faction,element,role,blurb,radius,maxHp,speedMul,attack:AbilityDef,special:AbilityDef,ult:AbilityDef,ultCharge}`;
@@ -555,3 +561,4 @@ Cameo: **Purrl**, a sea snail that meows. Arena critter, backlog item.
 - T05 ✅ 2026-10-18 — BotBrain (wander/chase/kite/flee, lead+error, react delay, whiskers), room bots, dbg bots, unit+smoke green
 - T06 ✅ 2026-10-18 — DOM lobby+invite+☰ menu, clipboard fallback, bots msg; portrait rotate hint no longer covers menus
 - T07 ✅ 2026-10-18 — Match-Flow + HUD-Scene (Timer/KOs/Feed/Scoreboard), Results-Overlay, ?matchsec, Touch-Tap-Fix
+- T08 ✅ 2026-10-18 — Fighter-Registry + 6 Ability-Primitive generisch, Ult-Ladung/Special-CD im Snap+HUD, Bots nutzen beides

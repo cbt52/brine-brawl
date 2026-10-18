@@ -1,0 +1,131 @@
+/**
+ * Fighter & ability data. Everything here is plain data — the sim (`shared/sim/abilities.ts`)
+ * executes the primitives generically, so a new fighter is normally just a new entry in
+ * `shared/fighters/index.ts`. Only when a primitive cannot express an idea, add a custom hook in
+ * `shared/fighters/hooks/<id>.ts`.
+ */
+
+export type Faction = 'critterkin' | 'weavers' | 'saltwind' | 'bubblebottom';
+
+export type Element = 'neutral' | 'water' | 'fire' | 'volt' | 'earth' | 'leaf' | 'air';
+
+export type StatusKind = 'wet' | 'burn' | 'static' | 'heavy' | 'tangled';
+
+/** Snapshot code for a status (`st`), 0 = none. */
+export const STATUS_CODE: Record<StatusKind, number> = { wet: 1, burn: 2, static: 3, heavy: 4, tangled: 5 };
+
+export type Role = 'allrounder' | 'bruiser' | 'sharpshooter' | 'skirmisher' | 'support';
+
+/** Fields every ability shares. `cd` is the cooldown in seconds (attack uses ammo instead). */
+interface AbilityBase {
+  /** cosmetic key for the client FX pass (T13) */
+  fx?: string;
+  cd?: number;
+}
+
+export interface ProjectileAbility extends AbilityBase {
+  kind: 'projectile';
+  /** number of projectiles per cast */
+  count: number;
+  /** total spread in degrees across `count` (0 = all on one line) */
+  spread: number;
+  speed: number;
+  range: number;
+  dmg: number;
+  radius: number;
+  /** passes through enemies instead of dying on the first hit */
+  pierce?: boolean;
+  /** number of wall bounces before dying (0/undefined = none) */
+  bounce?: number;
+  /** lobbed shot: flies over walls (still stops at the arena border) */
+  lob?: boolean;
+  /** damage blob when the projectile expires or hits */
+  aoeOnEnd?: { radius: number; dmg: number };
+}
+
+export interface MeleeAbility extends AbilityBase {
+  kind: 'melee';
+  /** full swing arc in degrees, centred on the aim */
+  arcDeg: number;
+  range: number;
+  dmg: number;
+  knockback: number;
+}
+
+export interface DashAbility extends AbilityBase {
+  kind: 'dash';
+  dist: number;
+  /** seconds the dash lasts */
+  dur: number;
+  /** damage dealt to every enemy touched once */
+  contactDmg?: number;
+  /** cosmetic: leave a trail */
+  trail?: boolean;
+}
+
+export interface AoeAbility extends AbilityBase {
+  kind: 'aoe';
+  at: 'self' | 'aim';
+  /** distance from the caster when `at:'aim'` */
+  range?: number;
+  radius: number;
+  /** seconds until the zone triggers (0 = instant) */
+  delay: number;
+  dmg: number;
+  /** shove targets away (units, instant) */
+  push?: number;
+  /** drag targets toward the centre (units, instant) */
+  pull?: number;
+  /** lifetime after the trigger; 0 = one instant hit */
+  zoneSec?: number;
+  /** damage every 0.5 s while the zone is alive */
+  tickDmg?: number;
+}
+
+export interface BuffAbility extends AbilityBase {
+  kind: 'buff';
+  /** extra spawn-shield seconds */
+  shield?: number;
+  /** HP restored (capped at max HP) */
+  heal?: number;
+  /** temporary movement multiplier */
+  speedMul?: number;
+  /** duration of the buff in seconds */
+  sec: number;
+}
+
+export interface StatusAbility extends AbilityBase {
+  kind: 'status';
+  at: 'self' | 'aim';
+  range?: number;
+  radius: number;
+  status: StatusKind;
+  /** status duration in seconds */
+  sec: number;
+  dmg?: number;
+}
+
+export type AbilityDef = ProjectileAbility | MeleeAbility | DashAbility | AoeAbility | BuffAbility | StatusAbility;
+
+export interface FighterDef {
+  /** registry key, also sent in `join.fighter` */
+  id: string;
+  name: string;
+  faction: Faction;
+  element: Element;
+  role: Role;
+  /** one-liner for the select screen */
+  blurb: string;
+  radius: number;
+  maxHp: number;
+  /** movement multiplier on BASE_SPEED (0.85–1.25) */
+  speedMul: number;
+  /** attack ammo and the seconds to reload one */
+  ammo: number;
+  reload: number;
+  attack: AbilityDef;
+  special: AbilityDef;
+  ult: AbilityDef;
+  /** damage dealt needed to charge the ult */
+  ultCharge: number;
+}

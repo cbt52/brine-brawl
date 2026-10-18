@@ -1,7 +1,7 @@
 import { OBSTACLES, SPAWNS } from '../arena/docks.ts';
 import { WORLD_W, WORLD_H } from '../constants.ts';
 import { pushOutRect } from './collide.ts';
-import { PROJ_RANGE, PROJ_SPEED } from './combat.ts';
+import { abilityReach } from './abilities.ts';
 import type { SimInput, SimPlayer, World } from './world.ts';
 
 export type BotDifficulty = 'easy' | 'normal';
@@ -87,6 +87,10 @@ export class BotBrain {
     let move = 1;
     let aim = me.aim;
     let fire = false;
+    let dist = Infinity;
+    const atk = me.def.attack;
+    const shotRange = atk.kind === 'projectile' ? atk.range : abilityReach(atk);
+    const shotSpeed = atk.kind === 'projectile' ? atk.speed : 900;
 
     if (!t) {
       this.state = 'wander';
@@ -97,7 +101,7 @@ export class BotBrain {
     } else {
       const dx = t.x - me.x;
       const dy = t.y - me.y;
-      const dist = Math.hypot(dx, dy);
+      dist = Math.hypot(dx, dy);
       const to = Math.atan2(dy, dx);
       if (me.hp < me.mhp * FLEE_FRAC) {
         this.state = 'flee';
@@ -110,11 +114,11 @@ export class BotBrain {
         heading = Math.atan2(far.y - me.y, far.x - me.x);
         if (Math.hypot(far.x - me.x, far.y - me.y) < 60) move = 0;
         aim = to;
-        fire = me.ammo > 0 && dist < PROJ_RANGE * 0.8;
+        fire = me.ammo > 0 && dist < shotRange * 0.8;
       } else {
-        const lead = dist / PROJ_SPEED;
+        const lead = dist / shotSpeed;
         aim = Math.atan2(dy + this.vel.y * lead, dx + this.vel.x * lead) + this.err;
-        fire = me.ammo > 0 && dist < PROJ_RANGE * 0.9;
+        fire = me.ammo > 0 && dist < shotRange * 0.9;
         if (dist > PREF_RANGE * 1.2) {
           this.state = 'chase';
           heading = to;
@@ -132,6 +136,9 @@ export class BotBrain {
     out.ax = Math.cos(aim);
     out.ay = Math.sin(aim);
     out.atk = fire;
+    // special when the target is inside its reach and the cooldown is ready, ult as soon as it is charged
+    out.spc = !!t && me.spcCd <= 0 && dist <= abilityReach(me.def.special);
+    out.ult = !!t && me.uc >= me.def.ultCharge && dist <= abilityReach(me.def.ult) + 120;
     return out;
   }
 }

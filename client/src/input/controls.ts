@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
-import type { InputMsg } from '../../../shared/protocol.ts';
+import type { InputMsg, SnapPlayer } from '../../../shared/protocol.ts';
+import { DEFAULT_FIGHTER, getFighter } from '../../../shared/fighters/index.ts';
 import type { Net } from '../net.ts';
 import { TouchControls, isTouchDevice } from './touch.ts';
 
@@ -77,6 +78,15 @@ export class Controls {
       t: 'in', seq: this.seq, mx, my, ax: this.aimX, ay: this.aimY,
       atk: this.atk || !!t?.firing, spc: this.spc || k.E.isDown || !!t?.spc, ult: k.Q.isDown || k.SPACE.isDown || !!t?.ult,
     };
+  }
+
+  /** Feed the touch buttons their charge state (fraction 0..1). */
+  setCooldowns(me: SnapPlayer | undefined): void {
+    if (!this.touch) return;
+    const def = me ? getFighter(me.f) : DEFAULT_FIGHTER;
+    const max = def.special.cd ?? 0;
+    const spc = !me || max <= 0 ? 1 : Math.max(0, Math.min(1, 1 - me.cd / max));
+    this.touch.setCooldowns(spc, Math.max(0, Math.min(1, (me?.uc ?? 0) / 100)));
   }
 
   /** Call every frame; sends on change or every 100 ms. */

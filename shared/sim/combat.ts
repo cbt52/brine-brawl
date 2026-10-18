@@ -1,3 +1,4 @@
+/** Default-fighter combat numbers (kept for tests and legacy imports; kits carry their own). */
 export const PROJ_SPEED = 900;
 export const PROJ_RANGE = 600;
 export const PROJ_DMG = 20;
@@ -17,7 +18,18 @@ export interface Projectile {
   y: number;
   vx: number;
   vy: number;
+  /** distance left before it expires */
   left: number;
   dmg: number;
   r: number;
+  /** passes through enemies (each one is hit once) */
+  pierce?: boolean;
+  /** wall bounces left */
+  bounces?: number;
+  /** ignores walls */
+  lob?: boolean;
+  /** damage blob on expiry or first hit */
+  aoeOnEnd?: { radius: number; dmg: number };
+  /** enemies already hit by a piercing shot */
+  hit?: Set<number>;
 }
